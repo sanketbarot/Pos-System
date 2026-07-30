@@ -83,8 +83,8 @@ window.views.pos = {
                 <span id="bill-bogo-discount" style="color: #ff4b2b;">-₹0.00</span>
               </div>
               <div class="billing-line">
-                <span>Discount (₹)</span>
-                <input type="number" id="bill-discount-input" class="customer-input" style="width: 70px; height: 22px; padding: 2px 4px; font-size: 11px; text-align: right;" value="0" min="0">
+                <span>Discount (%)</span>
+                <input type="number" id="bill-discount-input" class="customer-input" style="width: 70px; height: 22px; padding: 2px 4px; font-size: 11px; text-align: right;" value="0" min="0" max="100">
               </div>
               <div class="billing-line">
                 <span class="flex-gap-sm">
@@ -123,9 +123,9 @@ window.views.pos = {
   renderCategories() {
     const cats = window.db.get("categories") || [];
     const container = document.getElementById("pos-category-list");
-    
+
     let html = `<div class="category-tab active" data-id="all"><i class="fa-solid fa-border-all"></i> All Items</div>`;
-    
+
     cats.forEach(c => {
       // Map fontawesome names to solid icons
       let icon = "fa-pizza-slice";
@@ -163,14 +163,14 @@ window.views.pos = {
   renderProducts() {
     const products = window.db.get("products") || [];
     const grid = document.getElementById("pos-grid");
-    
+
     // Filter logic
     let filtered = products.filter(p => p.available);
-    
+
     if (this.selectedCategory !== "all") {
       filtered = filtered.filter(p => p.category === this.selectedCategory);
     }
-    
+
     if (this.searchQuery.trim() !== "") {
       const q = this.searchQuery.toLowerCase().trim();
       filtered = filtered.filter(p => p.name.toLowerCase().includes(q));
@@ -189,10 +189,10 @@ window.views.pos = {
     grid.innerHTML = filtered.map(p => {
       // Check recipe stocks to display indicators
       const stockCheck = window.db.checkStockAvailability(p.id, 1);
-      
+
       let indicatorHtml = `<span class="product-stock-indicator"><i class="fa-solid fa-circle" style="color: var(--color-ready); font-size: 8px;"></i> Available</span>`;
       let outOfStockClass = "";
-      
+
       if (!stockCheck.available) {
         indicatorHtml = `<span class="product-stock-indicator low"><i class="fa-solid fa-circle" style="color: var(--color-cancelled); font-size: 8px;"></i> OUT OF STOCK</span>`;
         outOfStockClass = "out-of-stock";
@@ -203,14 +203,14 @@ window.views.pos = {
           const ing = ingredients.find(i => i.id === ingId);
           return ing && ing.stock <= ing.minLimit * 1.5; // low stock warnings helper
         }) : false;
-        
+
         if (isNearLowStock) {
           indicatorHtml = `<span class="product-stock-indicator low"><i class="fa-solid fa-circle" style="color: var(--color-pending); font-size: 8px;"></i> Low Ingredients</span>`;
         }
       }
 
       return `
-        <div class="product-card ${outOfStockClass}" data-id="${p.id}">
+        <div class="product-card ${outOfStockClass} ${p.bogo ? 'has-bogo' : ''}" data-id="${p.id}">
           ${p.bogo ? `<span class="product-bogo-badge">BOGO Offer</span>` : ""}
           <div class="product-info-top">
             <span class="product-name">${p.name}</span>
@@ -263,7 +263,6 @@ window.views.pos = {
       });
     }
 
-    window.showToast(`Added ${product.name} to checkout`, "success");
     this.renderCart();
   },
 
@@ -321,9 +320,9 @@ window.views.pos = {
     list.innerHTML = this.cart.map(item => {
       let bogoTag = "";
       if (item.bogo) {
-        bogoTag = `<span style="font-size: 10px; background: #e91e63; color:#fff; padding:1px 4px; border-radius:3px; margin-left:6px;">BOGO Eligible</span>`;
+        bogoTag = `<span style="font-size: 10px; background: #ff8008; color:#fff; padding:1px 4px; border-radius:3px; margin-left:6px;">BOGO Eligible</span>`;
       }
-      
+
       const lineTotal = item.price * item.quantity;
 
       return `
@@ -352,7 +351,7 @@ window.views.pos = {
 
   calculateBillTotals() {
     let subtotal = 0;
-    
+
     // Sum standard totals
     this.cart.forEach(item => {
       subtotal += item.price * item.quantity;
@@ -370,7 +369,7 @@ window.views.pos = {
     });
 
     bogoPrices.sort((a, b) => b - a); // Higher price first
-    
+
     let bogoDiscount = 0;
     for (let i = 1; i < bogoPrices.length; i += 2) {
       bogoDiscount += bogoPrices[i]; // Second/lower price item in every pair is free
@@ -386,12 +385,15 @@ window.views.pos = {
     }
 
     const discountVal = Number(document.getElementById("bill-discount-input").value) || 0;
+    const discountPercent = Math.min(100, Math.max(0, discountVal));
+    const flatDiscountAmount = Math.round((subtotal - bogoDiscount) * (discountPercent / 100) * 100) / 100;
+
     const gstEnabled = document.getElementById("tax-enable-checkbox").checked;
-    
+
     const settings = window.db.get("settings") || {};
     const gstRate = settings.gstPercentage || 5;
 
-    const netBeforeTax = Math.max(0, subtotal - bogoDiscount - discountVal);
+    const netBeforeTax = Math.max(0, subtotal - bogoDiscount - flatDiscountAmount);
     const taxVal = gstEnabled ? Math.round(netBeforeTax * (gstRate / 100) * 100) / 100 : 0;
     const netTotal = netBeforeTax + taxVal;
 
@@ -430,7 +432,7 @@ window.views.pos = {
     // 5. Order Type selection
     const dinein = document.getElementById("type-dinein");
     const takeaway = document.getElementById("type-takeaway");
-    
+
     dinein.onclick = () => {
       dinein.classList.add("active");
       takeaway.classList.remove("active");
@@ -474,12 +476,12 @@ window.views.pos = {
     const customerPhone = document.getElementById("cust-phone").value.trim() || "";
     const discountVal = Number(document.getElementById("bill-discount-input").value) || 0;
     const gstEnabled = document.getElementById("tax-enable-checkbox").checked;
-    
+
     let subtotal = 0;
     const formattedItems = this.cart.map(item => {
       const lineTotal = item.price * item.quantity;
       subtotal += lineTotal;
-      
+
       return {
         productId: item.productId,
         name: item.name,
@@ -509,7 +511,10 @@ window.views.pos = {
     const settings = window.db.get("settings") || {};
     const gstRate = settings.gstPercentage || 5;
 
-    const netBeforeTax = Math.max(0, subtotal - bogoDiscount - discountVal);
+    const discountPercent = Math.min(100, Math.max(0, discountVal));
+    const flatDiscountAmount = Math.round((subtotal - bogoDiscount) * (discountPercent / 100) * 100) / 100;
+
+    const netBeforeTax = Math.max(0, subtotal - bogoDiscount - flatDiscountAmount);
     const taxVal = gstEnabled ? Math.round(netBeforeTax * (gstRate / 100) * 100) / 100 : 0;
     const netTotal = netBeforeTax + taxVal;
 
@@ -519,7 +524,7 @@ window.views.pos = {
       customerPhone: customerPhone,
       items: formattedItems,
       subtotal: subtotal,
-      discount: discountVal,
+      discount: flatDiscountAmount,
       bogoDiscount: bogoDiscount, // save global bogo discount
       tax: taxVal,
       total: netTotal,
@@ -529,7 +534,7 @@ window.views.pos = {
 
     if (response.success) {
       window.showToast(`Order #${response.order.orderNumber} successfully processed!`, "success");
-      
+
       // Force update inventory warnings in headers
       const updateHeaderPill = document.createEvent("Event");
       updateHeaderPill.initEvent("db-update", true, true);
@@ -537,7 +542,55 @@ window.views.pos = {
 
       // Trigger printable receipt billing modal
       this.showReceiptModal(response.order);
-      
+
+      // Send receipt to WhatsApp automatically if customer phone number is provided
+      if (customerPhone) {
+        let formattedPhone = customerPhone.replace(/\D/g, "");
+        if (formattedPhone.length === 10) {
+          formattedPhone = "91" + formattedPhone;
+        }
+
+        // Format Date & Time for WhatsApp message
+        const dateObj = new Date(response.order.createdAt);
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const yy = String(dateObj.getFullYear()).slice(-2);
+        const orderDate = `${dd}/${mm}/${yy}`;
+        const orderTime = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+
+        let waText = `*Crust & Chilly*\n`;
+        waText += `Shop-09, Shree sanidhya flora, Shela, Ahmedabad\n`;
+        waText += `------------------------------------\n`;
+        waText += `*INVOICE BILL*\n`;
+        waText += `*Bill No:* #${response.order.orderNumber}\n`;
+        waText += `*Date:* ${orderDate} ${orderTime}\n`;
+        waText += `*Type:* ${response.order.type} (${response.order.paymentMethod})\n`;
+        waText += `*Customer:* ${response.order.customerName}\n`;
+        waText += `------------------------------------\n`;
+
+        response.order.items.forEach(item => {
+          waText += `• _${item.name}_ x${item.quantity} - ₹${item.lineTotal.toFixed(2)}\n`;
+        });
+        waText += `------------------------------------\n`;
+        waText += `*Sub Total:* ₹${response.order.subtotal.toFixed(2)}\n`;
+        if (response.order.bogoDiscount > 0) {
+          waText += `*BOGO Discount:* -₹${response.order.bogoDiscount.toFixed(2)}\n`;
+        }
+        if (response.order.discount > 0) {
+          waText += `*Cash Discount:* -₹${response.order.discount.toFixed(2)}\n`;
+        }
+        if (response.order.tax > 0) {
+          waText += `*GST (5%):* ₹${response.order.tax.toFixed(2)}\n`;
+        }
+        waText += `------------------------------------\n`;
+        waText += `*GRAND TOTAL: ₹${response.order.total.toFixed(2)}*\n`;
+        waText += `------------------------------------\n`;
+        waText += `Thank you for dining with us!`;
+
+        const waUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(waText)}`;
+        window.open(waUrl, "_blank");
+      }
+
       // Clear Cart state
       this.cart = [];
       document.getElementById("cust-name").value = "Walk-in Customer";
@@ -548,7 +601,7 @@ window.views.pos = {
     } else {
       // Trigger error details
       const missingHtml = response.details.map(d => `<li><strong>${d.name}</strong>: Current stock is ${Math.round(d.current)} ${d.unit}, but order needs ${Math.round(d.needed)} ${d.unit}.</li>`).join("");
-      
+
       window.customModal.show({
         title: "Stock Allocation Blocked",
         bodyHtml: `
@@ -567,63 +620,232 @@ window.views.pos = {
 
   showReceiptModal(order) {
     const settings = window.db.get("settings") || {};
-    const dateStr = new Date(order.createdAt).toLocaleString();
-    
-    const itemsHtml = order.items.map(item => {
-      let bogoLabel = item.bogo ? " (BOGO)" : "";
-      return `${item.name.substring(0, 20).padEnd(20)}${bogoLabel.padEnd(6)} x${item.quantity.toString().padEnd(2)} ₹${item.lineTotal.toString().padStart(5)}`;
-    }).join("\n");
+
+    // Format Date & Time
+    const dateObj = new Date(order.createdAt);
+    const dd = String(dateObj.getDate()).padStart(2, '0');
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const yy = String(dateObj.getFullYear()).slice(-2);
+    const orderDate = `${dd}/${mm}/${yy}`;
+
+    const hh = String(dateObj.getHours()).padStart(2, '0');
+    const min = String(dateObj.getMinutes()).padStart(2, '0');
+    const orderTime = `${hh}:${min}`;
+
+    // Get cashier info
+    const currentUser = window.db.getCurrentUser() || { name: "biller" };
+    const cashierName = currentUser.name.split(' ')[0];
+
+    // Token No. (orderNumber)
+    const tokenNo = order.orderNumber;
+
+    // Total items quantity
+    const totalQty = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+    // Dynamic UPI QR code payload
+    const upiId = settings.upiId || "7487980840@okbizaxis";
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(settings.restaurantName || "Crust & Chilly")}&am=${order.total.toFixed(2)}&cu=INR&tn=Order${order.orderNumber}`;
+
+    // WhatsApp Message compilation
+    let waUrl = "";
+    if (order.customerPhone) {
+      let formattedPhone = order.customerPhone.replace(/\D/g, "");
+      if (formattedPhone.length === 10) {
+        formattedPhone = "91" + formattedPhone;
+      }
+
+      let waText = `*Crust & Chilly*\n`;
+      waText += `Shop-09, Shree sanidhya flora, Shela, Ahmedabad\n`;
+      waText += `------------------------------------\n`;
+      waText += `*INVOICE BILL*\n`;
+      waText += `*Bill No:* #${order.orderNumber}\n`;
+      waText += `*Date:* ${orderDate} ${orderTime}\n`;
+      waText += `*Type:* ${order.type} (${order.paymentMethod})\n`;
+      waText += `*Customer:* ${order.customerName}\n`;
+      waText += `------------------------------------\n`;
+
+      order.items.forEach(item => {
+        waText += `• _${item.name}_ x${item.quantity} - ₹${item.lineTotal.toFixed(2)}\n`;
+      });
+      waText += `------------------------------------\n`;
+      waText += `*Sub Total:* ₹${order.subtotal.toFixed(2)}\n`;
+      if (order.bogoDiscount > 0) {
+        waText += `*BOGO Discount:* -₹${order.bogoDiscount.toFixed(2)}\n`;
+      }
+      if (order.discount > 0) {
+        waText += `*Cash Discount:* -₹${order.discount.toFixed(2)}\n`;
+      }
+      if (order.tax > 0) {
+        waText += `*GST (5%):* ₹${order.tax.toFixed(2)}\n`;
+      }
+      waText += `------------------------------------\n`;
+      waText += `*GRAND TOTAL: ₹${order.total.toFixed(2)}*\n`;
+      waText += `------------------------------------\n`;
+      waText += `Thank you for dining with us!`;
+
+      waUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(waText)}`;
+    }
 
     const receiptHtml = `
       <div class="receipt-wrapper">
+        <!-- Logo centered -->
+        <img src="logo.jpg" alt="Logo" class="receipt-logo">
+        
         <div class="receipt-header">
           <div class="receipt-title">${settings.restaurantName || "Crust & Chilly"}</div>
-          <div>${settings.address || "Chili Square, Corporate Road"}</div>
-          <div>Phone: ${settings.phone || "9876543210"}</div>
+          <div class="receipt-subtitle">${settings.address || "Shop-09, Shree sanidhya flora, Turquoise BLU Rd, Shela, Ahmedabad, Gujarat 380057"}</div>
+          <div class="receipt-subtitle">Phone: ${settings.phone || "096648 70840"}</div>
         </div>
         
         <div class="receipt-dotted-line"></div>
         
         <div class="receipt-meta">
-          <div><strong>Order #:</strong> ${order.orderNumber}</div>
-          <div><strong>Date:</strong> ${dateStr}</div>
-          <div><strong>Type:</strong> ${order.type} (${order.paymentMethod})</div>
-          <div><strong>Cust:</strong> ${order.customerName}</div>
+          <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
+          <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
+          <div class="receipt-meta-row">
+            <span>Date: ${orderDate}</span>
+            <span style="font-weight: bold;">${order.type}</span>
+          </div>
+          <div class="receipt-meta-row">
+            <span>${orderTime}</span>
+            <span></span>
+          </div>
+          <div class="receipt-meta-row">
+            <span>Cashier: ${cashierName}</span>
+            <span>Bill No.: ${order.orderNumber}</span>
+          </div>
+          <div class="receipt-token-no">Token No.: ${tokenNo}</div>
         </div>
         
         <div class="receipt-dotted-line"></div>
         
-        <pre style="margin: 0; font-family: inherit; font-size: inherit;">
-${"Item Description".padEnd(26)} Qty  Amount
-${"-".repeat(38)}
-${itemsHtml}
-        </pre>
+        <table class="receipt-table">
+          <thead>
+            <tr>
+              <th style="width: 50%;">Item</th>
+              <th style="text-align: center; width: 15%;">Qty</th>
+              <th style="text-align: right; width: 15%;">Price</th>
+              <th style="text-align: right; width: 20%;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${order.items.map(item => {
+      let bogoLabel = item.bogo ? "<br><span class='receipt-bogo-label'>(BOGO Eligible)</span>" : "";
+      return `
+                <tr>
+                  <td>
+                    <span class="receipt-item-name">${item.name}</span>
+                    ${bogoLabel}
+                  </td>
+                  <td style="text-align: center;">${item.quantity}</td>
+                  <td style="text-align: right;">${item.price.toFixed(2)}</td>
+                  <td style="text-align: right;">${item.lineTotal.toFixed(2)}</td>
+                </tr>
+              `;
+    }).join("")}
+          </tbody>
+        </table>
         
         <div class="receipt-dotted-line"></div>
         
         <div class="receipt-totals">
-          <div class="receipt-total-line"><span>Subtotal:</span><span>₹${order.subtotal.toFixed(2)}</span></div>
-          ${order.bogoDiscount > 0 ? `<div class="receipt-total-line" style="font-weight: 600; color: #d62d20;"><span>BOGO Discount:</span><span>-₹${order.bogoDiscount.toFixed(2)}</span></div>` : ""}
-          ${order.discount > 0 ? `<div class="receipt-total-line"><span>Cash Discount:</span><span>-₹${order.discount.toFixed(2)}</span></div>` : ""}
-          <div class="receipt-total-line"><span>GST (5%):</span><span>₹${order.tax.toFixed(2)}</span></div>
-          <div class="receipt-total-line bold" style="font-size: 15px; border-top: 1px dashed #000; padding-top: 5px;"><span>Grand Total:</span><span>₹${order.total.toFixed(2)}</span></div>
+          <div class="receipt-total-line">
+            <span>Total Qty: ${totalQty}</span>
+            <span>Sub Total: ₹${order.subtotal.toFixed(2)}</span>
+          </div>
+          
+          ${order.bogoDiscount > 0 || order.discount > 0 || order.tax > 0 ? `
+            <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
+          ` : ""}
+          
+          ${order.bogoDiscount > 0 ? `
+            <div class="receipt-total-line" style="font-weight: 600; color: #d62d20;">
+              <span>BOGO Discount:</span>
+              <span>-₹${order.bogoDiscount.toFixed(2)}</span>
+            </div>
+          ` : ""}
+          
+          ${order.discount > 0 ? `
+            <div class="receipt-total-line">
+              <span>Cash Discount:</span>
+              <span>-₹${order.discount.toFixed(2)}</span>
+            </div>
+          ` : ""}
+          
+          ${order.tax > 0 ? `
+            <div class="receipt-total-line">
+              <span>GST (5%):</span>
+              <span>₹${order.tax.toFixed(2)}</span>
+            </div>
+          ` : ""}
+          
+          <div class="receipt-grand-total">
+            <span>Grand Total</span>
+            <span>₹${order.total.toFixed(2)}</span>
+          </div>
         </div>
         
-        <div class="receipt-dotted-line" style="margin-top: 15px;"></div>
-        <div style="text-align: center; margin-top: 10px; font-weight: bold;">
-          Thank you for dining with us!
+        <div class="receipt-dotted-line"></div>
+        
+        <div class="receipt-footer">
+          <div style="font-weight: bold; margin-bottom: 6px;">For Order or More : ${settings.phone || "096648 70840"}</div>
+          
+          <div class="receipt-qr-wrapper">
+            <img class="receipt-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUrl)}" alt="Scan to Pay">
+            <div class="receipt-qr-text">Pay via the QR code.</div>
+          </div>
+
+          ${waUrl ? `
+            <a href="${waUrl}" target="_blank" class="receipt-wa-btn" style="display: block; text-align: center; background: #25D366; color: #fff; font-weight: bold; padding: 10px; border-radius: 4px; text-decoration: none; margin: 12px 0; font-family: sans-serif; font-size: 14px; box-shadow: 0 2px 5px rgba(37,211,102,0.3);">
+              <i class="fa-brands fa-whatsapp" style="font-size: 16px; margin-right: 6px; vertical-align: middle;"></i> Send on WhatsApp
+            </a>
+          ` : ""}
+          
+          <div class="receipt-dotted-line" style="margin-top: 8px;"></div>
+          <div style="font-weight: bold; margin-top: 6px; text-transform: uppercase;">Thank you for dining with us!</div>
         </div>
       </div>
       
       <!-- Custom print styles only active when printing -->
       <style>
         @media print {
-          body * { visibility: hidden; }
-          .modal-overlay { background: transparent !important; backdrop-filter: none !important; position: absolute; left: 0; top: 0; width: 100%; height: auto; }
-          .modal-content { border: none !important; box-shadow: none !important; width: 100% !important; max-width: 100% !important; }
+          body { background: #fff !important; color: #000 !important; }
+          body * { visibility: hidden !important; }
+          .modal-overlay { 
+            position: absolute !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            width: 100% !important; 
+            height: auto !important; 
+            background: transparent !important; 
+            backdrop-filter: none !important; 
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .modal-content { 
+            border: none !important; 
+            box-shadow: none !important; 
+            background: transparent !important;
+            width: 100% !important; 
+            max-width: 100% !important; 
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .modal-body {
+            padding: 0 !important;
+            margin: 0 !important;
+          }
           .modal-header, .modal-footer { display: none !important; }
-          .receipt-wrapper { visibility: visible; width: 80mm; margin: 0; padding: 0; }
-          .receipt-wrapper * { visibility: visible; }
+          .receipt-wrapper { 
+            visibility: visible !important; 
+            width: 80mm !important; 
+            margin: 0 auto !important; 
+            padding: 10px !important; 
+            box-shadow: none !important;
+          }
+          .receipt-wrapper * { visibility: visible !important; }
+          .receipt-wa-btn { display: none !important; }
         }
       </style>
     `;

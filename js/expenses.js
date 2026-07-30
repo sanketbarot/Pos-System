@@ -106,7 +106,7 @@ window.views.expenses = {
         <tr>
           <td style="font-weight: 700;">${exp.id}</td>
           <td>
-            <span class="badge" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--text-muted);">
+            <span class="badge" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: var(--text-muted);">
               ${exp.category}
             </span>
           </td>

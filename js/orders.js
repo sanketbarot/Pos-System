@@ -75,7 +75,7 @@ window.views.orders = {
 
   renderKds(mount) {
     const orders = window.db.get("orders") || [];
-    
+
     // KDS tracks Pending, Preparing, Ready
     const pendingOrders = orders.filter(o => o.status === "Pending");
     const preparingOrders = orders.filter(o => o.status === "Preparing");
@@ -136,7 +136,7 @@ window.views.orders = {
         const orderId = btn.getAttribute("data-id");
         const nextStatus = btn.getAttribute("data-next");
         window.db.updateOrderStatus(orderId, nextStatus);
-        
+
         window.showToast(`Order status updated to ${nextStatus}`, "success");
         this.renderActiveTab();
       };
@@ -249,7 +249,7 @@ window.views.orders = {
     let filtered = orders;
     if (this.searchQuery.trim() !== "") {
       const q = this.searchQuery.toLowerCase().trim();
-      filtered = orders.filter(o => 
+      filtered = orders.filter(o =>
         o.id.toLowerCase().includes(q) ||
         o.customerName.toLowerCase().includes(q) ||
         o.customerPhone.includes(q)
@@ -268,7 +268,7 @@ window.views.orders = {
     } else {
       rowsHtml = filtered.map(o => {
         const date = new Date(o.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-        
+
         let statusBadge = "badge-pending";
         if (o.status === "Preparing") statusBadge = "badge-preparing";
         if (o.status === "Ready") statusBadge = "badge-ready";

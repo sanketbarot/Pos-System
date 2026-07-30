@@ -271,6 +271,11 @@ window.views.reports = {
   },
 
   renderReportsCharts(orders, categories, products) {
+    // Get style variables for theme compatibility
+    const textMuted = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#9ba1ad';
+    const bgDarker = getComputedStyle(document.documentElement).getPropertyValue('--bg-darker').trim() || '#ffffff';
+    const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || 'rgba(0,0,0,0.08)';
+
     const datesLabel = [];
     const salesDataPoints = [];
 
@@ -313,16 +318,16 @@ window.views.reports = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: "#9ba1ad", font: { family: "Outfit" } } }
+          legend: { labels: { color: textMuted, font: { family: "Outfit" } } }
         },
         scales: {
           x: {
-            grid: { color: "rgba(255,255,255,0.02)" },
-            ticks: { color: "#9ba1ad", font: { family: "Outfit" } }
+            grid: { color: borderColor },
+            ticks: { color: textMuted, font: { family: "Outfit" } }
           },
           y: {
-            grid: { color: "rgba(255,255,255,0.02)" },
-            ticks: { color: "#9ba1ad", font: { family: "Outfit" } }
+            grid: { color: borderColor },
+            ticks: { color: textMuted, font: { family: "Outfit" } }
           }
         }
       }
@@ -361,9 +366,9 @@ window.views.reports = {
         datasets: [
           {
             data: pieData.length === 0 ? [1] : pieData,
-            backgroundColor: pieData.length === 0 ? ["#292524"] : ["#ff4b2b", "#ff8008", "#00e676", "#00b0ff", "#2979ff", "#ffb300", "#e91e63", "#9c27b0", "#009688", "#795548"],
+            backgroundColor: pieData.length === 0 ? [borderColor] : ["#ff4b2b", "#ff8008", "#00e676", "#00b0ff", "#2979ff", "#ffb300", "#e91e63", "#9c27b0", "#009688", "#795548"],
             borderWidth: 1,
-            borderColor: "#121010"
+            borderColor: bgDarker
           }
         ]
       },
@@ -373,7 +378,7 @@ window.views.reports = {
         plugins: {
           legend: {
             position: "right",
-            labels: { color: "#9ba1ad", font: { family: "Outfit" } }
+            labels: { color: textMuted, font: { family: "Outfit" } }
           }
         },
         cutout: "60%"

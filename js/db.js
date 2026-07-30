@@ -26,6 +26,13 @@ const db = {
       this.seedData();
       this.set("initialized", true);
       console.log("Crust & Chilly POS: Database initialized with seed data.");
+    } else {
+      // Auto-update existing settings with new address, phone, and upiId
+      const currentSettings = this.get("settings") || {};
+      currentSettings.address = "Shop-09, Shree sanidhya flora, Turquoise BLU Rd, Shela, Ahmedabad, Gujarat 380057";
+      currentSettings.phone = "096648 70840";
+      currentSettings.upiId = "7487980840@okbizaxis";
+      this.set("settings", currentSettings);
     }
   },
 
@@ -195,8 +202,9 @@ const db = {
       enableGst: false,
       serviceCharge: 0,
       currencySymbol: "₹",
-      phone: "+91 98765 43210",
-      address: "Chili Square, Corporate Road, Ahmedabad"
+      phone: "096648 70840",
+      address: "Shop-09, Shree sanidhya flora, Turquoise BLU Rd, Shela, Ahmedabad, Gujarat 380057",
+      upiId: "7487980840@okbizaxis"
     };
     this.set("settings", settings);
 
@@ -220,10 +228,10 @@ const db = {
 
     for (let day = 7; day >= 0; day--) {
       // 2 to 5 orders per day
-      const ordersCount = day === 0 ? 6 : Math.floor(Math.random() * 4) + 2; 
+      const ordersCount = day === 0 ? 6 : Math.floor(Math.random() * 4) + 2;
       for (let j = 0; j < ordersCount; j++) {
         orderCounter++;
-        
+
         // Random items (1 to 3 items per order)
         const items = [];
         const itemCount = Math.min(products.length, Math.floor(Math.random() * 3) + 1);
@@ -241,14 +249,14 @@ const db = {
         for (let k = 0; k < itemCount; k++) {
           const prod = chosenProducts[k];
           const qty = Math.floor(Math.random() * 2) + 1;
-          
+
           // Calculate BOGO discount if applicable
           let bogoApplied = prod.bogo && qty >= 2;
           let chargedQty = qty;
           if (bogoApplied) {
-            chargedQty = Math.ceil(qty / 2); 
+            chargedQty = Math.ceil(qty / 2);
           }
-          
+
           const lineTotal = prod.price * chargedQty;
 
           items.push({
@@ -338,14 +346,14 @@ const db = {
 
     // Track stock purchase log
     const purchases = [
-      { id: "PUR-101", date: getPastDateStr(5), items: [ { ingredientId: "ing1", quantity: 100, cost: 400 }, { ingredientId: "ing2", quantity: 100, cost: 1200 } ], totalCost: 1600, supplier: "Apex Bakery" },
-      { id: "PUR-102", date: getPastDateStr(2), items: [ { ingredientId: "ing3", quantity: 200, cost: 1000 }, { ingredientId: "ing6", quantity: 20000, cost: 700 } ], totalCost: 1700, supplier: "Fresh Farms" }
+      { id: "PUR-101", date: getPastDateStr(5), items: [{ ingredientId: "ing1", quantity: 100, cost: 400 }, { ingredientId: "ing2", quantity: 100, cost: 1200 }], totalCost: 1600, supplier: "Apex Bakery" },
+      { id: "PUR-102", date: getPastDateStr(2), items: [{ ingredientId: "ing3", quantity: 200, cost: 1000 }, { ingredientId: "ing6", quantity: 20000, cost: 700 }], totalCost: 1700, supplier: "Fresh Farms" }
     ];
     this.set("purchases", purchases);
   },
 
   // Helper APIs for CRUD
-  
+
   // Auth Helpers
   login(username, password) {
     const users = this.get("users") || [];
@@ -371,15 +379,15 @@ const db = {
     const products = this.get("products") || [];
     const ingredients = this.get("ingredients") || [];
     const product = products.find(p => p.id === productId);
-    
+
     if (!product || !product.recipe) return { available: true }; // No recipe means service item or simple product
-    
+
     const issues = [];
-    
+
     for (const [ingId, amount] of Object.entries(product.recipe)) {
       const ing = ingredients.find(i => i.id === ingId);
       if (!ing) continue;
-      
+
       const totalRequired = amount * qtyNeeded;
       if (ing.stock < totalRequired) {
         issues.push({
@@ -392,7 +400,7 @@ const db = {
         });
       }
     }
-    
+
     return {
       available: issues.length === 0,
       issues: issues
@@ -404,10 +412,10 @@ const db = {
     // 1. Lock and decrement stock for all items
     const ingredients = this.get("ingredients") || [];
     const products = this.get("products") || [];
-    
+
     // Perform aggregate recipe requirements check first
     const aggregatedIngredientsNeeded = {};
-    
+
     for (const item of orderData.items) {
       const product = products.find(p => p.id === item.productId);
       if (product && product.recipe) {
@@ -417,7 +425,7 @@ const db = {
         }
       }
     }
-    
+
     // Verify all aggregated ingredients exist in stock
     const stockIssues = [];
     for (const [ingId, totalNeeded] of Object.entries(aggregatedIngredientsNeeded)) {
@@ -432,7 +440,7 @@ const db = {
         });
       }
     }
-    
+
     if (stockIssues.length > 0) {
       return {
         success: false,
@@ -440,7 +448,7 @@ const db = {
         details: stockIssues
       };
     }
-    
+
     // 2. Deduct Stock
     for (const [ingId, totalNeeded] of Object.entries(aggregatedIngredientsNeeded)) {
       const ingIndex = ingredients.findIndex(i => i.id === ingId);
@@ -449,7 +457,7 @@ const db = {
       }
     }
     this.set("ingredients", ingredients); // save updated ingredients back
-    
+
     // 3. Create the Order
     const orders = this.get("orders") || [];
     const nextCounter = (this.get("orderCounter") || 1000) + 1;
@@ -463,6 +471,7 @@ const db = {
       items: orderData.items,
       subtotal: orderData.subtotal,
       discount: orderData.discount || 0,
+      bogoDiscount: orderData.bogoDiscount || 0,
       tax: orderData.tax || 0,
       total: orderData.total,
       type: orderData.type || "Dine-in", // Dine-in or Takeaway
@@ -470,7 +479,7 @@ const db = {
       status: "Pending", // Pending, Preparing, Ready, Completed, Cancelled
       createdAt: new Date().toISOString()
     };
-    
+
     orders.unshift(newOrder); // Add to top
     this.set("orders", orders);
 
@@ -484,17 +493,17 @@ const db = {
   updateOrderStatus(orderId, newStatus) {
     const orders = this.get("orders") || [];
     const index = orders.findIndex(o => o.id === orderId);
-    
+
     if (index !== -1) {
       const oldStatus = orders[index].status;
       orders[index].status = newStatus;
-      
+
       // If an order is Cancelled, should we refund the inventory?
       // Yes! To represent a realistic POS system, canceling a pending/preparing order returns ingredients back to stock.
       if (newStatus === "Cancelled" && oldStatus !== "Cancelled" && oldStatus !== "Completed") {
         const ingredients = this.get("ingredients") || [];
         const products = this.get("products") || [];
-        
+
         for (const item of orders[index].items) {
           const product = products.find(p => p.id === item.productId);
           if (product && product.recipe) {
@@ -509,7 +518,7 @@ const db = {
         }
         this.set("ingredients", ingredients);
       }
-      
+
       this.set("orders", orders);
       return { success: true, order: orders[index] };
     }
@@ -520,7 +529,7 @@ const db = {
   recordPurchase(purchaseData) {
     const purchases = this.get("purchases") || [];
     const ingredients = this.get("ingredients") || [];
-    
+
     // Add purchase
     const nextId = `PUR-${100 + purchases.length + 1}`;
     const newPurchase = {
@@ -530,7 +539,7 @@ const db = {
       totalCost: purchaseData.totalCost,
       supplier: purchaseData.supplier || "Local Supplier"
     };
-    
+
     // Update stock levels
     for (const item of purchaseData.items) {
       const ingIndex = ingredients.findIndex(i => i.id === item.ingredientId);
@@ -538,18 +547,18 @@ const db = {
         ingredients[ingIndex].stock += Number(item.quantity);
       }
     }
-    
+
     purchases.unshift(newPurchase);
     this.set("purchases", purchases);
     this.set("ingredients", ingredients);
-    
+
     // Automatically log this as an expense in 'Raw material' category
     this.createExpense({
       category: "Raw material",
       amount: purchaseData.totalCost,
       description: `Stock Purchase ${nextId} from ${newPurchase.supplier}`
     });
-    
+
     return { success: true, purchase: newPurchase };
   },
 
@@ -600,7 +609,7 @@ const db = {
     const categories = this.get("categories") || [];
     const filtered = categories.filter(c => c.id !== catId);
     this.set("categories", filtered);
-    
+
     // Disable products belonging to deleted category
     const products = this.get("products") || [];
     const updatedProducts = products.map(p => {

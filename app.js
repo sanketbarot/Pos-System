@@ -3,24 +3,7 @@
 
 // Global toast notifier helper
 window.showToast = function(message, type = "success") {
-  const container = document.getElementById("toast-container");
-  if (!container) return;
-
-  const toast = document.createElement("div");
-  toast.className = `toast ${type}`;
-  
-  let iconClass = "fa-circle-check";
-  if (type === "error") iconClass = "fa-circle-xmark";
-  if (type === "info") iconClass = "fa-circle-info";
-  
-  toast.innerHTML = `<i class="fa-solid ${iconClass}"></i> <span>${message}</span>`;
-  container.appendChild(toast);
-
-  // Auto remove toast after 3 seconds
-  setTimeout(() => {
-    toast.style.animation = "slideIn 0.3s ease-out reverse";
-    toast.addEventListener("animationend", () => toast.remove());
-  }, 3000);
+  // Toast notifications disabled globally
 };
 
 // Global Modal utility helper
@@ -110,7 +93,6 @@ const app = {
       
       const authResult = window.db.login(userField, passField);
       if (authResult.success) {
-        window.showToast(`Welcome back, ${authResult.user.name}!`, "success");
         this.runAppSession();
       } else {
         window.showToast("Invalid credentials. Try admin/123 or staff/123", "error");
