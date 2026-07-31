@@ -1,5 +1,70 @@
-// Crust & Chilly POS - Terminal POS Billing Module
-// Coordinates search, category tab filters, recipe stock warnings, BOGO, cart modification, and receipt generation.
+function getProductImage(name, categoryId) {
+  const n = name.toLowerCase();
+
+  // 1. BURGERS (Mapped name-wise for different looks)
+  if (n.includes("burger")) {
+    if (n.includes("schezwan") || n.includes("spicy")) {
+      return "https://images.unsplash.com/photo-1525059696034-4967a8e1dca2?w=200&auto=format&fit=crop&q=80";
+    }
+    if (n.includes("achari")) {
+      return "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&auto=format&fit=crop&q=80"; // Mockup sesame burger
+    }
+    if (n.includes("pizzeria")) {
+      return "https://images.unsplash.com/photo-1585238342024-78d387f4a707?w=200&auto=format&fit=crop&q=80";
+    }
+    if (n.includes("afghani") || n.includes("indian style")) {
+      return "https://images.unsplash.com/photo-1550547660-d9450f859349?w=200&auto=format&fit=crop&q=80";
+    }
+    if (n.includes("cheese burst") || n.includes("special")) {
+      return "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=200&auto=format&fit=crop&q=80"; // double cheese patty
+    }
+    return "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&auto=format&fit=crop&q=80";
+  }
+
+  // 2. SANDWICHES & SLICES (Mapped name-wise)
+  if (n.includes("sandwich") || n.includes("slice")) {
+    if (n.includes("jam") || n.includes("chocolate")) {
+      return "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=200&auto=format&fit=crop&q=80"; // sweet jam toast
+    }
+    if (n.includes("cheese") || n.includes("chutney")) {
+      return "https://images.unsplash.com/photo-1540713786274-575b51d42137?w=200&auto=format&fit=crop&q=80"; // grilled cheese
+    }
+    return "https://images.unsplash.com/photo-1509722747041-616f39b57569?w=200&auto=format&fit=crop&q=80"; // fresh green veg sandwich
+  }
+
+  // 3. FRANKIE / WRAP
+  if (n.includes("frankie") || n.includes("wrap")) {
+    return "https://images.unsplash.com/photo-1626700051175-6518c4793f4f?w=200&auto=format&fit=crop&q=80"; // Paneer wrap
+  }
+
+  // 4. FRIES
+  if (n.includes("fries")) {
+    return "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=200&auto=format&fit=crop&q=80"; // golden fries
+  }
+
+  // 5. MAGGI / NOODLES
+  if (n.includes("maggi") || n.includes("noodle")) {
+    return "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200&auto=format&fit=crop&q=80"; // veg noodles
+  }
+
+  // 6. MOJITOS & COLD DRINKS & WATER (Mapped name-wise)
+  if (n.includes("mojito")) {
+    return "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=200&auto=format&fit=crop&q=80"; // Mojito glass
+  }
+  if (n.includes("drink") || categoryId === "cat8") {
+    return "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&auto=format&fit=crop&q=80"; // soft drink bottle
+  }
+  if (n.includes("water") || categoryId === "cat10") {
+    return "https://images.unsplash.com/photo-1608889174637-3c44f6326f1a?w=200&auto=format&fit=crop&q=80"; // water bottle
+  }
+
+  // 7. COMBOS
+  if (n.includes("combo")) {
+    return "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=200&auto=format&fit=crop&q=80"; // samosa snack combo platter
+  }
+
+  return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&auto=format&fit=crop&q=80"; // default
+}
 
 window.views = window.views || {};
 window.views.pos = {
@@ -16,100 +81,155 @@ window.views.pos = {
     this.searchQuery = "";
     this.selectedPayment = "UPI";
     this.orderType = "Dine-in";
+    this.currentUser = window.db.getCurrentUser();
 
     container.innerHTML = `
       <div class="pos-layout view-animate">
-        <!-- Products Grid Container Panel -->
-        <div class="pos-products-panel">
-          
-          <!-- Search & Category Filters -->
-          <div class="pos-search-filter-row">
-            <input type="text" id="pos-search" class="search-bar-input" placeholder="Search menu items (e.g. Burger, Mojito)...">
-          </div>
-          
-          <div class="pos-categories-tabs" id="pos-category-list">
-            <!-- Categories injected dynamically -->
+        <!-- Top Custom Header -->
+        <div class="pos-custom-header">
+          <!-- Search Bar -->
+          <div style="position: relative; display: flex; align-items: center; width: 450px;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; color: var(--text-muted); pointer-events: none; z-index: 5;"></i>
+            <input type="text" id="pos-search" class="pos-search-input" value="${this.searchQuery}" placeholder="Search menu items... (e.g. Burger, Mojito, Fries)">
+            <button type="button" id="btn-clear-search" style="position: absolute; right: 90px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: ${this.searchQuery ? 'flex' : 'none'}; align-items: center; justify-content: center; outline: none; z-index: 5;">
+              <i class="fa-solid fa-circle-xmark" style="font-size: 14px;"></i>
+            </button>
+            <span style="position: absolute; right: 12px; font-size: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; pointer-events: none; z-index: 5;">Ctrl + K</span>
           </div>
 
-          <!-- Product Grid Area -->
-          <div class="pos-products-grid-scroll">
-            <div class="pos-products-grid" id="pos-grid">
-              <!-- Products injected dynamically -->
+          <!-- Dine In / Takeaway Toggle Buttons -->
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="pos-header-btn ${this.orderType === 'Dine-in' ? 'active' : ''}" id="type-dinein">
+              <i class="fa-solid fa-pizza-slice"></i> Dine In
+            </button>
+            <button class="pos-header-btn ${this.orderType === 'Takeaway' ? 'active' : ''}" id="type-takeaway">
+              <i class="fa-solid fa-bag-shopping"></i> Takeaway
+            </button>
+          </div>
+
+          <!-- Right side: Notifications, User info -->
+          <div style="display: flex; align-items: center; gap: 20px;">
+            <!-- Notifications bell with badge -->
+            <div class="alert-badge-container" style="position: relative; cursor: pointer; color: var(--text-dark); font-size: 18px;">
+              <i class="fa-solid fa-bell"></i>
+              <span style="position: absolute; top: -5px; right: -5px; background: #ff3b30; color: #fff; font-size: 9px; font-weight: 800; border-radius: 50%; width: 15px; height: 15px; display: flex; align-items: center; justify-content: center;">3</span>
+            </div>
+
+            <!-- User profile info -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="text-align: right;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-dark);">${this.currentUser ? this.currentUser.name : 'Sanket Barot'}</div>
+                <div style="font-size: 10px; color: var(--text-muted); text-transform: capitalize;">${this.currentUser ? this.currentUser.role : 'Admin'}</div>
+              </div>
+              <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: var(--text-muted);"></i>
             </div>
           </div>
         </div>
 
-        <!-- Right Checkout Billing Drawer -->
-        <div class="pos-cart-panel">
-          <div class="cart-header">
-            <div class="cart-title">
-              <i class="fa-solid fa-cart-shopping"></i> Active Order
-              <span class="cart-item-count-badge" id="cart-qty-badge">0</span>
+        <!-- Main Workspace split pane -->
+        <div class="pos-main-content">
+          <!-- Products Panel (Left) -->
+          <div class="pos-products-panel">
+            <div class="pos-categories-tabs" id="pos-category-list" style="padding-bottom: 0; margin-bottom: 4px;">
+              <!-- Categories injected dynamically -->
             </div>
-            <button class="btn-clear-cart" id="btn-clear-cart-trigger"><i class="fa-solid fa-trash-can"></i> Reset</button>
-          </div>
-
-          <!-- Cart items list scrollable -->
-          <div class="cart-items-scroll" id="cart-items-list">
-            <div style="text-align: center; color: var(--text-muted); margin-top: 60px;">
-              <i class="fa-solid fa-basket-shopping" style="font-size: 36px; margin-bottom: 12px; display: block; opacity: 0.3;"></i>
-              Cart is currently empty.<br>Click items on the left to add.
+            
+            <div class="pos-products-grid-scroll">
+              <div class="pos-products-grid" id="pos-grid">
+                <!-- Products injected dynamically -->
+              </div>
             </div>
           </div>
 
-          <!-- Customer details inputs -->
-          <div class="cart-billing-details">
-            <div class="customer-details-inputs">
-              <input type="text" id="cust-name" class="customer-input" placeholder="Customer Name" value="Walk-in Customer">
-              <input type="tel" id="cust-phone" class="customer-input" placeholder="Phone Number">
+          <!-- Right Checkout Billing Drawer -->
+          <div class="pos-cart-panel" style="border-left: 1px solid var(--border-color); padding-left: 20px;">
+            <div class="cart-header">
+              <div class="cart-title" style="font-size: 15px;">
+                Current Order <span class="cart-item-count-badge" id="cart-qty-badge" style="background: var(--primary-gradient); font-size: 11px;">0</span>
+              </div>
+              <button class="btn-clear-cart" id="btn-clear-cart-trigger" style="font-size: 12px; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-trash-can"></i> Reset</button>
             </div>
 
-            <!-- Order type (Dine-in / Takeaway) -->
-            <div class="order-settings-row">
-              <div class="toggle-group">
-                <div class="toggle-option active" id="type-dinein">Dine-in</div>
-                <div class="toggle-option" id="type-takeaway">Takeaway</div>
-              </div>
-            </div>
-
-            <!-- Invoice billing summary calculations -->
-            <div class="billing-summary-lines">
-              <div class="billing-line">
-                <span>Subtotal</span>
-                <span id="bill-subtotal">₹0.00</span>
-              </div>
-              <div class="billing-line" id="bogo-discount-row" style="display: none;">
-                <span>BOGO Discount</span>
-                <span id="bill-bogo-discount" style="color: #ff4b2b;">-₹0.00</span>
-              </div>
-              <div class="billing-line">
-                <span>Discount (%)</span>
-                <input type="number" id="bill-discount-input" class="customer-input" style="width: 70px; height: 22px; padding: 2px 4px; font-size: 11px; text-align: right;" value="0" min="0" max="100">
-              </div>
-              <div class="billing-line">
-                <span class="flex-gap-sm">
-                  Tax/GST (5%)
-                  <input type="checkbox" id="tax-enable-checkbox" style="cursor: pointer;">
-                </span>
-                <span id="bill-tax">₹0.00</span>
-              </div>
-              <div class="billing-line total">
-                <span>Total Amount</span>
-                <span id="bill-total">₹0.00</span>
+            <!-- Cart items list scrollable -->
+            <div class="cart-items-scroll" id="cart-items-list">
+              <div style="text-align: center; color: var(--text-muted); margin-top: 60px;">
+                <i class="fa-solid fa-basket-shopping" style="font-size: 36px; margin-bottom: 12px; display: block; opacity: 0.3;"></i>
+                Cart is currently empty.<br>Click items on the left to add.
               </div>
             </div>
 
-            <!-- Payment Type Selection Button Options -->
-            <div class="checkout-payment-options">
-              <button class="payment-btn active" id="pay-upi"><i class="fa-solid fa-mobile-screen-button"></i>UPI</button>
-              <button class="payment-btn" id="pay-cash"><i class="fa-solid fa-money-bill-1"></i>Cash</button>
-              <button class="payment-btn" id="pay-card"><i class="fa-solid fa-credit-card"></i>Card</button>
-            </div>
+            <!-- Customer details inputs -->
+            <div class="cart-billing-details">
+              <div class="customer-details-inputs" style="margin-bottom: 4px;">
+                <input type="text" id="cust-name" class="customer-input" placeholder="Customer Name" list="customer-names-list" value="Walk-in Customer" autocomplete="off" style="height: 34px;">
+                <datalist id="customer-names-list"></datalist>
+                <input type="tel" id="cust-phone" class="customer-input" placeholder="Phone Number" list="customer-phones-list" autocomplete="off" style="height: 34px;">
+                <datalist id="customer-phones-list"></datalist>
+              </div>
 
-            <!-- Submit checkout -->
-            <button class="btn-checkout" id="btn-checkout-trigger">
-              <i class="fa-solid fa-circle-check"></i> Place & Print Order
-            </button>
+              <!-- Invoice billing summary calculations -->
+              <div class="billing-summary-lines" style="padding: 10px; gap: 4px;">
+                <div class="billing-line" style="font-size: 12px;">
+                  <span>Subtotal</span>
+                  <span id="bill-subtotal">₹0.00</span>
+                </div>
+                <div class="billing-line" id="bogo-discount-row" style="display: none; font-size: 12px;">
+                  <span>BOGO Discount</span>
+                  <span id="bill-bogo-discount" style="color: #ff5c00;">-₹0.00</span>
+                </div>
+                <div class="billing-line" style="font-size: 12px;">
+                  <span>Discount (%)</span>
+                  <input type="number" id="bill-discount-input" class="customer-input" style="width: 60px; height: 20px; padding: 2px 4px; font-size: 11px; text-align: right;" value="0" min="0" max="100">
+                </div>
+                <div class="billing-line" style="font-size: 12px;">
+                  <span class="flex-gap-sm" style="display: flex; align-items: center; gap: 4px;">
+                    Tax/GST (5%)
+                    <input type="checkbox" id="tax-enable-checkbox" style="cursor: pointer; width: 12px; height: 12px;">
+                  </span>
+                  <span id="bill-tax">₹0.00</span>
+                </div>
+                <div class="billing-line total" style="font-size: 15px; padding-top: 4px; border-top: 1px solid var(--border-color); margin-top: 2px;">
+                  <span>TOTAL</span>
+                  <span id="bill-total" style="color: #ff5c00; font-weight: 800;">₹0.00</span>
+                </div>
+              </div>
+
+              <!-- Payment Type Selection Button Options -->
+              <div class="checkout-payment-options" style="grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                <button class="payment-btn active" id="pay-upi" style="padding: 8px 4px; font-size: 11px;"><i class="fa-solid fa-mobile-screen-button"></i>UPI</button>
+                <button class="payment-btn" id="pay-cash" style="padding: 8px 4px; font-size: 11px;"><i class="fa-solid fa-money-bill-1"></i>Cash</button>
+                <button class="payment-btn" id="pay-card" style="padding: 8px 4px; font-size: 11px;"><i class="fa-solid fa-credit-card"></i>Card</button>
+                <button class="payment-btn" id="pay-more" style="padding: 8px 4px; font-size: 11px;"><i class="fa-solid fa-ellipsis"></i>More</button>
+              </div>
+
+              <!-- Submit checkout and Save Order -->
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+                <button class="btn-checkout" id="btn-checkout-trigger" style="padding: 10px; font-size: 14px; font-weight: 700; border-radius: 6px; background: #ff5c00;">
+                  <i class="fa-solid fa-print"></i> Place Order & Print
+                </button>
+                <button class="btn btn-secondary" id="btn-save-order-trigger" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 6px; border: 1.5px solid #ff5c00; background: #fff; color: #ff5c00; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: var(--transition-smooth);">
+                  <i class="fa-solid fa-bookmark"></i> Save Order
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Bar -->
+        <div class="pos-footer-bar">
+          <div style="display: flex; gap: 16px;">
+            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">F1</span> New Order</span>
+            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">F3</span> Hold Order</span>
+            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">F4</span> Orders</span>
+          </div>
+          <div style="display: flex; gap: 16px;">
+            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">Ctrl + B</span> Bill Print</span>
+            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">Ctrl + D</span> Discount</span>
+            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">Ctrl + P</span> Payment</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle" style="color: #00e676; font-size: 8px;"></i> Online</span>
+            <span id="pos-footer-clock" style="font-family: monospace;">Loading...</span>
           </div>
         </div>
       </div>
@@ -117,7 +237,31 @@ window.views.pos = {
 
     this.renderCategories();
     this.renderProducts();
+
+    // Start Clock in Footer
+    const startFooterClock = () => {
+      const clock = document.getElementById("pos-footer-clock");
+      if (!clock) return;
+      const update = () => {
+        if (!clock.isConnected) return;
+        const d = new Date();
+        const dateStr = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        clock.textContent = `${dateStr} ${timeStr}`;
+        setTimeout(update, 1000);
+      };
+      update();
+    };
+    startFooterClock();
+
+    // Restore GST toggle state memory
+    const taxCheck = document.getElementById("tax-enable-checkbox");
+    if (taxCheck) {
+      taxCheck.checked = localStorage.getItem("cc_pos_tax_enabled") === "true";
+    }
+
     this.setupListeners();
+    this.populateCustomerAutocompletes();
   },
 
   renderCategories() {
@@ -189,34 +333,78 @@ window.views.pos = {
     grid.innerHTML = filtered.map(p => {
       // Check recipe stocks to display indicators
       const stockCheck = window.db.checkStockAvailability(p.id, 1);
+      const isAvailable = stockCheck.available;
 
-      let indicatorHtml = `<span class="product-stock-indicator"><i class="fa-solid fa-circle" style="color: var(--color-ready); font-size: 8px;"></i> Available</span>`;
-      let outOfStockClass = "";
-
-      if (!stockCheck.available) {
-        indicatorHtml = `<span class="product-stock-indicator low"><i class="fa-solid fa-circle" style="color: var(--color-cancelled); font-size: 8px;"></i> OUT OF STOCK</span>`;
-        outOfStockClass = "out-of-stock";
+      // Top left status dot color based on stock
+      let statusDotColor = "var(--color-ready)";
+      if (!isAvailable) {
+        statusDotColor = "var(--color-cancelled)";
       } else {
-        // Double check details if ingredients are close to low stock limit
         const ingredients = window.db.get("ingredients") || [];
         const isNearLowStock = p.recipe ? Object.keys(p.recipe).some(ingId => {
           const ing = ingredients.find(i => i.id === ingId);
-          return ing && ing.stock <= ing.minLimit * 1.5; // low stock warnings helper
+          return ing && ing.stock <= ing.minLimit * 1.5;
         }) : false;
-
         if (isNearLowStock) {
-          indicatorHtml = `<span class="product-stock-indicator low"><i class="fa-solid fa-circle" style="color: var(--color-pending); font-size: 8px;"></i> Low Ingredients</span>`;
+          statusDotColor = "var(--color-pending)";
         }
       }
 
-      return `
-        <div class="product-card ${outOfStockClass} ${p.bogo ? 'has-bogo' : ''}" data-id="${p.id}">
-          ${p.bogo ? `<span class="product-bogo-badge">BOGO Offer</span>` : ""}
-          <div class="product-info-top">
-            <span class="product-name">${p.name}</span>
-            <span class="product-price">₹${p.price}</span>
+      // Check current cart quantity of this item
+      const cartItem = this.cart.find(item => item.productId === p.id);
+      const cartQty = cartItem ? cartItem.quantity : 0;
+
+      // Map beautiful Unsplash images based on category / name
+      const imgUrl = getProductImage(p.name, p.category);
+
+      let actionButtonHtml = "";
+      if (cartQty === 0) {
+        actionButtonHtml = `
+          <button class="pos-card-add-btn" onclick="event.stopPropagation(); views.pos.addToCart('${p.id}')">
+            Add <i class="fa-solid fa-plus" style="font-size: 10px; margin-left: 4px;"></i>
+          </button>
+        `;
+      } else {
+        actionButtonHtml = `
+          <div class="pos-card-qty-control" onclick="event.stopPropagation();">
+            <button class="pos-card-qty-btn" onclick="views.pos.modifyQty('${p.id}', -1)"><i class="fa-solid fa-minus"></i></button>
+            <span class="pos-card-qty-val">${cartQty}</span>
+            <button class="pos-card-qty-btn" onclick="views.pos.modifyQty('${p.id}', 1)"><i class="fa-solid fa-plus"></i></button>
           </div>
-          ${indicatorHtml}
+        `;
+      }
+
+      const outOfStockClass = !isAvailable ? "out-of-stock" : "";
+      const selectedClass = cartQty > 0 ? "selected" : "";
+
+      return `
+        <div class="product-card ${outOfStockClass} ${selectedClass}" data-id="${p.id}" style="${cartQty > 0 ? 'border-color: #ff5c00; box-shadow: 0 4px 12px rgba(255, 92, 0, 0.08);' : ''}">
+          <!-- Circular status dot -->
+          <span style="position: absolute; top: 10px; left: 10px; width: 8px; height: 8px; border-radius: 50%; background: ${statusDotColor}; display: inline-block; z-index: 5;"></span>
+          
+          <!-- BOGO offer badge -->
+          ${p.bogo ? `<span class="product-bogo-badge">BOGO</span>` : ""}
+          
+          <!-- Food Product Image -->
+          <div class="product-card-image-wrapper">
+            <img src="${imgUrl}" alt="${p.name}" class="product-card-image">
+          </div>
+
+          <div class="product-info-top" style="text-align: left; padding: 0 2px;">
+            <span class="product-name" style="margin-bottom: 2px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <!-- Indian Pure Veg green square-circle indicator -->
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 11px; height: 11px; border: 1.2px solid #0f8a4f; padding: 1px; border-radius: 2px; background: #fff; flex-shrink: 0;">
+                <span style="width: 5px; height: 5px; border-radius: 50%; background: #0f8a4f;"></span>
+              </span>
+              ${p.name}
+            </span>
+            <span class="product-price" style="font-weight: 700; color: var(--text-dark); font-size: 14px;">₹${p.price}</span>
+          </div>
+
+          <!-- Bottom Add/Qty controls -->
+          <div style="margin-top: 8px; width: 100%;">
+            ${actionButtonHtml}
+          </div>
         </div>
       `;
     }).join("");
@@ -306,6 +494,9 @@ window.views.pos = {
     let totalQty = this.cart.reduce((sum, item) => sum + item.quantity, 0);
     badge.textContent = totalQty;
 
+    // Dynamically sync quantities on product grid cards
+    this.renderProducts();
+
     if (this.cart.length === 0) {
       list.innerHTML = `
         <div style="text-align: center; color: var(--text-muted); margin-top: 60px;">
@@ -320,26 +511,38 @@ window.views.pos = {
     list.innerHTML = this.cart.map(item => {
       let bogoTag = "";
       if (item.bogo) {
-        bogoTag = `<span style="font-size: 10px; background: #ff8008; color:#fff; padding:1px 4px; border-radius:3px; margin-left:6px;">BOGO Eligible</span>`;
+        bogoTag = `<span style="font-size: 9px; background: #ff5c00; color:#fff; padding:1px 4px; border-radius:3px; font-weight: 700; margin-left: 4px;">BOGO</span>`;
       }
 
+      const products = window.db.get("products") || [];
+      const prod = products.find(p => p.id === item.productId);
+      const imgUrl = getProductImage(item.name, prod ? prod.category : "");
       const lineTotal = item.price * item.quantity;
 
       return `
-        <div class="cart-item-row">
-          <div class="cart-item-info">
-            <span class="cart-item-name">${item.name}</span>
-            <span class="cart-item-subtext">₹${item.price} each ${bogoTag}</span>
+        <div class="cart-item-row" style="display: flex; gap: 10px; align-items: center; padding: 8px 10px;">
+          <!-- Item image thumbnail -->
+          <img src="${imgUrl}" alt="${item.name}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border-color); flex-shrink: 0; background: #fff; mix-blend-mode: multiply;">
+          
+          <div class="cart-item-info" style="flex-grow: 1; overflow: hidden; min-width: 0;">
+            <span class="cart-item-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600;">
+              <!-- Indian Pure Veg green square-circle indicator -->
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 11px; height: 11px; border: 1.2px solid #0f8a4f; padding: 1px; border-radius: 2px; background: #fff; flex-shrink: 0;">
+                <span style="width: 5px; height: 5px; border-radius: 50%; background: #0f8a4f;"></span>
+              </span>
+              ${item.name}
+            </span>
+            <span class="cart-item-subtext" style="font-size: 11px; color: var(--text-muted);">₹${item.price} each ${bogoTag}</span>
           </div>
-          <div class="cart-item-actions">
-            <div class="quantity-controls">
-              <button class="qty-btn" onclick="views.pos.modifyQty('${item.productId}', -1)"><i class="fa-solid fa-minus"></i></button>
-              <span class="qty-val">${item.quantity}</span>
-              <button class="qty-btn" onclick="views.pos.modifyQty('${item.productId}', 1)"><i class="fa-solid fa-plus"></i></button>
+          <div class="cart-item-actions" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <div class="quantity-controls" style="height: 26px; border-radius: var(--border-radius-sm);">
+              <button class="qty-btn" onclick="views.pos.modifyQty('${item.productId}', -1)"><i class="fa-solid fa-minus" style="font-size: 10px;"></i></button>
+              <span class="qty-val" style="font-size: 12px; width: 18px;">${item.quantity}</span>
+              <button class="qty-btn" onclick="views.pos.modifyQty('${item.productId}', 1)"><i class="fa-solid fa-plus" style="font-size: 10px;"></i></button>
             </div>
-            <span class="cart-item-total">₹${lineTotal}</span>
-            <button class="btn-remove-item" onclick="views.pos.removeFromCart('${item.productId}')">
-              <i class="fa-solid fa-xmark"></i>
+            <span class="cart-item-total" style="font-size: 13px; min-width: 44px; text-align: right; color: var(--text-dark); font-weight: 700;">₹${lineTotal}</span>
+            <button class="btn-remove-item" onclick="views.pos.removeFromCart('${item.productId}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+              <i class="fa-solid fa-trash" style="font-size: 12px;"></i>
             </button>
           </div>
         </div>
@@ -403,12 +606,28 @@ window.views.pos = {
   },
 
   setupListeners() {
-    // 1. Search text filter
+    // 1. Search text filter & Clear button toggle
     const search = document.getElementById("pos-search");
+    const clearSearchBtn = document.getElementById("btn-clear-search");
+    
     search.oninput = (e) => {
-      this.searchQuery = e.target.value;
+      const val = e.target.value;
+      this.searchQuery = val;
+      if (clearSearchBtn) {
+        clearSearchBtn.style.display = val ? "flex" : "none";
+      }
       this.renderProducts();
     };
+
+    if (clearSearchBtn) {
+      clearSearchBtn.onclick = () => {
+        search.value = "";
+        this.searchQuery = "";
+        clearSearchBtn.style.display = "none";
+        this.renderProducts();
+        search.focus();
+      };
+    }
 
     // 2. Clear Cart trigger
     document.getElementById("btn-clear-cart-trigger").onclick = () => {
@@ -424,8 +643,10 @@ window.views.pos = {
       this.calculateBillTotals();
     };
 
-    // 4. GST checkbox check recalculate
-    document.getElementById("tax-enable-checkbox").onchange = () => {
+    // 4. GST checkbox check recalculate & state memory
+    const taxCheck = document.getElementById("tax-enable-checkbox");
+    taxCheck.onchange = () => {
+      localStorage.setItem("cc_pos_tax_enabled", taxCheck.checked);
       this.calculateBillTotals();
     };
 
@@ -445,28 +666,101 @@ window.views.pos = {
       this.orderType = "Takeaway";
     };
 
+    // (Removed discount preset buttons)
+
+    // 5c. Keydown keyboard hotkeys shortcuts listener
+    this.handleKeydown = (e) => {
+      const search = document.getElementById("pos-search");
+      if (!search || !search.isConnected) return; // Exit if POS tab is inactive
+
+      // 1. Focus search with "/" key
+      if (e.key === "/" && document.activeElement !== search && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
+        e.preventDefault();
+        search.focus();
+        search.select();
+      }
+      // 2. F8 to instantly place order
+      if (e.key === "F8") {
+        e.preventDefault();
+        this.processCheckout();
+      }
+      // 3. Alt + C to instantly clear/reset cart
+      if (e.altKey && (e.key === "c" || e.key === "C")) {
+        e.preventDefault();
+        document.getElementById("btn-clear-cart-trigger").click();
+      }
+      // 4. Escape to clear search query
+      if (e.key === "Escape" && document.activeElement === search) {
+        search.value = "";
+        this.searchQuery = "";
+        this.renderProducts();
+        search.blur();
+      }
+    };
+    document.addEventListener("keydown", this.handleKeydown);
+
     // 6. Payment Modes click select
     const pUpi = document.getElementById("pay-upi");
     const pCash = document.getElementById("pay-cash");
     const pCard = document.getElementById("pay-card");
+    const pMore = document.getElementById("pay-more");
 
     const selectPayment = (btn, mode) => {
-      [pUpi, pCash, pCard].forEach(b => b.classList.remove("active"));
+      [pUpi, pCash, pCard, pMore].forEach(b => {
+        if (b) b.classList.remove("active");
+      });
       btn.classList.add("active");
       this.selectedPayment = mode;
     };
 
-    pUpi.onclick = () => selectPayment(pUpi, "UPI");
-    pCash.onclick = () => selectPayment(pCash, "Cash");
-    pCard.onclick = () => selectPayment(pCard, "Card");
+    if (pUpi) pUpi.onclick = () => selectPayment(pUpi, "UPI");
+    if (pCash) pCash.onclick = () => selectPayment(pCash, "Cash");
+    if (pCard) pCard.onclick = () => selectPayment(pCard, "Card");
+    if (pMore) pMore.onclick = () => selectPayment(pMore, "More");
 
-    // 7. Checkout Process Confirmation modal
+    // 7. Checkout Process Confirmation modal & Save Order triggers
     document.getElementById("btn-checkout-trigger").onclick = () => {
-      this.processCheckout();
+      this.processCheckout(false);
     };
+
+    const btnSave = document.getElementById("btn-save-order-trigger");
+    if (btnSave) {
+      btnSave.onclick = () => {
+        this.processCheckout(true);
+      };
+    }
+
+    // 8. Customer Autofill listeners
+    const nameInput = document.getElementById("cust-name");
+    const phoneInput = document.getElementById("cust-phone");
+
+    nameInput.addEventListener("input", () => {
+      const val = nameInput.value.trim();
+      if (val.toLowerCase() === "walk-in customer" || val.length < 2) return;
+      
+      const orders = window.db.get("orders") || [];
+      const match = orders.find(o => o.customerName && o.customerName.trim().toLowerCase() === val.toLowerCase() && o.customerPhone);
+      if (match) {
+        phoneInput.value = match.customerPhone;
+      }
+    });
+
+    phoneInput.addEventListener("input", (e) => {
+      let val = e.target.value.replace(/\D/g, ""); // Allow only digits
+      if (val.length > 10) val = val.substring(0, 10); // Limit to 10 digits
+      e.target.value = val;
+
+      if (!val || val.length < 4) return;
+      
+      const orders = window.db.get("orders") || [];
+      const match = orders.find(o => o.customerPhone && o.customerPhone.trim() === val);
+      if (match) {
+        nameInput.value = match.customerName;
+      }
+    });
   },
 
-  processCheckout() {
+  processCheckout(skipPrint = false) {
     if (this.cart.length === 0) {
       window.showToast("Cannot place order. The cart is empty.", "error");
       return;
@@ -474,6 +768,13 @@ window.views.pos = {
 
     const customerName = document.getElementById("cust-name").value.trim() || "Walk-in Customer";
     const customerPhone = document.getElementById("cust-phone").value.trim() || "";
+
+    // Validate phone number length (must be empty or exactly 10 digits)
+    if (customerPhone && customerPhone.length !== 10) {
+      window.showToast("Customer phone number must be exactly 10 digits.", "error");
+      return;
+    }
+
     const discountVal = Number(document.getElementById("bill-discount-input").value) || 0;
     const gstEnabled = document.getElementById("tax-enable-checkbox").checked;
 
@@ -519,6 +820,7 @@ window.views.pos = {
     const netTotal = netBeforeTax + taxVal;
 
     // Call database create transaction
+    const tableSelectVal = document.getElementById("pos-table-select") ? document.getElementById("pos-table-select").value : "";
     const response = window.db.createOrder({
       customerName: customerName,
       customerPhone: customerPhone,
@@ -529,6 +831,7 @@ window.views.pos = {
       tax: taxVal,
       total: netTotal,
       type: this.orderType,
+      tableNumber: this.orderType === "Dine-in" ? tableSelectVal : "",
       paymentMethod: this.selectedPayment
     });
 
@@ -541,54 +844,8 @@ window.views.pos = {
       window.dispatchEvent(updateHeaderPill);
 
       // Trigger printable receipt billing modal
-      this.showReceiptModal(response.order);
-
-      // Send receipt to WhatsApp automatically if customer phone number is provided
-      if (customerPhone) {
-        let formattedPhone = customerPhone.replace(/\D/g, "");
-        if (formattedPhone.length === 10) {
-          formattedPhone = "91" + formattedPhone;
-        }
-
-        // Format Date & Time for WhatsApp message
-        const dateObj = new Date(response.order.createdAt);
-        const dd = String(dateObj.getDate()).padStart(2, '0');
-        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const yy = String(dateObj.getFullYear()).slice(-2);
-        const orderDate = `${dd}/${mm}/${yy}`;
-        const orderTime = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
-
-        let waText = `*Crust & Chilly*\n`;
-        waText += `Shop-09, Shree sanidhya flora, Shela, Ahmedabad\n`;
-        waText += `------------------------------------\n`;
-        waText += `*INVOICE BILL*\n`;
-        waText += `*Bill No:* #${response.order.orderNumber}\n`;
-        waText += `*Date:* ${orderDate} ${orderTime}\n`;
-        waText += `*Type:* ${response.order.type} (${response.order.paymentMethod})\n`;
-        waText += `*Customer:* ${response.order.customerName}\n`;
-        waText += `------------------------------------\n`;
-
-        response.order.items.forEach(item => {
-          waText += `• _${item.name}_ x${item.quantity} - ₹${item.lineTotal.toFixed(2)}\n`;
-        });
-        waText += `------------------------------------\n`;
-        waText += `*Sub Total:* ₹${response.order.subtotal.toFixed(2)}\n`;
-        if (response.order.bogoDiscount > 0) {
-          waText += `*BOGO Discount:* -₹${response.order.bogoDiscount.toFixed(2)}\n`;
-        }
-        if (response.order.discount > 0) {
-          waText += `*Cash Discount:* -₹${response.order.discount.toFixed(2)}\n`;
-        }
-        if (response.order.tax > 0) {
-          waText += `*GST (5%):* ₹${response.order.tax.toFixed(2)}\n`;
-        }
-        waText += `------------------------------------\n`;
-        waText += `*GRAND TOTAL: ₹${response.order.total.toFixed(2)}*\n`;
-        waText += `------------------------------------\n`;
-        waText += `Thank you for dining with us!`;
-
-        const waUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(waText)}`;
-        window.open(waUrl, "_blank");
+      if (!skipPrint) {
+        this.showReceiptModal(response.order);
       }
 
       // Clear Cart state
@@ -598,6 +855,7 @@ window.views.pos = {
       document.getElementById("bill-discount-input").value = "0";
       this.renderCart();
       this.renderProducts(); // refresh stock numbers on cards
+      this.populateCustomerAutocompletes();
     } else {
       // Trigger error details
       const missingHtml = response.details.map(d => `<li><strong>${d.name}</strong>: Current stock is ${Math.round(d.current)} ${d.unit}, but order needs ${Math.round(d.needed)} ${d.unit}.</li>`).join("");
@@ -646,45 +904,7 @@ window.views.pos = {
     const upiId = settings.upiId || "7487980840@okbizaxis";
     const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(settings.restaurantName || "Crust & Chilly")}&am=${order.total.toFixed(2)}&cu=INR&tn=Order${order.orderNumber}`;
 
-    // WhatsApp Message compilation
-    let waUrl = "";
-    if (order.customerPhone) {
-      let formattedPhone = order.customerPhone.replace(/\D/g, "");
-      if (formattedPhone.length === 10) {
-        formattedPhone = "91" + formattedPhone;
-      }
 
-      let waText = `*Crust & Chilly*\n`;
-      waText += `Shop-09, Shree sanidhya flora, Shela, Ahmedabad\n`;
-      waText += `------------------------------------\n`;
-      waText += `*INVOICE BILL*\n`;
-      waText += `*Bill No:* #${order.orderNumber}\n`;
-      waText += `*Date:* ${orderDate} ${orderTime}\n`;
-      waText += `*Type:* ${order.type} (${order.paymentMethod})\n`;
-      waText += `*Customer:* ${order.customerName}\n`;
-      waText += `------------------------------------\n`;
-
-      order.items.forEach(item => {
-        waText += `• _${item.name}_ x${item.quantity} - ₹${item.lineTotal.toFixed(2)}\n`;
-      });
-      waText += `------------------------------------\n`;
-      waText += `*Sub Total:* ₹${order.subtotal.toFixed(2)}\n`;
-      if (order.bogoDiscount > 0) {
-        waText += `*BOGO Discount:* -₹${order.bogoDiscount.toFixed(2)}\n`;
-      }
-      if (order.discount > 0) {
-        waText += `*Cash Discount:* -₹${order.discount.toFixed(2)}\n`;
-      }
-      if (order.tax > 0) {
-        waText += `*GST (5%):* ₹${order.tax.toFixed(2)}\n`;
-      }
-      waText += `------------------------------------\n`;
-      waText += `*GRAND TOTAL: ₹${order.total.toFixed(2)}*\n`;
-      waText += `------------------------------------\n`;
-      waText += `Thank you for dining with us!`;
-
-      waUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(waText)}`;
-    }
 
     const receiptHtml = `
       <div class="receipt-wrapper">
@@ -704,10 +924,10 @@ window.views.pos = {
           <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
           <div class="receipt-meta-row">
             <span>Date: ${orderDate}</span>
-            <span style="font-weight: bold;">${order.type}</span>
+            <span style="font-weight: bold;">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
           </div>
           <div class="receipt-meta-row">
-            <span>${orderTime}</span>
+            <span>Time: ${orderTime}</span>
             <span></span>
           </div>
           <div class="receipt-meta-row">
@@ -794,12 +1014,6 @@ window.views.pos = {
             <img class="receipt-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUrl)}" alt="Scan to Pay">
             <div class="receipt-qr-text">Pay via the QR code.</div>
           </div>
-
-          ${waUrl ? `
-            <a href="${waUrl}" target="_blank" class="receipt-wa-btn" style="display: block; text-align: center; background: #25D366; color: #fff; font-weight: bold; padding: 10px; border-radius: 4px; text-decoration: none; margin: 12px 0; font-family: sans-serif; font-size: 14px; box-shadow: 0 2px 5px rgba(37,211,102,0.3);">
-              <i class="fa-brands fa-whatsapp" style="font-size: 16px; margin-right: 6px; vertical-align: middle;"></i> Send on WhatsApp
-            </a>
-          ` : ""}
           
           <div class="receipt-dotted-line" style="margin-top: 8px;"></div>
           <div style="font-weight: bold; margin-top: 6px; text-transform: uppercase;">Thank you for dining with us!</div>
@@ -860,5 +1074,45 @@ window.views.pos = {
         return false; // prevent closing immediately so they can print again if needed
       }
     });
+  },
+
+  populateCustomerAutocompletes() {
+    const orders = window.db.get("orders") || [];
+    
+    // Extract unique customer records (latest first)
+    const customersMap = new Map();
+    orders.forEach(order => {
+      const name = (order.customerName || "").trim();
+      const phone = (order.customerPhone || "").trim();
+      
+      if (name && name.toLowerCase() !== "walk-in customer") {
+        if (phone && !customersMap.has(name.toLowerCase())) {
+          customersMap.set(name.toLowerCase(), { name, phone });
+        }
+      }
+      if (phone && !customersMap.has(phone)) {
+        customersMap.set(phone, { name, phone });
+      }
+    });
+
+    const nameDatalist = document.getElementById("customer-names-list");
+    const phoneDatalist = document.getElementById("customer-phones-list");
+    
+    if (nameDatalist && phoneDatalist) {
+      const uniqueNames = new Set();
+      const uniquePhones = new Set();
+      
+      customersMap.forEach(cust => {
+        if (cust.name && cust.name.toLowerCase() !== "walk-in customer") {
+          uniqueNames.add(cust.name);
+        }
+        if (cust.phone) {
+          uniquePhones.add(cust.phone);
+        }
+      });
+      
+      nameDatalist.innerHTML = Array.from(uniqueNames).map(name => `<option value="${name}"></option>`).join("");
+      phoneDatalist.innerHTML = Array.from(uniquePhones).map(phone => `<option value="${phone}"></option>`).join("");
+    }
   }
 };

@@ -17,8 +17,13 @@ window.views.menu = {
             <button class="btn btn-secondary ${this.activeTab === 'categories' ? 'btn-primary' : ''}" id="menu-sub-categories">
               <i class="fa-solid fa-tags"></i> Item Categories
             </button>
+            ${window.db.getCurrentUser().role === "admin" ? `
+            <button class="btn btn-secondary ${this.activeTab === 'permissions' ? 'btn-primary' : ''}" id="menu-sub-permissions">
+              <i class="fa-solid fa-user-shield"></i> Role Permissions
+            </button>
+            ` : ""}
           </div>
-          <button class="btn btn-primary" id="btn-add-menu-entity">
+          <button class="btn btn-primary" id="btn-add-menu-entity" style="display: ${this.activeTab === 'permissions' ? 'none' : 'block'};">
             <i class="fa-solid fa-plus-circle"></i> Add New
           </button>
         </div>
@@ -35,12 +40,15 @@ window.views.menu = {
   setupListeners() {
     const btnProd = document.getElementById("menu-sub-products");
     const btnCat = document.getElementById("menu-sub-categories");
+    const btnPerm = document.getElementById("menu-sub-permissions");
     const btnAdd = document.getElementById("btn-add-menu-entity");
 
     btnProd.onclick = () => {
       this.activeTab = "products";
       btnProd.className = "btn btn-primary";
       btnCat.className = "btn btn-secondary";
+      if (btnPerm) btnPerm.className = "btn btn-secondary";
+      btnAdd.style.display = "block";
       this.render();
     };
 
@@ -48,13 +56,26 @@ window.views.menu = {
       this.activeTab = "categories";
       btnCat.className = "btn btn-primary";
       btnProd.className = "btn btn-secondary";
+      if (btnPerm) btnPerm.className = "btn btn-secondary";
+      btnAdd.style.display = "block";
       this.render();
     };
+
+    if (btnPerm) {
+      btnPerm.onclick = () => {
+        this.activeTab = "permissions";
+        btnPerm.className = "btn btn-primary";
+        btnProd.className = "btn btn-secondary";
+        btnCat.className = "btn btn-secondary";
+        btnAdd.style.display = "none";
+        this.render();
+      };
+    }
 
     btnAdd.onclick = () => {
       if (this.activeTab === "products") {
         this.openProductModal();
-      } else {
+      } else if (this.activeTab === "categories") {
         this.openCategoryModal();
       }
     };
@@ -64,8 +85,10 @@ window.views.menu = {
     const mount = document.getElementById("menu-content-mount");
     if (this.activeTab === "products") {
       this.renderProducts(mount);
-    } else {
+    } else if (this.activeTab === "categories") {
       this.renderCategories(mount);
+    } else if (this.activeTab === "permissions") {
+      this.renderPermissions(mount);
     }
   },
 
@@ -88,7 +111,8 @@ window.views.menu = {
             <td><span class="badge badge-preparing" style="background: rgba(41,121,255,0.05); border: 1px solid var(--border-color); color: var(--text-muted);">${cat ? cat.name : 'None'}</span></td>
             <td style="font-weight: 700; color: #ff8008;">₹${p.price.toFixed(2)}</td>
             <td>
-              <span class="badge ${p.bogo ? 'badge-completed' : 'badge-cancelled'}">${p.bogo ? 'ACTIVE BOGO' : 'No'}</span>
+              <!-- Interactive BOGO toggle -->
+              <input type="checkbox" class="toggle-bogo-chk" data-id="${p.id}" ${p.bogo ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">
             </td>
             <td>
               <!-- Interactive checkbox toggle -->
@@ -137,6 +161,19 @@ window.views.menu = {
           prod.available = chk.checked;
           window.db.saveProduct(prod);
           window.showToast(`${prod.name} availability toggled.`, "success");
+        }
+      };
+    });
+
+    // Bind item BOGO checkbox change
+    mount.querySelectorAll(".toggle-bogo-chk").forEach(chk => {
+      chk.onchange = () => {
+        const id = chk.getAttribute("data-id");
+        const prod = products.find(p => p.id === id);
+        if (prod) {
+          prod.bogo = chk.checked;
+          window.db.saveProduct(prod);
+          window.showToast(`${prod.name} BOGO status updated.`, "success");
         }
       };
     });
@@ -461,5 +498,104 @@ window.views.menu = {
 
     // Bind initial delete listeners
     bindTableListeners();
+  },
+
+  renderPermissions(mount) {
+    const permissions = window.db.get("permissions") || {
+      admin: ["dashboard", "pos", "orders", "menu", "reports"],
+      manager: ["dashboard", "pos", "orders", "menu"],
+      staff: ["pos", "orders"]
+    };
+
+    const viewsList = [
+      { id: "dashboard", name: "Dashboard Overview", desc: "View business sales summaries, profits, and charts." },
+      { id: "pos", name: "POS Terminal Billing", desc: "Access the cashier billing screen to create orders." },
+      { id: "orders", name: "KDS Kitchen Queue", desc: "Display running kitchen orders and advance status." },
+      { id: "menu", name: "Menu Setup & Recipes", desc: "Manage categories, food prices, BOGO, and recipes." },
+      { id: "reports", name: "Sales & Profit Reports", desc: "Granular historical analytics reports and CSV exports." }
+    ];
+
+    const rolesList = [
+      { id: "admin", name: "Administrator" },
+      { id: "manager", name: "Manager" },
+      { id: "staff", name: "Kitchen / Cashier Staff" }
+    ];
+
+    let rowsHtml = viewsList.map(v => {
+      const cols = rolesList.map(r => {
+        const isChecked = permissions[r.id].includes(v.id);
+        const isDisabled = r.id === "admin"; // Admin permissions are locked
+
+        return `
+          <td style="text-align: center; padding: 16px 20px;">
+            <input type="checkbox" class="perm-checkbox-toggle" data-role="${r.id}" data-view="${v.id}" 
+              ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''} 
+              style="cursor: ${isDisabled ? 'not-allowed' : 'pointer'}; width: 18px; height: 18px;">
+          </td>
+        `;
+      }).join("");
+
+      return `
+        <tr>
+          <td style="padding: 16px 20px;">
+            <div style="font-weight: 600; color: var(--text-dark);">${v.name}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">${v.desc}</div>
+          </td>
+          ${cols}
+        </tr>
+      `;
+    }).join("");
+
+    mount.innerHTML = `
+      <div class="glass-card view-animate" style="padding: 24px;">
+        <div class="flex-space mb-3" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; margin: 0;"><i class="fa-solid fa-user-shield" style="color: #ff8008; margin-right: 6px;"></i> Role Access Control Matrix</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">Configure which screens each user role has permission to access.</p>
+          </div>
+          <span class="badge badge-completed">Live Update</span>
+        </div>
+        
+        <div class="table-container" style="border: 1px solid var(--border-color); border-radius: var(--border-radius-md); overflow: hidden;">
+          <table class="premium-table">
+            <thead>
+              <tr>
+                <th style="width: 40%; padding: 14px 20px;">POS Page / Module</th>
+                <th style="text-align: center; padding: 14px 20px;">Admin</th>
+                <th style="text-align: center; padding: 14px 20px;">Manager</th>
+                <th style="text-align: center; padding: 14px 20px;">Staff</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    // Bind checkbox changes
+    mount.querySelectorAll(".perm-checkbox-toggle").forEach(chk => {
+      chk.onchange = () => {
+        const roleId = chk.getAttribute("data-role");
+        const viewId = chk.getAttribute("data-view");
+
+        if (roleId === "admin") return; // Safety check
+
+        if (chk.checked) {
+          // Add permission
+          if (!permissions[roleId].includes(viewId)) {
+            permissions[roleId].push(viewId);
+          }
+        } else {
+          // Remove permission
+          permissions[roleId] = permissions[roleId].filter(id => id !== viewId);
+        }
+
+        // Write to DB
+        window.db.set("permissions", permissions);
+        window.showToast(`Updated access for ${roleId.toUpperCase()} role.`, "success");
+      };
+    });
   }
 };

@@ -151,6 +151,8 @@ window.views.orders = {
         this.renderActiveTab();
       };
     });
+
+    this.startKdsTimerLoop();
   },
 
   generateKdsCards(ordersList, lane) {
@@ -191,7 +193,7 @@ window.views.orders = {
           <div class="kds-order-top">
             <span class="kds-order-num">#${order.orderNumber}</span>
             <span class="kds-order-time">${formattedTime}</span>
-            <span class="kds-order-type ${order.type.toLowerCase()}">${order.type}</span>
+            <span class="kds-order-type ${order.type.toLowerCase()}">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
           </div>
           <ul class="kds-order-items">
             ${itemsHtml}
@@ -199,6 +201,12 @@ window.views.orders = {
           <div class="kds-order-cust">
             <i class="fa-regular fa-user"></i> ${order.customerName}
           </div>
+          ${(lane === "Pending" || lane === "Preparing") ? `
+            <div class="kds-timer-container">
+              <span><i class="fa-regular fa-clock"></i> Time Left:</span>
+              <span class="kds-timer-countdown" data-order-id="${order.id}" data-status="${order.status}">--:--</span>
+            </div>
+          ` : ""}
           
           <div class="flex-gap-sm mt-3" style="width: 100%;">
             <button class="kds-btn-advance" data-id="${order.id}" data-next="${nextStatus}" style="flex-grow: 1;">
@@ -345,5 +353,76 @@ window.views.orders = {
         this.renderActiveTab();
       };
     });
+  },
+
+  kdsTimerInterval: null,
+
+  startKdsTimerLoop() {
+    if (this.kdsTimerInterval) {
+      clearInterval(this.kdsTimerInterval);
+    }
+
+    this.kdsTimerInterval = setInterval(() => {
+      // Check if KDS queue is still active and visible in DOM
+      const countdownEls = document.querySelectorAll(".kds-timer-countdown");
+      if (countdownEls.length === 0 || this.activeSubTab !== "kds") {
+        clearInterval(this.kdsTimerInterval);
+        this.kdsTimerInterval = null;
+        return;
+      }
+
+      const orders = window.db.get("orders") || [];
+      let needsRerender = false;
+
+      countdownEls.forEach(el => {
+        const orderId = el.getAttribute("data-order-id");
+        const status = el.getAttribute("data-status");
+        const order = orders.find(o => o.id === orderId);
+
+        if (!order) return;
+
+        const now = new Date();
+        const createdTime = new Date(order.createdAt);
+
+        if (status === "Pending") {
+          const elapsedSeconds = Math.floor((now - createdTime) / 1000);
+          const remainingSeconds = 15 - elapsedSeconds;
+
+          if (remainingSeconds <= 0) {
+            window.db.updateOrderStatus(orderId, "Preparing");
+            needsRerender = true;
+          } else {
+            el.textContent = `${remainingSeconds}s`;
+          }
+        } else if (status === "Preparing") {
+          // 15 minutes = 900 seconds
+          const startedTime = order.preparingStartedAt ? new Date(order.preparingStartedAt) : createdTime;
+          const elapsedSeconds = Math.floor((now - startedTime) / 1000);
+          const remainingSeconds = 900 - elapsedSeconds;
+
+          if (remainingSeconds <= 0) {
+            const absSeconds = Math.abs(remainingSeconds);
+            const mins = Math.floor(absSeconds / 60);
+            const secs = absSeconds % 60;
+            el.textContent = `Overdue (-${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')})`;
+            el.className = "kds-timer-countdown overdue";
+          } else {
+            const mins = Math.floor(remainingSeconds / 60);
+            const secs = remainingSeconds % 60;
+            el.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            if (remainingSeconds <= 60) {
+              el.className = "kds-timer-countdown warning-blink";
+            } else {
+              el.className = "kds-timer-countdown";
+            }
+          }
+        }
+      });
+
+      if (needsRerender) {
+        this.renderActiveTab();
+      }
+    }, 1000);
   }
 };

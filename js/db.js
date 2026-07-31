@@ -37,10 +37,11 @@ const db = {
   },
 
   seedData() {
-    // 1. Users Setup (Admin / Staff)
+    // 1. Users Setup (Admin / Manager / Staff)
     const users = [
-      { id: "u1", username: "admin", password: "123", role: "admin", name: "Sanket Barot (Admin)" },
-      { id: "u2", username: "staff", password: "123", role: "staff", name: "Rajesh Kumar (Staff)" }
+      { id: "u1", username: "sanketadmin", password: "Sanket@3901", role: "admin", name: "Sanket Barot (Admin)" },
+      { id: "u2", username: "manager", password: "Crust&Chilly@2", role: "manager", name: "Crust & Chilly Manager" },
+      { id: "u3", username: "staff", password: "Crust&Chilly@1", role: "staff", name: "Crust & Chilly Staff" }
     ];
     this.set("users", users);
 
@@ -54,7 +55,8 @@ const db = {
       { id: "cat6", name: "Fries", icon: "box-tissue" },
       { id: "cat7", name: "Maggi", icon: "bowl-food" },
       { id: "cat8", name: "Mojitos", icon: "glass-water" },
-      { id: "cat9", name: "Combo Meals", icon: "utensils" }
+      { id: "cat9", name: "Combo Meals", icon: "utensils" },
+      { id: "cat10", name: "Cold Drinks & Water", icon: "glass-water" }
     ];
     this.set("categories", categories);
 
@@ -191,7 +193,14 @@ const db = {
       { id: "p83", name: "Signature Sandwich + Fries + Cold Drink Combo", price: 199, category: "cat9", available: true, bogo: false, recipe: { ing4: 3, ing6: 100, ing11: 1 } },
       { id: "p84", name: "Premium Sandwich + Fries + Mojito Combo", price: 249, category: "cat9", available: true, bogo: false, recipe: { ing4: 3, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
       { id: "p85", name: "Signature Tikka Pav + Fries + Cold Drink Combo", price: 179, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing6: 100, ing11: 1 } },
-      { id: "p86", name: "Premium Tikka Pav + Fries + Mojito Combo", price: 249, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } }
+      { id: "p86", name: "Premium Tikka Pav + Fries + Mojito Combo", price: 249, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
+      
+      // --- COLD DRINKS & WATER ---
+      { id: "p87", name: "Cold Drink (Small)", price: 10, category: "cat10", available: true, bogo: false, recipe: {} },
+      { id: "p88", name: "Cold Drink (Medium)", price: 20, category: "cat10", available: true, bogo: false, recipe: {} },
+      { id: "p89", name: "Cold Drink (Large)", price: 30, category: "cat10", available: true, bogo: false, recipe: {} },
+      { id: "p90", name: "Water Bottle (Small)", price: 10, category: "cat10", available: true, bogo: false, recipe: {} },
+      { id: "p91", name: "Water Bottle (Large)", price: 20, category: "cat10", available: true, bogo: false, recipe: {} }
     ];
     this.set("products", products);
 
@@ -208,148 +217,19 @@ const db = {
     };
     this.set("settings", settings);
 
-    // 6. Generate historical and current Orders
-    const orders = [];
-    const expenses = [];
-    const today = new Date();
+    // 6. Initialize empty lists for transactions (clean start)
+    this.set("orders", []);
+    this.set("expenses", []);
+    this.set("purchases", []);
+    this.set("orderCounter", 1000);
 
-    // Setup helper to create historical dates
-    const getPastDateStr = (daysAgo, hour = 12) => {
-      const d = new Date(today);
-      d.setDate(today.getDate() - daysAgo);
-      d.setHours(hour, Math.floor(Math.random() * 60), 0, 0);
-      return d.toISOString();
+    // 7. Initialize default permissions matrix
+    const permissions = {
+      admin: ["dashboard", "pos", "orders", "menu", "reports"],
+      manager: ["dashboard", "pos", "orders", "menu"],
+      staff: ["pos", "orders"]
     };
-
-    // Generate orders for the past 7 days
-    let orderCounter = 1000;
-    const paymentMethods = ["UPI", "Cash", "Card"];
-    const statuses = ["Completed", "Completed", "Completed", "Cancelled", "Completed"]; // skewed to completed
-
-    for (let day = 7; day >= 0; day--) {
-      // 2 to 5 orders per day
-      const ordersCount = day === 0 ? 6 : Math.floor(Math.random() * 4) + 2;
-      for (let j = 0; j < ordersCount; j++) {
-        orderCounter++;
-
-        // Random items (1 to 3 items per order)
-        const items = [];
-        const itemCount = Math.min(products.length, Math.floor(Math.random() * 3) + 1);
-        let subtotal = 0;
-
-        // Choose items randomly, ensuring uniqueness in single cart order
-        const chosenProducts = [];
-        while (chosenProducts.length < itemCount) {
-          const randProd = products[Math.floor(Math.random() * products.length)];
-          if (!chosenProducts.includes(randProd)) {
-            chosenProducts.push(randProd);
-          }
-        }
-
-        for (let k = 0; k < itemCount; k++) {
-          const prod = chosenProducts[k];
-          const qty = Math.floor(Math.random() * 2) + 1;
-
-          // Calculate BOGO discount if applicable
-          let bogoApplied = prod.bogo && qty >= 2;
-          let chargedQty = qty;
-          if (bogoApplied) {
-            chargedQty = Math.ceil(qty / 2);
-          }
-
-          const lineTotal = prod.price * chargedQty;
-
-          items.push({
-            productId: prod.id,
-            name: prod.name,
-            price: prod.price,
-            quantity: qty,
-            bogo: prod.bogo,
-            lineTotal: lineTotal
-          });
-          subtotal += lineTotal;
-        }
-
-        const discount = Math.random() > 0.7 ? (Math.random() > 0.5 ? 50 : 20) : 0;
-        const netBeforeTax = Math.max(0, subtotal - discount);
-        const gstVal = Math.round(netBeforeTax * (settings.gstPercentage / 100) * 100) / 100;
-        const total = netBeforeTax + gstVal;
-
-        const time = getPastDateStr(day, 11 + Math.floor(Math.random() * 10)); // between 11 AM and 9 PM
-
-        orders.push({
-          id: `ORD-${orderCounter}`,
-          orderNumber: orderCounter,
-          customerName: Math.random() > 0.5 ? ["Yash", "Sanket", "Pooja", "Amit", "Kunal"][Math.floor(Math.random() * 5)] : "Walk-in Customer",
-          customerPhone: Math.random() > 0.5 ? "9988776655" : "",
-          items: items,
-          subtotal: subtotal,
-          discount: discount,
-          tax: gstVal,
-          total: total,
-          type: Math.random() > 0.4 ? "Dine-in" : "Takeaway",
-          paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
-          status: day === 0 && j >= 4 ? (j === 4 ? "Preparing" : "Pending") : statuses[Math.floor(Math.random() * statuses.length)],
-          createdAt: time
-        });
-      }
-
-      // Add 1 or 2 expenses per day
-      const expCategories = ["Raw material", "Electricity", "Salary", "Delivery", "Other expenses"];
-      const expCount = Math.floor(Math.random() * 2) + 1;
-      for (let e = 0; e < expCount; e++) {
-        const cat = expCategories[Math.floor(Math.random() * expCategories.length)];
-        let amount = 0;
-        let desc = "";
-
-        if (cat === "Raw material") {
-          amount = Math.floor(Math.random() * 800) + 200;
-          desc = "Vegetables & sauces purchase from local vendor";
-        } else if (cat === "Electricity") {
-          if (day === 5) {
-            amount = 3500;
-            desc = "Monthly electricity bill payment";
-          } else {
-            amount = Math.floor(Math.random() * 100) + 50;
-            desc = "Gas tank refill contribution";
-          }
-        } else if (cat === "Salary") {
-          if (day === 7) {
-            amount = 5000;
-            desc = "Weekly part-time helper salary";
-          } else {
-            continue;
-          }
-        } else if (cat === "Delivery") {
-          amount = Math.floor(Math.random() * 150) + 50;
-          desc = "Delivery boy fuel allowance";
-        } else {
-          amount = Math.floor(Math.random() * 200) + 30;
-          desc = "Cleaning items / napkins purchase";
-        }
-
-        expenses.push({
-          id: `EXP-${1000 + expenses.length}`,
-          category: cat,
-          amount: amount,
-          description: desc,
-          createdAt: getPastDateStr(day, 10 + Math.floor(Math.random() * 8))
-        });
-      }
-    }
-
-    this.set("orders", orders);
-    this.set("expenses", expenses);
-
-    // Track order sequence
-    this.set("orderCounter", orderCounter);
-
-    // Track stock purchase log
-    const purchases = [
-      { id: "PUR-101", date: getPastDateStr(5), items: [{ ingredientId: "ing1", quantity: 100, cost: 400 }, { ingredientId: "ing2", quantity: 100, cost: 1200 }], totalCost: 1600, supplier: "Apex Bakery" },
-      { id: "PUR-102", date: getPastDateStr(2), items: [{ ingredientId: "ing3", quantity: 200, cost: 1000 }, { ingredientId: "ing6", quantity: 20000, cost: 700 }], totalCost: 1700, supplier: "Fresh Farms" }
-    ];
-    this.set("purchases", purchases);
+    this.set("permissions", permissions);
   },
 
   // Helper APIs for CRUD
@@ -498,6 +378,11 @@ const db = {
       const oldStatus = orders[index].status;
       orders[index].status = newStatus;
 
+      // Track when preparing started for timer countdown
+      if (newStatus === "Preparing" && !orders[index].preparingStartedAt) {
+        orders[index].preparingStartedAt = new Date().toISOString();
+      }
+
       // If an order is Cancelled, should we refund the inventory?
       // Yes! To represent a realistic POS system, canceling a pending/preparing order returns ingredients back to stock.
       if (newStatus === "Cancelled" && oldStatus !== "Cancelled" && oldStatus !== "Completed") {
@@ -593,9 +478,13 @@ const db = {
         categories[index] = { ...categories[index], ...catData };
       }
     } else {
-      // Add
+      // Find max ID number to prevent key conflicts after deletions
+      const maxIdNum = categories.reduce((max, c) => {
+        const num = parseInt(c.id.replace(/\D/g, ""), 10);
+        return isNaN(num) ? max : Math.max(max, num);
+      }, 0);
       const newCat = {
-        id: `cat${categories.length + 1}`,
+        id: `cat${maxIdNum + 1}`,
         name: catData.name,
         icon: catData.icon || "hamburger"
       };
@@ -631,9 +520,13 @@ const db = {
         products[index] = { ...products[index], ...prodData };
       }
     } else {
-      // Add
+      // Find max ID number to prevent key conflicts after deletions
+      const maxIdNum = products.reduce((max, p) => {
+        const num = parseInt(p.id.replace(/\D/g, ""), 10);
+        return isNaN(num) ? max : Math.max(max, num);
+      }, 0);
       const newProd = {
-        id: `p${products.length + 1}`,
+        id: `p${maxIdNum + 1}`,
         name: prodData.name,
         price: Number(prodData.price),
         category: prodData.category,
@@ -662,8 +555,13 @@ const db = {
         ingredients[index] = { ...ingredients[index], ...ingData };
       }
     } else {
+      // Find max ID number to prevent key conflicts after deletions
+      const maxIdNum = ingredients.reduce((max, i) => {
+        const num = parseInt(i.id.replace(/\D/g, ""), 10);
+        return isNaN(num) ? max : Math.max(max, num);
+      }, 0);
       const newIng = {
-        id: `ing${ingredients.length + 1}`,
+        id: `ing${maxIdNum + 1}`,
         name: ingData.name,
         unit: ingData.unit || "pcs",
         stock: Number(ingData.stock) || 0,
@@ -687,7 +585,7 @@ const db = {
 window.db = db;
 
 // Force reset database once if version changes, to automatically load the user's custom menu list
-const TARGET_MENU_VERSION = "crust_chilly_v3";
+const TARGET_MENU_VERSION = "crust_chilly_v6";
 if (localStorage.getItem("cc_pos_menu_version") !== TARGET_MENU_VERSION) {
   db.init(true); // Wipes old local storage key prefix & reseeds
   localStorage.setItem("cc_pos_menu_version", TARGET_MENU_VERSION);

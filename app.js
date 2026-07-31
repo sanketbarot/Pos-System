@@ -3,7 +3,28 @@
 
 // Global toast notifier helper
 window.showToast = function(message, type = "success") {
-  // Toast notifications disabled globally
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+
+  let icon = "fa-circle-check";
+  if (type === "error") icon = "fa-circle-exclamation";
+  if (type === "info") icon = "fa-circle-info";
+
+  toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+  container.appendChild(toast);
+
+  // Animate slide-out and remove toast after 3 seconds
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(100%)";
+    toast.style.transition = "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+    setTimeout(() => {
+      toast.remove();
+    }, 400);
+  }, 3000);
 };
 
 // Global Modal utility helper
@@ -95,9 +116,25 @@ const app = {
       if (authResult.success) {
         this.runAppSession();
       } else {
-        window.showToast("Invalid credentials. Try admin/123 or staff/123", "error");
+        window.showToast("Invalid username or password.", "error");
       }
     };
+
+    // Toggle show/hide password view
+    const togglePassBtn = document.getElementById("btn-toggle-password");
+    if (togglePassBtn) {
+      togglePassBtn.onclick = () => {
+        const passInput = document.getElementById("login-password");
+        const passIcon = document.getElementById("toggle-password-icon");
+        if (passInput.type === "password") {
+          passInput.type = "text";
+          passIcon.className = "fa-solid fa-eye-slash";
+        } else {
+          passInput.type = "password";
+          passIcon.className = "fa-solid fa-eye";
+        }
+      };
+    }
 
     // Logout trigger
     document.getElementById("logout-button").onclick = () => {
@@ -129,12 +166,18 @@ const app = {
       document.getElementById("header-role").textContent = this.currentUser.role;
       document.getElementById("header-avatar-letter").textContent = this.currentUser.name.charAt(0);
 
-      // Hide or show links in sidebar based on user role (Staff restricts Menu, Analytics)
-      const isStaff = this.currentUser.role === "staff";
-      const restrictedItems = document.querySelectorAll('.nav-menu li[data-view="menu"], .nav-menu li[data-view="reports"]');
-      
-      restrictedItems.forEach(el => {
-        el.style.display = isStaff ? "none" : "block";
+      // Hide or show links in sidebar based on dynamic permissions matrix
+      const role = this.currentUser.role;
+      const permissions = window.db.get("permissions") || {
+        admin: ["dashboard", "pos", "orders", "menu", "reports"],
+        manager: ["dashboard", "pos", "orders", "menu"],
+        staff: ["pos", "orders"]
+      };
+      const allowedViews = permissions[role] || ["pos", "orders"];
+
+      document.querySelectorAll('.nav-menu .nav-item').forEach(el => {
+        const view = el.getAttribute("data-view");
+        el.style.display = allowedViews.includes(view) ? "block" : "none";
       });
 
       // Trigger routing
@@ -155,20 +198,35 @@ const app = {
   route() {
     if (!this.currentUser) return;
 
-    let hash = window.location.hash.replace("#", "") || "dashboard";
-    
-    // Auth role protection check
-    const isStaff = this.currentUser.role === "staff";
-    const restrictedViews = ["menu", "reports"];
-    if (isStaff && restrictedViews.includes(hash)) {
-      window.showToast("Access Restricted: Staff members do not have permission to access this page.", "error");
-      window.location.hash = "#dashboard";
+    const role = this.currentUser.role;
+    let hash = window.location.hash.replace("#", "");
+
+    // Read dynamic permissions matrix
+    const permissions = window.db.get("permissions") || {
+      admin: ["dashboard", "pos", "orders", "menu", "reports"],
+      manager: ["dashboard", "pos", "orders", "menu"],
+      staff: ["pos", "orders"]
+    };
+    const allowedViews = permissions[role] || ["pos", "orders"];
+
+    // Landing fallback defaults to first allowed view
+    const defaultHash = allowedViews.includes("dashboard") ? "dashboard" : allowedViews[0];
+
+    if (!hash) {
+      hash = defaultHash;
+      window.location.hash = `#${hash}`;
+      return;
+    }
+
+    if (!allowedViews.includes(hash)) {
+      window.showToast(`Access Restricted: your role (${role}) does not have permission to access this page.`, "error");
+      window.location.hash = `#${defaultHash}`;
       return;
     }
 
     // View validity fallback
     if (!window.views[hash]) {
-      hash = "dashboard";
+      hash = defaultHash;
     }
 
     this.activeView = hash;
@@ -192,7 +250,16 @@ const app = {
       reports: "Sales & Profit Reports"
     };
     
-    document.getElementById("current-view-title").textContent = viewTitles[hash] || "POS Terminal";
+    const titleElem = document.getElementById("current-view-title");
+    if (titleElem) {
+      titleElem.textContent = viewTitles[hash] || "POS Terminal";
+    }
+
+    // Toggle global top header display based on active view (POS view has custom mockup header)
+    const topHeader = document.querySelector(".top-header");
+    if (topHeader) {
+      topHeader.style.display = (hash === "pos") ? "none" : "flex";
+    }
     
     // Clear viewport, fade-in and render
     const viewport = document.getElementById("view-viewport");
