@@ -34,6 +34,17 @@ const db = {
       currentSettings.upiId = "7487980840@okbizaxis";
       this.set("settings", currentSettings);
     }
+
+    // Force clear old testing transactional data for live launch (preserving menu/catalog config)
+    const cleanupKey = "cc_pos_live_cleanup_v1";
+    if (!localStorage.getItem(cleanupKey)) {
+      this.set("orders", []);
+      this.set("expenses", []);
+      this.set("purchases", []);
+      this.set("orderCounter", 1000);
+      localStorage.setItem(cleanupKey, "true");
+      console.log("Crust & Chilly POS: Old testing transaction data wiped successfully.");
+    }
   },
 
   seedData() {
@@ -343,9 +354,39 @@ const db = {
     const nextCounter = (this.get("orderCounter") || 1000) + 1;
     this.set("orderCounter", nextCounter);
 
+    // Calculate daily token number (starts from 1, resets daily based on IST)
+    const getIstDateString = (dateObj) => {
+      const date = dateObj || new Date();
+      // IST is UTC + 5:30
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(date.getTime() + istOffset);
+      const yyyy = istDate.getUTCFullYear();
+      const mm = String(istDate.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(istDate.getUTCDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const now = new Date();
+    const todayIstStr = getIstDateString(now);
+
+    const todayOrders = orders.filter(o => {
+      if (!o.createdAt) return false;
+      const oDate = new Date(o.createdAt);
+      return getIstDateString(oDate) === todayIstStr;
+    });
+
+    let maxTokenToday = 0;
+    todayOrders.forEach(o => {
+      if (o.tokenNumber && o.tokenNumber > maxTokenToday) {
+        maxTokenToday = o.tokenNumber;
+      }
+    });
+    const nextTokenNumber = maxTokenToday + 1;
+
     const newOrder = {
       id: `ORD-${nextCounter}`,
       orderNumber: nextCounter,
+      tokenNumber: nextTokenNumber, // Save numeric token number
       customerName: orderData.customerName || "Walk-in Customer",
       customerPhone: orderData.customerPhone || "",
       items: orderData.items,
@@ -357,7 +398,7 @@ const db = {
       type: orderData.type || "Dine-in", // Dine-in or Takeaway
       paymentMethod: orderData.paymentMethod || "Cash", // Cash, UPI, Card
       status: "Pending", // Pending, Preparing, Ready, Completed, Cancelled
-      createdAt: new Date().toISOString()
+      createdAt: now.toISOString()
     };
 
     orders.unshift(newOrder); // Add to top

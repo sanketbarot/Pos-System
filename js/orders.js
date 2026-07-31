@@ -191,7 +191,7 @@ window.views.orders = {
       return `
         <div class="kds-order-card">
           <div class="kds-order-top">
-            <span class="kds-order-num">#${order.orderNumber}</span>
+            <span class="kds-order-num">#${order.orderNumber} <span style="font-size: 11px; font-weight: 500; color: var(--text-muted); opacity: 0.85;">(Tk: ${String(order.tokenNumber || 1).padStart(2, '0')})</span></span>
             <span class="kds-order-time">${formattedTime}</span>
             <span class="kds-order-type ${order.type.toLowerCase()}">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
           </div>

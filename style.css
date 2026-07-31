@@ -1409,6 +1409,8 @@ body {
 }
 
 /* Bill Invoice Receipt print mockup */
+/* Bill Invoice Receipt print mockup */
+/* Bill Invoice Receipt print mockup */
 .receipt-wrapper {
   background: #fff;
   color: #000;
@@ -1422,6 +1424,8 @@ body {
   /* ~80mm standard thermal paper */
   margin: 0 auto;
   box-sizing: border-box;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05); /* Premium soft shadow on screen */
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .receipt-logo {

@@ -623,7 +623,7 @@ window.views.pos = {
     document.getElementById("bill-subtotal").textContent = `₹${subtotal.toFixed(2)}`;
     document.getElementById("bill-tax").textContent = `₹${taxVal.toFixed(2)}`;
     document.getElementById("bill-total").textContent = `₹${netTotal.toFixed(2)}`;
-    
+
     const discAmtEl = document.getElementById("bill-discount-amount");
     if (discAmtEl) {
       discAmtEl.textContent = `-₹${flatDiscountAmount.toFixed(2)}`;
@@ -634,7 +634,7 @@ window.views.pos = {
     // 1. Search text filter & Clear button toggle
     const search = document.getElementById("pos-search");
     const clearSearchBtn = document.getElementById("btn-clear-search");
-    
+
     search.oninput = (e) => {
       const val = e.target.value;
       this.searchQuery = val;
@@ -772,7 +772,7 @@ window.views.pos = {
     nameInput.addEventListener("input", () => {
       const val = nameInput.value.trim();
       if (val.toLowerCase() === "walk-in customer" || val.length < 2) return;
-      
+
       const orders = window.db.get("orders") || [];
       const match = orders.find(o => o.customerName && o.customerName.trim().toLowerCase() === val.toLowerCase() && o.customerPhone);
       if (match) {
@@ -786,7 +786,7 @@ window.views.pos = {
       e.target.value = val;
 
       if (!val || val.length < 4) return;
-      
+
       const orders = window.db.get("orders") || [];
       const match = orders.find(o => o.customerPhone && o.customerPhone.trim() === val);
       if (match) {
@@ -932,8 +932,8 @@ window.views.pos = {
     const currentUser = window.db.getCurrentUser() || { name: "biller" };
     const cashierName = currentUser.name.split(' ')[0];
 
-    // Token No. (orderNumber)
-    const tokenNo = order.orderNumber;
+    // Token No. (padded daily token number to 2 digits: 01 to n)
+    const tokenNo = String(order.tokenNumber || 1).padStart(2, '0');
 
     // Total items quantity
     const totalQty = order.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -1137,13 +1137,13 @@ window.views.pos = {
 
   populateCustomerAutocompletes() {
     const orders = window.db.get("orders") || [];
-    
+
     // Extract unique customer records (latest first)
     const customersMap = new Map();
     orders.forEach(order => {
       const name = (order.customerName || "").trim();
       const phone = (order.customerPhone || "").trim();
-      
+
       if (name && name.toLowerCase() !== "walk-in customer") {
         if (phone && !customersMap.has(name.toLowerCase())) {
           customersMap.set(name.toLowerCase(), { name, phone });
@@ -1156,11 +1156,11 @@ window.views.pos = {
 
     const nameDatalist = document.getElementById("customer-names-list");
     const phoneDatalist = document.getElementById("customer-phones-list");
-    
+
     if (nameDatalist && phoneDatalist) {
       const uniqueNames = new Set();
       const uniquePhones = new Set();
-      
+
       customersMap.forEach(cust => {
         if (cust.name && cust.name.toLowerCase() !== "walk-in customer") {
           uniqueNames.add(cust.name);
@@ -1169,7 +1169,7 @@ window.views.pos = {
           uniquePhones.add(cust.phone);
         }
       });
-      
+
       nameDatalist.innerHTML = Array.from(uniqueNames).map(name => `<option value="${name}"></option>`).join("");
       phoneDatalist.innerHTML = Array.from(uniquePhones).map(phone => `<option value="${phone}"></option>`).join("");
     }
