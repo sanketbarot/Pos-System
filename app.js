@@ -182,6 +182,10 @@ const app = {
 
       // Trigger routing
       this.route();
+      
+      // Update sidebar summary metrics
+      this.updateSidebarSummary();
+      window.updateSidebarSummary = () => this.updateSidebarSummary();
     } else {
       this.showLogin();
     }
@@ -288,6 +292,25 @@ const app = {
     };
     tick();
     setInterval(tick, 1000);
+  },
+
+  updateSidebarSummary() {
+    const orders = window.db.get("orders") || [];
+    const today = new Date().toDateString();
+    
+    // Filter non-cancelled orders from today
+    const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === today && o.status !== "Cancelled");
+    const totalOrdersCount = todayOrders.length;
+    const totalSalesAmount = todayOrders.reduce((sum, o) => sum + o.total, 0);
+    const avgOrderValue = totalOrdersCount > 0 ? (totalSalesAmount / totalOrdersCount) : 0;
+    
+    const ordersEl = document.getElementById("sidebar-summary-orders");
+    const salesEl = document.getElementById("sidebar-summary-sales");
+    const avgEl = document.getElementById("sidebar-summary-avg");
+    
+    if (ordersEl) ordersEl.textContent = totalOrdersCount;
+    if (salesEl) salesEl.textContent = `₹${Math.round(totalSalesAmount).toLocaleString()}`;
+    if (avgEl) avgEl.textContent = `₹${Math.round(avgOrderValue)}`;
   }
 };
 

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>Crust & Chilly - Premium POS System</title>
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -78,6 +79,31 @@
           </li>
         </ul>
       </nav>
+
+      <!-- Today's Summary Card in Sidebar -->
+      <div class="sidebar-summary-card" style="margin: 10px 12px; padding: 14px; border-radius: var(--border-radius-md); background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); color: #fff;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px; opacity: 0.8; text-transform: uppercase;">Today's Summary</span>
+          <span style="font-size: 11px; opacity: 0.6;"><i class="fa-solid fa-plus"></i></span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+          <div style="display: flex; justify-content: space-between; opacity: 0.9;">
+            <span>Total Orders</span>
+            <span style="font-weight: 700;" id="sidebar-summary-orders">28</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; opacity: 0.9;">
+            <span>Total Sales</span>
+            <span style="font-weight: 700;" id="sidebar-summary-sales">₹8,452</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; opacity: 0.9;">
+            <span>Avg. Order Value</span>
+            <span style="font-weight: 700;" id="sidebar-summary-avg">₹302</span>
+          </div>
+          <div style="display: inline-flex; align-items: center; gap: 4px; color: #00e676; font-size: 11px; margin-top: 4px; font-weight: 600;">
+            <i class="fa-solid fa-arrow-trend-up"></i> 12.5% vs yesterday
+          </div>
+        </div>
+      </div>
 
       <!-- USER INFO BAR FOOTER -->
       <div class="user-profile-section">

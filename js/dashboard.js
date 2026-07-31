@@ -23,13 +23,13 @@ window.views.dashboard = {
 
         <!-- 3 Stats Cards Grid -->
         <div class="dashboard-grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 0;">
-          <div class="glass-card stat-card" style="border-left: 4px solid #ff8008;">
+          <div class="glass-card stat-card" style="border-left: 4px solid #ff5c00;">
             <div class="stat-info">
               <span class="stat-label">Today's Sales</span>
               <span class="stat-value" id="dash-sales-val">₹0</span>
               <span class="stat-change up" id="dash-sales-count"><i class="fa-solid fa-arrow-trend-up"></i> 0 orders today</span>
             </div>
-            <div class="stat-icon-wrapper" style="background: rgba(255, 128, 8, 0.08); border-color: rgba(255, 128, 8, 0.15); color: #ff8008;">
+            <div class="stat-icon-wrapper" style="background: rgba(255, 92, 0, 0.08); border-color: rgba(255, 92, 0, 0.15); color: #ff5c00;">
               <i class="fa-solid fa-indian-rupee-sign"></i>
             </div>
           </div>
@@ -59,7 +59,7 @@ window.views.dashboard = {
         <div class="dashboard-charts-row" style="margin-bottom: 0;">
           <div class="glass-card chart-card">
             <div class="flex-space mb-3">
-              <h3 style="font-size: 15px; font-weight: 700; margin: 0;"><i class="fa-solid fa-chart-line" style="color: #ff8008; margin-right: 6px;"></i> Sales Analytics (Last 7 Days)</h3>
+              <h3 style="font-size: 15px; font-weight: 700; margin: 0;"><i class="fa-solid fa-chart-line" style="color: #ff5c00; margin-right: 6px;"></i> Sales Analytics (Last 7 Days)</h3>
               <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Weekly Trend</span>
             </div>
             <div class="chart-container">
@@ -204,7 +204,7 @@ window.views.dashboard = {
                 <div style="flex-grow: 1; max-width: 100px; height: 6px; background: var(--bg-darkest); border-radius: 3px; overflow: hidden; border: 1px solid var(--border-color);">
                   <div style="width: ${pct}%; height: 100%; background: var(--primary-gradient); border-radius: 3px;"></div>
                 </div>
-                <span style="font-weight: 700; color: #ff8008; font-size: 13px; min-width: 50px; text-align: right;">${item.quantity} sold</span>
+                <span style="font-weight: 700; color: #ff5c00; font-size: 13px; min-width: 50px; text-align: right;">${item.quantity} sold</span>
               </div>
             </td>
           </tr>
@@ -266,7 +266,7 @@ window.views.dashboard = {
             fill: true,
             pointBackgroundColor: "#ff4b2b",
             pointBorderColor: bgDarker,
-            pointHoverBackgroundColor: "#ff8008",
+            pointHoverBackgroundColor: "#ff5c00",
             pointHoverBorderColor: bgDarker,
             pointRadius: 4,
             pointHoverRadius: 7
@@ -327,7 +327,7 @@ window.views.dashboard = {
         datasets: [
           {
             data: totalPayment === 0 ? [1, 1, 1] : paymentData,
-            backgroundColor: totalPayment === 0 ? [borderColor, borderColor, borderColor] : ["#2979ff", "#ff8008", "#00e676"],
+            backgroundColor: totalPayment === 0 ? [borderColor, borderColor, borderColor] : ["#2979ff", "#ff5c00", "#00e676"],
             borderWidth: 3,
             borderColor: bgDarker,
             borderRadius: totalPayment === 0 ? 0 : 4,

@@ -23,7 +23,7 @@ window.views.reports = {
         <!-- Date Filters Control Panel Bar -->
         <div class="glass-card flex-space" style="padding: 14px 20px; flex-wrap: wrap; gap: 16px;">
           <div class="flex-gap-sm" style="flex-wrap: wrap; align-items: center;">
-            <span style="font-size: 13px; font-weight: 700; color: var(--text-dark);"><i class="fa-solid fa-calendar-days" style="color: #ff8008; margin-right: 6px;"></i> Custom Period:</span>
+            <span style="font-size: 13px; font-weight: 700; color: var(--text-dark);"><i class="fa-solid fa-calendar-days" style="color: #ff5c00; margin-right: 6px;"></i> Custom Period:</span>
             <input type="date" id="report-start-date" class="customer-input" style="height:34px; font-size:12px; padding: 4px 10px;" value="${this.startDate}">
             <span style="font-size: 12px; color: var(--text-muted);">to</span>
             <input type="date" id="report-end-date" class="customer-input" style="height:34px; font-size:12px; padding: 4px 10px;" value="${this.endDate}">
@@ -33,7 +33,7 @@ window.views.reports = {
           </div>
           <div class="flex-gap-sm">
             <button class="btn btn-secondary" id="btn-report-export-csv" style="padding: 0 14px; height: 34px; font-size: 12px; border-color: var(--border-color-hover);">
-              <i class="fa-solid fa-file-csv" style="color: #ff8008; font-size: 14px;"></i> Export CSV
+              <i class="fa-solid fa-file-csv" style="color: #ff5c00; font-size: 14px;"></i> Export CSV
             </button>
             <button class="btn btn-secondary" id="btn-report-print-summary" style="padding: 0 14px; height: 34px; font-size: 12px;">
               <i class="fa-solid fa-print"></i> Print Summary
@@ -43,13 +43,13 @@ window.views.reports = {
 
         <!-- 4 Stats Cards Row -->
         <div class="dashboard-grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 0;">
-          <div class="glass-card stat-card" style="border-left: 4px solid #ff8008;">
+          <div class="glass-card stat-card" style="border-left: 4px solid #ff5c00;">
             <div class="stat-info">
               <span class="stat-label">Gross Revenue</span>
               <span class="stat-value" id="rep-total-sales">₹0</span>
               <span class="stat-change" style="color: var(--text-muted);">Sum of all orders</span>
             </div>
-            <div class="stat-icon-wrapper" style="background: rgba(255, 128, 8, 0.08); border-color: rgba(255, 128, 8, 0.15); color: #ff8008;">
+            <div class="stat-icon-wrapper" style="background: rgba(255, 92, 0, 0.08); border-color: rgba(255, 92, 0, 0.15); color: #ff5c00;">
               <i class="fa-solid fa-calculator"></i>
             </div>
           </div>
@@ -89,7 +89,7 @@ window.views.reports = {
         <div class="dashboard-charts-row" style="margin-bottom: 0;">
           <div class="glass-card chart-card">
             <div class="flex-space mb-3">
-              <h3 style="font-size: 15px; font-weight: 700; margin: 0;"><i class="fa-solid fa-chart-line" style="color: #ff8008; margin-right: 6px;"></i> Revenue Analytics Trend Curve</h3>
+              <h3 style="font-size: 15px; font-weight: 700; margin: 0;"><i class="fa-solid fa-chart-line" style="color: #ff5c00; margin-right: 6px;"></i> Revenue Analytics Trend Curve</h3>
               <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Sales Curve</span>
             </div>
             <div class="chart-container">
@@ -113,7 +113,7 @@ window.views.reports = {
           <!-- Item velocity stats -->
           <div class="glass-card" style="display: flex; flex-direction: column;">
             <div class="flex-space mb-3">
-              <h3 style="font-size: 15px; font-weight: 700; margin: 0;"><i class="fa-solid fa-list-ol" style="color: #ff8008; margin-right: 6px;"></i> Itemized Sales Velocity</h3>
+              <h3 style="font-size: 15px; font-weight: 700; margin: 0;"><i class="fa-solid fa-list-ol" style="color: #ff5c00; margin-right: 6px;"></i> Itemized Sales Velocity</h3>
               <span class="badge badge-ready">Top Sellers First</span>
             </div>
             <div class="table-container" style="max-height: 280px; overflow-y: auto; flex-grow: 1;">
@@ -167,7 +167,7 @@ window.views.reports = {
               </div>
               <div class="flex-space" style="font-size: 13px; margin-top: 8px; color: var(--text-muted);">
                 <span>Cash Discount Given:</span>
-                <span id="rep-cash-given" style="font-weight: 700; color: #ff8008;">₹0.00</span>
+                <span id="rep-cash-given" style="font-weight: 700; color: #ff5c00;">₹0.00</span>
               </div>
             </div>
           </div>
@@ -288,7 +288,7 @@ window.views.reports = {
                 <span style="font-weight:700; color: var(--text-main);">${item.quantity} sold</span>
               </div>
             </td>
-            <td style="text-align: right; font-weight:700; color:#ff8008; padding: 12px 18px;">${currency}${item.totalRevenue.toFixed(2)}</td>
+            <td style="text-align: right; font-weight:700; color:#ff5c00; padding: 12px 18px;">${currency}${item.totalRevenue.toFixed(2)}</td>
           </tr>
         `;
       }).join("");
@@ -306,7 +306,7 @@ window.views.reports = {
     const payTableBody = document.getElementById("rep-payment-split-tbody");
     payTableBody.innerHTML = ["UPI", "Cash", "Card"].map(mode => `
       <tr>
-        <td style="font-weight:600; padding: 12px 18px;"><i class="fa-solid fa-circle" style="color: ${mode === 'UPI' ? '#2979ff' : mode==='Cash' ? '#ff8008' : '#00e676'}; font-size:8px; margin-right:6px;"></i> ${mode}</td>
+        <td style="font-weight:600; padding: 12px 18px;"><i class="fa-solid fa-circle" style="color: ${mode === 'UPI' ? '#2979ff' : mode==='Cash' ? '#ff5c00' : '#00e676'}; font-size:8px; margin-right:6px;"></i> ${mode}</td>
         <td style="padding: 12px 18px; color: var(--text-muted);">${paySplitCounts[mode]} transactions</td>
         <td style="text-align: right; font-weight:700; color: var(--text-dark); padding: 12px 18px;">${currency}${paySplitAmounts[mode].toFixed(2)}</td>
       </tr>
@@ -363,7 +363,7 @@ window.views.reports = {
             tension: 0.25,
             pointBackgroundColor: "#ff4b2b",
             pointBorderColor: bgDarker,
-            pointHoverBackgroundColor: "#ff8008",
+            pointHoverBackgroundColor: "#ff5c00",
             pointHoverBorderColor: bgDarker,
             pointRadius: 4,
             pointHoverRadius: 7
@@ -429,7 +429,7 @@ window.views.reports = {
         datasets: [
           {
             data: pieData.length === 0 ? [1] : pieData,
-            backgroundColor: pieData.length === 0 ? [borderColor] : ["#ff4b2b", "#ff8008", "#00e676", "#00b0ff", "#2979ff", "#ffb300", "#e91e63", "#9c27b0", "#009688", "#795548"],
+            backgroundColor: pieData.length === 0 ? [borderColor] : ["#ff4b2b", "#ff5c00", "#00e676", "#00b0ff", "#2979ff", "#ffb300", "#e91e63", "#9c27b0", "#009688", "#795548"],
             borderWidth: 3,
             borderColor: bgDarker,
             borderRadius: pieData.length === 0 ? 0 : 4,

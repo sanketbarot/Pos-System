@@ -292,7 +292,7 @@ window.views.orders = {
               <div style="font-size: 11px; color: var(--text-muted);">${o.customerPhone || 'No Phone'}</div>
             </td>
             <td>${o.type}</td>
-            <td style="font-weight: 700; color: #ff8008;">${currency}${o.total.toFixed(2)}</td>
+            <td style="font-weight: 700; color: #ff5c00;">${currency}${o.total.toFixed(2)}</td>
             <td><span class="badge ${statusBadge}">${o.status}</span></td>
             <td>
               <div class="flex-gap-sm">
