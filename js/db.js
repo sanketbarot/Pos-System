@@ -14,6 +14,7 @@ const db = {
     localStorage.setItem(DB_PREFIX + key, JSON.stringify(val));
     // Trigger storage event locally for SPA notification sync if needed
     window.dispatchEvent(new Event("db-update"));
+    this.syncToFirebase(key, val);
   },
 
   // Initialize Database with Demo Data
@@ -45,6 +46,87 @@ const db = {
       localStorage.setItem(cleanupKey, "true");
       console.log("Crust & Chilly POS: Old testing transaction data wiped successfully.");
     }
+
+    // Initialize Firebase
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyCsVef4qZTTnzJXWFU_kpLWFYrtJiWEtYE",
+        authDomain: "crust-chilly-pos.firebaseapp.com",
+        projectId: "crust-chilly-pos",
+        storageBucket: "crust-chilly-pos.firebasestorage.app",
+        messagingSenderId: "458423437579",
+        appId: "1:458423437579:web:e3e58c9bf3e2b0cd79fa0e"
+      };
+
+      if (typeof firebase !== "undefined") {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        this.fs = firebase.firestore();
+
+        // Enable offline persistence
+        this.fs.enablePersistence().catch(err => {
+          console.warn("Firestore offline persistence warning:", err.code);
+        });
+
+        // Real-time synchronization of local keys with Firestore documents
+        const SYNC_KEYS = ["users", "categories", "ingredients", "products", "settings", "permissions", "orders", "expenses", "purchases", "orderCounter"];
+        SYNC_KEYS.forEach(key => {
+          this.fs.collection("cc_pos").doc(key).onSnapshot(doc => {
+            if (doc.exists) {
+              const dataObj = doc.data();
+              let val = null;
+              if (key === "settings" || key === "permissions") {
+                val = dataObj.data;
+              } else if (key === "orderCounter") {
+                val = dataObj.value;
+              } else {
+                val = dataObj.list;
+              }
+
+              const localStr = localStorage.getItem(DB_PREFIX + key);
+              const remoteStr = JSON.stringify(val);
+              if (localStr !== remoteStr) {
+                localStorage.setItem(DB_PREFIX + key, remoteStr);
+                window.dispatchEvent(new Event("db-update"));
+                
+                // Force view reload on updates to dynamically sync active UI states (e.g., dashboard, orders, KDS)
+                if (window.app) {
+                  const currentHash = window.location.hash.replace("#", "") || "dashboard";
+                  if (currentHash === "orders" || currentHash === "dashboard" || currentHash === "pos") {
+                    window.app.loadView(currentHash);
+                  }
+                }
+              }
+            } else {
+              // If document is not in cloud, seed it using our local copy
+              const localData = this.get(key);
+              if (localData !== null) {
+                this.syncToFirebase(key, localData);
+              }
+            }
+          });
+        });
+      }
+    } catch (e) {
+      console.error("Firebase SDK initialization failed:", e);
+    }
+  },
+
+  // Asynchronous backup sync to Cloud Firestore
+  syncToFirebase(key, val) {
+    if (!this.fs) return;
+    let dataObj = {};
+    if (key === "settings" || key === "permissions") {
+      dataObj = { data: val };
+    } else if (key === "orderCounter") {
+      dataObj = { value: val };
+    } else {
+      dataObj = { list: val };
+    }
+    this.fs.collection("cc_pos").doc(key).set(dataObj).catch(err => {
+      console.error(`Error syncing ${key} to Firebase:`, err);
+    });
   },
 
   seedData() {
