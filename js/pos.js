@@ -957,6 +957,7 @@ window.views.pos = {
         
         <div class="receipt-meta">
           <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
+          ${order.customerPhone ? `<div style="font-weight: bold; margin-bottom: 4px;">Phone: ${order.customerPhone}</div>` : ""}
           <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
           <div class="receipt-meta-row">
             <span>Date: ${orderDate}</span>
