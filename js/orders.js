@@ -389,14 +389,18 @@ window.views.orders = {
           const remainingSeconds = 15 - elapsedSeconds;
 
           if (remainingSeconds <= 0) {
-            window.db.updateOrderStatus(orderId, "Preparing");
+            const autoStartTime = new Date(createdTime.getTime() + 15 * 1000).toISOString();
+            window.db.updateOrderStatus(orderId, "Preparing", autoStartTime);
             needsRerender = true;
           } else {
             el.textContent = `${remainingSeconds}s`;
           }
         } else if (status === "Preparing") {
           // 15 minutes = 900 seconds
-          const startedTime = order.preparingStartedAt ? new Date(order.preparingStartedAt) : createdTime;
+          const autoPrepStartTime = createdTime.getTime() + 15 * 1000;
+          const startedTime = order.preparingStartedAt 
+            ? new Date(Math.min(new Date(order.preparingStartedAt).getTime(), autoPrepStartTime)) 
+            : new Date(autoPrepStartTime);
           const elapsedSeconds = Math.floor((now - startedTime) / 1000);
           const remainingSeconds = 900 - elapsedSeconds;
 

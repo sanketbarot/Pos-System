@@ -89,7 +89,7 @@ const db = {
               if (localStr !== remoteStr) {
                 localStorage.setItem(DB_PREFIX + key, remoteStr);
                 window.dispatchEvent(new Event("db-update"));
-                
+
                 // Force view reload on updates to dynamically sync active UI states (e.g., dashboard, orders, KDS)
                 if (window.app) {
                   const currentHash = window.location.hash.replace("#", "") || "dashboard";
@@ -192,13 +192,13 @@ const db = {
       { id: "p12", name: "Hot & Spicy Chilli Garlic Burger", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing14: 30 } },
       { id: "p13", name: "Crust &Chilly Special Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 1, ing13: 40 } },
       // Premium (BOGO: true)
-      { id: "p14", name: "Cheese Burst Aloo Tikki", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2 } },
-      { id: "p15", name: "Cheese Burst Peri Peri", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
-      { id: "p16", name: "Cheese Burst Tandoori", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
-      { id: "p17", name: "Cheese Burst Achari Masti", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
-      { id: "p18", name: "Cheese Burst Spicy Schezwan", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 20 } },
-      { id: "p19", name: "Cheese Burst Hot & Spicy Chilli Garlic", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 25 } },
-      { id: "p20", name: "Cheese Burst Crust &Chilly Special", price: 159, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 3, ing13: 30 } },
+      { id: "p14", name: "Cheese Blast Aloo Tikki", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2 } },
+      { id: "p15", name: "Cheese Blast Peri Peri", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
+      { id: "p16", name: "Cheese Blast Tandoori", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
+      { id: "p17", name: "Cheese Blast Achari Masti", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
+      { id: "p18", name: "Cheese Blast Spicy Schezwan", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 20 } },
+      { id: "p19", name: "Cheese Blast Hot & Spicy Chilli Garlic", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 25 } },
+      { id: "p20", name: "Cheese Blast Crust &Chilly Special", price: 159, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 3, ing13: 30 } },
 
       // --- SLICE SANDWICH (Classic: BOGO false) ---
       { id: "p21", name: "Butter Slice", price: 29, category: "cat2", available: true, bogo: false, recipe: { ing4: 2 } },
@@ -270,9 +270,9 @@ const db = {
       { id: "p71", name: "Classic Masala Maggi", price: 59, category: "cat7", available: true, bogo: false, recipe: { ing7: 1 } },
       { id: "p72", name: "Tadka Maggi", price: 79, category: "cat7", available: true, bogo: false, recipe: { ing7: 1 } },
       { id: "p73", name: "Veg Loaded Maggi", price: 89, category: "cat7", available: true, bogo: false, recipe: { ing7: 1 } },
-      { id: "p74", name: "Cheese Burst Maggi", price: 99, category: "cat7", available: true, bogo: false, recipe: { ing7: 1, ing3: 1 } },
-      { id: "p75", name: "Cheese Burst Tadka Maggi", price: 109, category: "cat7", available: true, bogo: false, recipe: { ing7: 1, ing3: 1 } },
-      { id: "p76", name: "Cheese Burst Veg Loaded Maggi", price: 119, category: "cat7", available: true, bogo: false, recipe: { ing7: 1, ing3: 1 } },
+      { id: "p74", name: "Cheese Blast Maggi", price: 99, category: "cat7", available: true, bogo: false, recipe: { ing7: 1, ing3: 1 } },
+      { id: "p75", name: "Cheese Blast Tadka Maggi", price: 109, category: "cat7", available: true, bogo: false, recipe: { ing7: 1, ing3: 1 } },
+      { id: "p76", name: "Cheese Blast Veg Loaded Maggi", price: 119, category: "cat7", available: true, bogo: false, recipe: { ing7: 1, ing3: 1 } },
 
       // --- MOJITOS (BOGO: false) ---
       { id: "p77", name: "Mint Mojito", price: 99, category: "cat8", available: true, bogo: false, recipe: { ing8: 15, ing9: 1, ing10: 250 } },
@@ -287,7 +287,7 @@ const db = {
       { id: "p84", name: "Premium Sandwich + Fries + Mojito Combo", price: 249, category: "cat9", available: true, bogo: false, recipe: { ing4: 3, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
       { id: "p85", name: "Signature Tikka Pav + Fries + Cold Drink Combo", price: 179, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing6: 100, ing11: 1 } },
       { id: "p86", name: "Premium Tikka Pav + Fries + Mojito Combo", price: 249, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
-      
+
       // --- COLD DRINKS & WATER ---
       { id: "p87", name: "Cold Drink (Small)", price: 10, category: "cat10", available: true, bogo: false, recipe: {} },
       { id: "p88", name: "Cold Drink (Medium)", price: 20, category: "cat10", available: true, bogo: false, recipe: {} },
@@ -493,7 +493,7 @@ const db = {
   },
 
   // Update order status (Pending -> Preparing -> Ready -> Completed / Cancelled)
-  updateOrderStatus(orderId, newStatus) {
+  updateOrderStatus(orderId, newStatus, customStartTime = null) {
     const orders = this.get("orders") || [];
     const index = orders.findIndex(o => o.id === orderId);
 
@@ -503,7 +503,7 @@ const db = {
 
       // Track when preparing started for timer countdown
       if (newStatus === "Preparing" && !orders[index].preparingStartedAt) {
-        orders[index].preparingStartedAt = new Date().toISOString();
+        orders[index].preparingStartedAt = customStartTime || new Date().toISOString();
       }
 
       // If an order is Cancelled, should we refund the inventory?
@@ -708,9 +708,18 @@ const db = {
 window.db = db;
 
 // Force reset database once if version changes, to automatically load the user's custom menu list
-const TARGET_MENU_VERSION = "crust_chilly_v6";
+const TARGET_MENU_VERSION = "crust_chilly_v8";
 if (localStorage.getItem("cc_pos_menu_version") !== TARGET_MENU_VERSION) {
   db.init(true); // Wipes old local storage key prefix & reseeds
+  
+  // Force sync all seeded keys to Firebase to overwrite old Firestore documents!
+  if (db.fs) {
+    const SYNC_KEYS = ["users", "categories", "ingredients", "products", "settings", "permissions", "orders", "expenses", "purchases", "orderCounter"];
+    SYNC_KEYS.forEach(key => {
+      db.syncToFirebase(key, db.get(key));
+    });
+  }
+  
   localStorage.setItem("cc_pos_menu_version", TARGET_MENU_VERSION);
   console.log("Database reset: Crust & Chilly seed menu updated to version: " + TARGET_MENU_VERSION);
 } else {

@@ -15,7 +15,7 @@ function getProductImage(name, categoryId) {
     if (n.includes("afghani") || n.includes("indian style")) {
       return "https://images.unsplash.com/photo-1550547660-d9450f859349?w=200&auto=format&fit=crop&q=80";
     }
-    if (n.includes("cheese burst") || n.includes("special")) {
+    if (n.includes("cheese blast") || n.includes("cheese burst") || n.includes("special")) {
       return "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=200&auto=format&fit=crop&q=80"; // double cheese patty
     }
     return "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&auto=format&fit=crop&q=80";

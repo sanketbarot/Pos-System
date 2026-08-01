@@ -2,7 +2,7 @@
 // Manages authentication flow, routing transitions, role restrictions, and global layout.
 
 // Global toast notifier helper
-window.showToast = function(message, type = "success") {
+window.showToast = function (message, type = "success") {
   const container = document.getElementById("toast-container");
   if (!container) return;
 
@@ -67,16 +67,16 @@ window.customModal = {
 
   show({ title, bodyHtml, onConfirm, onCancel, confirmText = "Confirm", cancelText = "Cancel", hideFooter = false }) {
     if (!this.element) this.init();
-    
+
     this.title.textContent = title;
     this.body.innerHTML = bodyHtml;
-    
+
     this.onConfirmCallback = onConfirm;
     this.onCancelCallback = onCancel;
-    
+
     this.confirmBtn.textContent = confirmText;
     this.cancelBtn.textContent = cancelText;
-    
+
     const footer = document.getElementById("modal-footer");
     if (hideFooter) {
       footer.style.display = "none";
@@ -104,14 +104,14 @@ const app = {
 
   init() {
     window.customModal.init();
-    
+
     // Bind Session authentication
     const loginForm = document.getElementById("login-form");
     loginForm.onsubmit = (e) => {
       e.preventDefault();
       const userField = document.getElementById("login-username").value;
       const passField = document.getElementById("login-password").value;
-      
+
       const authResult = window.db.login(userField, passField);
       if (authResult.success) {
         this.runAppSession();
@@ -155,12 +155,12 @@ const app = {
 
   runAppSession() {
     this.currentUser = window.db.getCurrentUser();
-    
+
     if (this.currentUser) {
       // Hide login, show dashboard app
       document.getElementById("auth-view").style.display = "none";
       document.getElementById("app-container").style.display = "flex";
-      
+
       // Update User Panel in sidebar
       document.getElementById("header-username").textContent = this.currentUser.name;
       document.getElementById("header-role").textContent = this.currentUser.role;
@@ -182,7 +182,7 @@ const app = {
 
       // Trigger routing
       this.route();
-      
+
       // Update sidebar summary metrics
       this.updateSidebarSummary();
       window.updateSidebarSummary = () => this.updateSidebarSummary();
@@ -253,7 +253,7 @@ const app = {
       menu: "Menu Management",
       reports: "Sales & Profit Reports"
     };
-    
+
     const titleElem = document.getElementById("current-view-title");
     if (titleElem) {
       titleElem.textContent = viewTitles[hash] || "POS Terminal";
@@ -264,11 +264,11 @@ const app = {
     if (topHeader) {
       topHeader.style.display = (hash === "pos") ? "none" : "flex";
     }
-    
+
     // Clear viewport, fade-in and render
     const viewport = document.getElementById("view-viewport");
     viewport.innerHTML = "";
-    
+
     // Trigger module initialization callback
     window.views[hash].init(viewport);
   },
@@ -279,12 +279,12 @@ const app = {
     const clock = document.getElementById("header-date-time");
     const tick = () => {
       const date = new Date();
-      const options = { 
-        weekday: 'short', 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
+      const options = {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
       };
@@ -297,17 +297,17 @@ const app = {
   updateSidebarSummary() {
     const orders = window.db.get("orders") || [];
     const today = new Date().toDateString();
-    
+
     // Filter non-cancelled orders from today
     const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === today && o.status !== "Cancelled");
     const totalOrdersCount = todayOrders.length;
     const totalSalesAmount = todayOrders.reduce((sum, o) => sum + o.total, 0);
     const avgOrderValue = totalOrdersCount > 0 ? (totalSalesAmount / totalOrdersCount) : 0;
-    
+
     const ordersEl = document.getElementById("sidebar-summary-orders");
     const salesEl = document.getElementById("sidebar-summary-sales");
     const avgEl = document.getElementById("sidebar-summary-avg");
-    
+
     if (ordersEl) ordersEl.textContent = totalOrdersCount;
     if (salesEl) salesEl.textContent = `₹${Math.round(totalSalesAmount).toLocaleString()}`;
     if (avgEl) avgEl.textContent = `₹${Math.round(avgOrderValue)}`;
