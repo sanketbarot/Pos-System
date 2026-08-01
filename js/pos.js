@@ -945,136 +945,577 @@ window.views.pos = {
 
 
     const receiptHtml = `
-      <div class="receipt-wrapper">
-        <!-- Logo centered -->
-        <img src="logo.jpg" alt="Logo" class="receipt-logo">
-        
-        <div class="receipt-header">
-          <div class="receipt-title">${settings.restaurantName || "Crust & Chilly"}</div>
-          <div class="receipt-subtitle">${settings.address || "Shop-09, Shree sanidhya flora, Turquoise BLU Rd, Shela, Ahmedabad, Gujarat 380057"}</div>
-          <div class="receipt-subtitle">Phone: ${settings.phone || "096648 70840"}</div>
-        </div>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <div class="receipt-meta">
-          <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
-          <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
-          <div class="receipt-meta-row">
-            <span>Date: ${orderDate}</span>
-            <span style="font-weight: bold;">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
-          </div>
-          <div class="receipt-meta-row">
-            <span>Time: ${orderTime}</span>
-            <span></span>
-          </div>
-          <div class="receipt-meta-row">
-            <span>Cashier: ${cashierName}</span>
-            <span>Bill No.: ${order.orderNumber}</span>
-          </div>
-          <div class="receipt-token-no">Token No.: ${tokenNo}</div>
-        </div>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <table class="receipt-table">
-          <thead>
-            <tr>
-              <th style="width: 50%;">Item</th>
-              <th style="text-align: center; width: 15%;">Qty</th>
-              <th style="text-align: right; width: 15%;">Price</th>
-              <th style="text-align: right; width: 20%;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${order.items.map(item => {
-      let bogoLabel = item.bogo ? "<br><span class='receipt-bogo-label'>(BOGO Eligible)</span>" : "";
-      return `
-                <tr>
-                  <td>
-                    <span class="receipt-item-name">${item.name}</span>
-                    ${bogoLabel}
-                  </td>
-                  <td style="text-align: center;">${item.quantity}</td>
-                  <td style="text-align: right;">${item.price.toFixed(2)}</td>
-                  <td style="text-align: right;">${item.lineTotal.toFixed(2)}</td>
-                </tr>
-              `;
-    }).join("")}
-          </tbody>
-        </table>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <div class="receipt-totals">
-          <div class="receipt-total-line">
-            <span>Total Qty: ${totalQty}</span>
-            <span>Sub Total: ₹${order.subtotal.toFixed(2)}</span>
-          </div>
-          
-          ${order.bogoDiscount > 0 || order.discount > 0 || order.tax > 0 ? `
-            <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
-          ` : ""}
-          
-          ${order.bogoDiscount > 0 ? `
-            <div class="receipt-total-line" style="font-weight: 600; color: #d62d20;">
-              <span>BOGO Discount:</span>
-              <span>-₹${order.bogoDiscount.toFixed(2)}</span>
-            </div>
-          ` : ""}
-          
-          ${order.discount > 0 ? `
-            <div class="receipt-total-line">
-              <span>Cash Discount:</span>
-              <span>-₹${order.discount.toFixed(2)}</span>
-            </div>
-          ` : ""}
-          
-          ${order.tax > 0 ? `
-            <div class="receipt-total-line">
-              <span>GST (5%):</span>
-              <span>₹${order.tax.toFixed(2)}</span>
-            </div>
-          ` : ""}
-          
-          <div class="receipt-grand-total">
-            <span>Grand Total</span>
-            <span>₹${order.total.toFixed(2)}</span>
-          </div>
-        </div>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <div class="receipt-footer">
-          <div style="font-weight: bold; margin-bottom: 6px;">For Order or More : ${settings.phone || "096648 70840"}</div>
-          
-          <div class="receipt-qr-wrapper">
-            <img class="receipt-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUrl)}" alt="Scan to Pay">
-            <div class="receipt-qr-text">Pay via the QR code.</div>
-          </div>
-          
-          <div class="receipt-dotted-line" style="margin-top: 8px;"></div>
-          <div style="font-weight: bold; margin-top: 6px; text-transform: uppercase;">Thank you for dining with us!</div>
-        </div>
-      </div>
-      
-      <!-- Custom print styles only active when printing -->
       <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playball&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+        /* Receipt Wrapper */
+        .receipt-wrapper {
+          background: #ffffff;
+          color: #1a1a1a;
+          padding: 24px;
+          font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+          font-size: 13px;
+          line-height: 1.4;
+          width: 100%;
+          max-width: 440px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+          border-radius: 12px;
+          border: 1px solid rgba(0,0,0,0.06);
+        }
+
+        /* Top Veg Line */
+        .receipt-top-veg-line {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin-bottom: 14px;
+        }
+
+        .veg-line-dash {
+          flex-grow: 1;
+          height: 1.5px;
+          background: #0f8a4f;
+        }
+
+        .veg-line-text {
+          font-size: 11px;
+          font-weight: 800;
+          color: #0f8a4f;
+          letter-spacing: 0.5px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        /* Header Section (White Background) */
+        .receipt-header-white {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .receipt-header-left {
+          display: flex;
+          align-items: center;
+        }
+
+        .receipt-logo-img {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid #eaeaea;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .receipt-header-right {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          text-align: left;
+        }
+
+        .receipt-brand-title {
+          font-size: 26px;
+          font-weight: 900;
+          color: #a10f0f;
+          letter-spacing: 0.5px;
+          line-height: 1.1;
+        }
+
+        .receipt-brand-tagline-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin-top: 2px;
+        }
+
+        .tagline-arrow {
+          color: #ff8c00;
+          font-size: 10px;
+        }
+
+        .tagline-text {
+          color: #1a1a1a;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+        }
+
+        /* Address Section */
+        .receipt-address-section {
+          text-align: center;
+          font-size: 12px;
+          font-weight: 600;
+          color: #333333;
+          margin-bottom: 16px;
+          line-height: 1.3;
+        }
+
+        .receipt-address-line {
+          margin-bottom: 6px;
+          padding: 0 10px;
+        }
+
+        .receipt-phone-wrapper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .phone-gold-line {
+          width: 40px;
+          height: 1.5px;
+          background: #ff8c00;
+        }
+
+        .receipt-phone-line {
+          font-weight: 700;
+          color: #1a1a1a;
+        }
+
+        /* Tax Invoice bar */
+        .receipt-tax-invoice-bar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 16px;
+        }
+
+        .receipt-line-dashed {
+          flex-grow: 1;
+          border-top: 1px dashed #b0b0b0;
+          height: 1px;
+        }
+
+        .receipt-tax-invoice-label {
+          background: #a10f0f;
+          color: #ffffff;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 4px 16px;
+          letter-spacing: 1px;
+          margin: 0 12px;
+          position: relative;
+          clip-path: polygon(8% 0%, 92% 0%, 100% 50%, 92% 100%, 8% 100%, 0% 50%);
+        }
+
+        /* Metadata Section */
+        .receipt-metadata-grid {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          gap: 12px;
+          font-size: 12px;
+          color: #222222;
+          margin-bottom: 16px;
+          padding: 0 8px;
+        }
+
+        .receipt-meta-column {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          text-align: left;
+          font-weight: 600;
+        }
+
+        .receipt-meta-column i {
+          color: #a10f0f;
+          width: 14px;
+          margin-right: 4px;
+          text-align: center;
+        }
+
+        .receipt-meta-column-divider {
+          width: 1px;
+          border-left: 1px dashed #b0b0b0;
+        }
+
+        /* Items Table */
+        .receipt-items-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 16px;
+        }
+
+        .receipt-items-table th {
+          background: #000000;
+          color: #ffffff;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 8px 10px;
+          text-transform: uppercase;
+        }
+
+        .receipt-items-table th:first-child {
+          border-radius: 4px 0 0 4px;
+        }
+
+        .receipt-items-table th:last-child {
+          border-radius: 0 4px 4px 0;
+        }
+
+        .receipt-items-table td {
+          padding: 10px;
+          border-bottom: 1px solid #eaeaea;
+          vertical-align: middle;
+          font-size: 12px;
+          font-weight: 700;
+          color: #1a1a1a;
+        }
+
+        .item-name-bold {
+          font-weight: 700;
+        }
+
+        .bogo-badge {
+          font-size: 10px;
+          color: #666;
+          font-style: italic;
+          margin-top: 2px;
+          font-weight: 500;
+        }
+
+        /* Summary Section styling */
+        .receipt-summary-flex {
+          display: grid;
+          grid-template-columns: 1fr 1.8fr;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .receipt-summary-left-box {
+          border: 1px solid #eaeaea;
+          border-radius: 8px;
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: #fafafa;
+        }
+
+        .thank-you-script {
+          font-family: 'Playball', 'Caveat', cursive;
+          font-size: 24px;
+          color: #a10f0f;
+          line-height: 1;
+          margin-bottom: 8px;
+        }
+
+        .chef-hat-icon {
+          color: #a10f0f;
+          margin-bottom: 8px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .hope-serve-text {
+          font-size: 10px;
+          font-weight: 700;
+          color: #444;
+          text-align: center;
+          line-height: 1.3;
+        }
+
+        .receipt-summary-right-box {
+          border: 1px solid #eaeaea;
+          border-radius: 8px;
+          padding: 12px;
+          background: #ffffff;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          font-weight: 600;
+          color: #333333;
+        }
+
+        .summary-row span:first-child {
+          text-align: left;
+        }
+
+        .summary-row span:last-child {
+          text-align: right;
+          font-weight: 700;
+          color: #1a1a1a;
+        }
+
+        .summary-dashed-line {
+          border-top: 1px dashed #b0b0b0;
+          margin: 4px 0;
+        }
+
+        .grand-total-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .grand-total-lbl {
+          font-size: 13px;
+          font-weight: 800;
+          color: #1a1a1a;
+        }
+
+        .grand-total-val {
+          font-size: 18px;
+          font-weight: 800;
+          color: #a10f0f;
+        }
+
+        .summary-payable-banner {
+          background: #fdf5d6;
+          border: 1.5px solid #f9ebbe;
+          border-radius: 6px;
+          padding: 6px 10px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 6px;
+          font-weight: 800;
+          font-size: 12px;
+          color: #1a1a1a;
+        }
+
+        .payable-left {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .payable-circle-rupee {
+          background: #a10f0f;
+          color: #ffffff;
+          border-radius: 50%;
+          width: 16px;
+          height: 16px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: bold;
+        }
+
+        .payable-right {
+          font-size: 14px;
+          color: #1a1a1a;
+        }
+
+        /* Contact Bottom Line */
+        .receipt-footer-phone-line-centered {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin-bottom: 16px;
+        }
+
+        .footer-phone-dashed-line {
+          flex-grow: 1;
+          border-top: 1px dashed #b0b0b0;
+          height: 1px;
+        }
+
+        .footer-phone-content {
+          font-size: 11px;
+          font-weight: 800;
+          color: #a10f0f;
+          white-space: nowrap;
+        }
+
+        .footer-phone-content i {
+          margin-right: 4px;
+        }
+
+        /* Scan & Pay bar */
+        .receipt-scan-pay-bar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 16px;
+        }
+
+        .scan-pay-badge {
+          background: #000000;
+          color: #ffffff;
+          font-size: 10px;
+          font-weight: 800;
+          padding: 4px 16px;
+          border-radius: 20px;
+          letter-spacing: 1px;
+          margin: 0 10px;
+        }
+
+        /* QR Section with Side Banners */
+        .receipt-qr-section-wrapper {
+          display: grid;
+          grid-template-columns: 1fr 1.8fr 1fr;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 20px;
+        }
+
+        .qr-side-text-left {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          text-align: right;
+          color: #000000;
+          font-weight: 800;
+        }
+
+        .upi-accepted-here-title {
+          font-size: 20px;
+          line-height: 1;
+          color: #1a1a1a;
+        }
+
+        .upi-accepted-here-sub {
+          font-size: 8px;
+          white-space: nowrap;
+          color: #666666;
+          margin-top: 2px;
+        }
+
+        .upi-arrow-pointer {
+          font-size: 14px;
+          color: #ff5c00;
+          margin-top: 4px;
+        }
+
+        .receipt-qr-section {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .qr-box-bracket {
+          border: 2px solid #a10f0f;
+          padding: 6px;
+          border-radius: 8px;
+          background: #ffffff;
+          display: inline-block;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .receipt-qr-img {
+          width: 120px;
+          height: 120px;
+          display: block;
+        }
+
+        .qr-caption {
+          font-size: 9px;
+          font-weight: 700;
+          color: #555555;
+          margin-top: 4px;
+          white-space: nowrap;
+        }
+
+        .qr-side-logos-right {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+          font-size: 10px;
+          font-weight: 800;
+          color: #333333;
+        }
+
+        .pay-logo-gpay, .pay-logo-phonepe, .pay-logo-paytm {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          white-space: nowrap;
+          border: 1px solid #eaeaea;
+          border-radius: 4px;
+          padding: 2px 6px;
+          width: 75px;
+          background: #fafafa;
+        }
+
+        /* Black Footer Banner */
+        .receipt-black-footer-banner {
+          background: #000000;
+          color: #ffffff;
+          padding: 10px 12px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 8px;
+          font-size: 9px;
+          font-weight: 700;
+          margin: 0 -24px 16px -24px;
+        }
+
+        .footer-banner-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          white-space: nowrap;
+        }
+
+        .footer-banner-item-divider {
+          color: #555555;
+        }
+
+        /* Final Footer */
+        .receipt-final-footer {
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .footer-heart-divider {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 60%;
+          margin-bottom: 8px;
+        }
+
+        .heart-line {
+          flex-grow: 1;
+          border-top: 1.5px solid #ff3c00;
+          height: 1px;
+          margin: 0 8px;
+        }
+
+        .thank-you-script-small {
+          font-family: 'Playball', 'Caveat', cursive;
+          font-size: 20px;
+          color: #a10f0f;
+          line-height: 1;
+          margin-bottom: 4px;
+        }
+
+        /* Print Media Styles Scoped */
         @media print {
           @page {
-            margin: 4mm 6mm; /* Safe print margins to prevent side text cutoff */
+            margin: 0 !important; /* Remove browser default margins */
             size: auto;
           }
           body { 
-            background: #fff !important; 
-            color: #000 !important; 
+            background: #ffffff !important; 
+            color: #000000 !important; 
             margin: 0 !important;
             padding: 0 !important;
           }
           * {
-            color: #000 !important;
-            text-shadow: none !important;
-            box-shadow: none !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -1086,15 +1527,14 @@ window.views.pos = {
             left: 0 !important; 
             top: 0 !important; 
             width: 100% !important; 
-            height: auto !important; 
+            height: auto !important;
             background: transparent !important; 
             backdrop-filter: none !important; 
-            box-shadow: none !important; 
             display: block !important;
             opacity: 1 !important;
             visibility: visible !important;
-            padding: 0 !important; 
-            margin: 0 !important; 
+            padding: 0 !important;
+            margin: 0 !important;
           }
           .modal-content { 
             border: none !important; 
@@ -1102,25 +1542,297 @@ window.views.pos = {
             background: transparent !important; 
             width: 100% !important; 
             max-width: 100% !important; 
-            padding: 0 !important; 
-            margin: 0 !important; 
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
             transform: none !important;
           }
-          .modal-body { 
-            padding: 0 !important; 
-            margin: 0 !important; 
+          .modal-body {
+            padding: 0 !important;
+            margin: 0 !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
           }
           .receipt-wrapper { 
-            width: 70mm !important; /* Set to 70mm to safely fit within thermal head printable area */
+            width: 70mm !important; /* Limit width exactly to 70mm to prevent right cutoff */
             max-width: 70mm !important;
             margin: 0 auto !important; 
-            padding: 0 3mm !important; /* Internal safe side padding */
-            box-sizing: border-box !important;
+            padding: 4mm 4mm !important; 
             box-shadow: none !important; 
             border: none !important;
+            border-radius: 0 !important;
+            box-sizing: border-box !important;
+            font-size: 11px !important;
+          }
+          .receipt-top-veg-line,
+          .receipt-header-white,
+          .receipt-address-section,
+          .receipt-tax-invoice-bar,
+          .receipt-metadata-grid,
+          .receipt-items-table,
+          .receipt-summary-flex,
+          .receipt-footer-phone-line-centered,
+          .receipt-scan-pay-bar,
+          .receipt-qr-section-wrapper,
+          .receipt-final-footer {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            box-sizing: border-box !important;
+          }
+          .receipt-logo-img {
+            width: 50px !important;
+            height: 50px !important;
+          }
+          .receipt-brand-title {
+            font-size: 20px !important;
+          }
+          .receipt-qr-img {
+            width: 90px !important;
+            height: 90px !important;
+          }
+          .receipt-qr-section-wrapper {
+            grid-template-columns: 52px 1fr 56px !important;
+            gap: 4px !important;
+          }
+          .pay-logo-gpay, .pay-logo-phonepe, .pay-logo-paytm {
+            width: 54px !important;
+            font-size: 7px !important;
+            padding: 1px 3px !important;
+          }
+          .upi-accepted-here-title {
+            font-size: 14px !important;
+          }
+          .upi-accepted-here-sub {
+            font-size: 7px !important;
+          }
+          .upi-arrow-pointer {
+            font-size: 10px !important;
+          }
+          .qr-caption {
+            font-size: 8px !important;
+          }
+          .receipt-black-footer-banner {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background: #000000 !important;
+            border-radius: 0 !important;
+            margin: 0 -4mm 12px -4mm !important;
+            padding: 10px 12px !important;
+            width: calc(100% + 8mm) !important;
+            box-sizing: border-box !important;
+          }
+          .receipt-tax-invoice-label {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background: #a10f0f !important;
+          }
+          .receipt-items-table th {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background: #000000 !important;
+          }
+          .summary-payable-banner {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background: #fdf5d6 !important;
           }
         }
       </style>
+
+      <div class="receipt-wrapper">
+        <!-- Top Veg Line -->
+        <div class="receipt-top-veg-line">
+          <div class="veg-line-dash"></div>
+          <div class="veg-line-text"><i class="fa-solid fa-leaf"></i> PURE VEGETARIAN</div>
+          <div class="veg-line-dash"></div>
+        </div>
+
+        <!-- Header Section (White Background) -->
+        <div class="receipt-header-white">
+          <div class="receipt-header-left">
+            <img src="logo.jpg" alt="Logo" class="receipt-logo-img">
+          </div>
+          <div class="receipt-header-right">
+            <div class="receipt-brand-title">CRUST & CHILLY</div>
+            <div class="receipt-brand-tagline-wrapper">
+              <span class="tagline-arrow">◀</span>
+              <span class="tagline-text">FRESH • TASTY • FAST</span>
+              <span class="tagline-arrow">▶</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Address Info -->
+        <div class="receipt-address-section">
+          <div class="receipt-address-line">
+            <i class="fa-solid fa-location-dot" style="color: #a10f0f;"></i> ${settings.address || "Shop-09, Shree sanidhya flora, Turquoise BU Rd, Shela, Ahmedabad, Gujarat 380057"}
+          </div>
+          <div class="receipt-phone-wrapper">
+            <div class="phone-gold-line"></div>
+            <div class="receipt-phone-line">
+              <i class="fa-solid fa-phone" style="color: #a10f0f;"></i> ${settings.phone || "096648 70840"}
+            </div>
+            <div class="phone-gold-line"></div>
+          </div>
+        </div>
+
+        <!-- TAX INVOICE Title Banner -->
+        <div class="receipt-tax-invoice-bar">
+          <div class="receipt-line-dashed"></div>
+          <div class="receipt-tax-invoice-label">TAX INVOICE</div>
+          <div class="receipt-line-dashed"></div>
+        </div>
+
+        <!-- Metadata Grid (2 columns with vertical dashed separator) -->
+        <div class="receipt-metadata-grid">
+          <div class="receipt-meta-column">
+            <div><i class="fa-regular fa-user"></i> Customer &nbsp;: ${order.customerName || "Walk-in Customer"}</div>
+            <div><i class="fa-regular fa-calendar"></i> Date &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${orderDate}</div>
+            <div><i class="fa-regular fa-clock"></i> Time &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${orderTime}</div>
+            <div><i class="fa-regular fa-user-circle"></i> Cashier &nbsp;&nbsp;&nbsp;: ${cashierName}</div>
+          </div>
+          <div class="receipt-meta-column-divider"></div>
+          <div class="receipt-meta-column">
+            <div><i class="fa-regular fa-file-text"></i> Bill No. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${order.orderNumber}</div>
+            <div><i class="fa-regular fa-id-badge"></i> Token No. : ${tokenNo}</div>
+            <div><i class="fa-solid fa-utensils"></i> ${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</div>
+          </div>
+        </div>
+
+        <!-- Item Table -->
+        <table class="receipt-items-table">
+          <thead>
+            <tr>
+              <th style="text-align: left; width: 45%;">ITEM</th>
+              <th style="text-align: center; width: 15%;">QTY</th>
+              <th style="text-align: right; width: 20%;">RATE (₹)</th>
+              <th style="text-align: right; width: 20%;">AMOUNT (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${order.items.map(item => {
+              let bogoLabel = item.bogo ? "<div class='bogo-badge'>(BOGO Eligible)</div>" : "";
+              return `
+                <tr>
+                  <td style="text-align: left;">
+                    <span class="item-name-bold">${item.name}</span>
+                    ${bogoLabel}
+                  </td>
+                  <td style="text-align: center;">${item.quantity}</td>
+                  <td style="text-align: right;">${item.price.toFixed(2)}</td>
+                  <td style="text-align: right;">${item.lineTotal.toFixed(2)}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+
+        <!-- Summary and Thank You Section -->
+        <div class="receipt-summary-flex">
+          <!-- Left Box -->
+          <div class="receipt-summary-left-box">
+            <div class="thank-you-script">Thank You!</div>
+            <div class="chef-hat-icon">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a10f0f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 18V20H18V18" />
+                <path d="M12 2C8.5 2 7 5 7 7.5C7 8.5 7.5 9 8 10C8.5 11 8.5 12 8 13C7.5 14 6 15 6 17H18C18 15 16.5 14 16 13C15.5 12 15.5 11 16 10C16.5 9 17 8.5 17 7.5C17 5 15.5 2 12 2Z" />
+                <path d="M9 20V22M15 20V22" />
+              </svg>
+            </div>
+            <div class="hope-serve-text">We hope to serve<br>you again! ♥</div>
+          </div>
+          <!-- Right Box -->
+          <div class="receipt-summary-right-box">
+            <div class="summary-row">
+              <span>Total Qty</span><span>: ${totalQty}</span>
+            </div>
+            <div class="summary-row">
+              <span>Sub Total</span><span>: ₹${order.subtotal.toFixed(2)}</span>
+            </div>
+            <div class="summary-row">
+              <span>Discount</span><span>: ₹${(order.discount + order.bogoDiscount).toFixed(2)}</span>
+            </div>
+            ${order.tax > 0 ? `
+              <div class="summary-row">
+                <span>GST (5%)</span><span>: ₹${order.tax.toFixed(2)}</span>
+              </div>
+            ` : ""}
+            
+            <div class="summary-dashed-line"></div>
+            
+            <div class="grand-total-row">
+              <span class="grand-total-lbl">GRAND TOTAL</span>
+              <span class="grand-total-val">₹${order.total.toFixed(2)}</span>
+            </div>
+
+            <div class="summary-payable-banner">
+              <div class="payable-left">
+                <span class="payable-circle-rupee">₹</span>
+                <span>AMOUNT PAYABLE</span>
+              </div>
+              <div class="payable-right">₹${order.total.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact footer line -->
+        <div class="receipt-footer-phone-line-centered">
+          <div class="footer-phone-dashed-line"></div>
+          <div class="footer-phone-content">
+            <i class="fa-solid fa-phone"></i> For Order or More : ${settings.phone || "096648 70840"}
+          </div>
+          <div class="footer-phone-dashed-line"></div>
+        </div>
+
+        <!-- Dotted line separator with SCAN & PAY -->
+        <div class="receipt-scan-pay-bar">
+          <div class="dashed-half-line"></div>
+          <span class="scan-pay-badge">SCAN & PAY</span>
+          <div class="dashed-half-line"></div>
+        </div>
+
+        <!-- QR Section with Side Banners -->
+        <div class="receipt-qr-section-wrapper">
+          <div class="qr-side-text-left">
+            <span class="upi-accepted-here-title">UPI</span>
+            <span class="upi-accepted-here-sub">ACCEPTED HERE</span>
+            <span class="upi-arrow-pointer">➔</span>
+          </div>
+          <div class="receipt-qr-section">
+            <div class="qr-box-bracket">
+              <img class="receipt-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}" alt="Scan to Pay">
+            </div>
+            <div class="qr-caption">Pay via UPI • Card • Wallets</div>
+          </div>
+          <div class="qr-side-logos-right">
+            <div class="pay-logo-gpay"><span style="color:#4285F4; font-weight:800;">G</span><span style="color:#EA4335; font-weight:800;">P</span><span style="color:#FBBC05; font-weight:800;">a</span><span style="color:#34A853; font-weight:800;">y</span></div>
+            <div class="pay-logo-phonepe"><i class="fa-solid fa-mobile-screen" style="color:#5f259f; margin-right:2px;"></i> PhonePe</div>
+            <div class="pay-logo-paytm"><span style="color:#00baf2; font-weight:800;">pay</span><span style="color:#002e6e; font-weight:800;">tm</span></div>
+          </div>
+        </div>
+
+        <!-- Black Footer Banner -->
+        <div class="receipt-black-footer-banner">
+          <div class="footer-banner-item"><i class="fa-regular fa-clock"></i> 11:00 AM - 12:00 AM</div>
+          <div class="footer-banner-item-divider">|</div>
+          <div class="footer-banner-item"><i class="fa-solid fa-bell-concierge"></i> Dine-In | Takeaway</div>
+          <div class="footer-banner-item-divider">|</div>
+          <div class="footer-banner-item" style="color: #00e676;"><i class="fa-solid fa-leaf"></i> PURE VEGETARIAN</div>
+        </div>
+
+        <!-- Final Footer -->
+        <div class="receipt-final-footer">
+          <div class="footer-heart-divider">
+            <div class="heart-line"></div>
+            <i class="fa-solid fa-heart" style="color: #ff3c00; font-size: 8px;"></i>
+            <div class="heart-line"></div>
+          </div>
+          <div class="thank-you-script-small">Thank you for dining with us!</div>
+        </div>
+      </div>
     `;
 
     window.customModal.show({
