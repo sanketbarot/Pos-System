@@ -1850,4 +1850,22 @@ body {
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
+  background: transparent;
+  border: none;
+  text-align: center;
+  width: 40px;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.pos-card-qty-val::-webkit-outer-spin-button,
+.pos-card-qty-val::-webkit-inner-spin-button,
+.cart-qty-input::-webkit-outer-spin-button,
+.cart-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cart-qty-input {
+  -moz-appearance: textfield;
 }

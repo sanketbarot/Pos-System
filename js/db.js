@@ -381,7 +381,7 @@ const db = {
   },
 
   // Transactional order submission
-  createOrder(orderData) {
+  createOrder(orderData, bypassStockCheck = false) {
     // 1. Lock and decrement stock for all items
     const ingredients = this.get("ingredients") || [];
     const products = this.get("products") || [];
@@ -401,16 +401,18 @@ const db = {
 
     // Verify all aggregated ingredients exist in stock
     const stockIssues = [];
-    for (const [ingId, totalNeeded] of Object.entries(aggregatedIngredientsNeeded)) {
-      const ing = ingredients.find(i => i.id === ingId);
-      if (!ing) continue;
-      if (ing.stock < totalNeeded) {
-        stockIssues.push({
-          name: ing.name,
-          current: ing.stock,
-          needed: totalNeeded,
-          unit: ing.unit
-        });
+    if (!bypassStockCheck) {
+      for (const [ingId, totalNeeded] of Object.entries(aggregatedIngredientsNeeded)) {
+        const ing = ingredients.find(i => i.id === ingId);
+        if (!ing) continue;
+        if (ing.stock < totalNeeded) {
+          stockIssues.push({
+            name: ing.name,
+            current: ing.stock,
+            needed: totalNeeded,
+            unit: ing.unit
+          });
+        }
       }
     }
 

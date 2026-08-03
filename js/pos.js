@@ -386,7 +386,10 @@ window.views.pos = {
         actionButtonHtml = `
           <div class="pos-card-qty-control" onclick="event.stopPropagation();">
             <button class="pos-card-qty-btn" onclick="views.pos.modifyQty('${p.id}', -1)"><i class="fa-solid fa-minus"></i></button>
-            <span class="pos-card-qty-val">${cartQty}</span>
+            <input type="number" class="pos-card-qty-val" value="${cartQty}" 
+                   onchange="views.pos.setQty('${p.id}', parseInt(this.value) || 0)"
+                   onclick="this.select();" 
+                   onkeydown="if(event.key==='Enter') { event.preventDefault(); this.blur(); }">
             <button class="pos-card-qty-btn" onclick="views.pos.modifyQty('${p.id}', 1)"><i class="fa-solid fa-plus"></i></button>
           </div>
         `;
@@ -449,8 +452,7 @@ window.views.pos = {
     const stockCheck = window.db.checkStockAvailability(productId, targetQty);
     if (!stockCheck.available) {
       const missingIng = stockCheck.issues.map(i => `${i.name} (${Math.round(i.shortage)} ${i.unit} short)`).join(", ");
-      window.showToast(`Insufficient stock! Need more: ${missingIng}`, "error");
-      return;
+      window.showToast(`Low stock warning! Need more: ${missingIng}`, "info");
     }
 
     if (existing) {
@@ -482,13 +484,33 @@ window.views.pos = {
         // Validate stock increment
         const stockCheck = window.db.checkStockAvailability(productId, targetQty);
         if (!stockCheck.available) {
-          window.showToast("Cannot increase quantity. Insufficient ingredients in stock.", "error");
-          return;
+          const missingIng = stockCheck.issues.map(i => `${i.name} (${Math.round(i.shortage)} ${i.unit} short)`).join(", ");
+          window.showToast(`Low stock warning! Need more: ${missingIng}`, "info");
         }
       }
       item.quantity = targetQty;
     }
 
+    this.renderCart();
+  },
+
+  setQty(productId, qty) {
+    const item = this.cart.find(item => item.productId === productId);
+    if (!item) return;
+
+    if (isNaN(qty) || qty <= 0) {
+      this.removeFromCart(productId);
+      return;
+    }
+
+    // Validate stock
+    const stockCheck = window.db.checkStockAvailability(productId, qty);
+    if (!stockCheck.available) {
+      const missingIng = stockCheck.issues.map(i => `${i.name} (${Math.round(i.shortage)} ${i.unit} short)`).join(", ");
+      window.showToast(`Low stock warning! Need more: ${missingIng}`, "info");
+    }
+
+    item.quantity = qty;
     this.renderCart();
   },
 
@@ -556,9 +578,13 @@ window.views.pos = {
             <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">₹${item.price} each ${bogoTag}</span>
             <div style="display: flex; align-items: center; gap: 8px;">
               <!-- Qty controls pill -->
-              <div style="display: flex; align-items: center; background: #f1f3f5; border-radius: 12px; height: 24px; padding: 0 4px;">
+              <div style="display: flex; align-items: center; background: #f1f3f5; border-radius: 12px; height: 24px; padding: 0 4px;" onclick="event.stopPropagation();">
                 <button onclick="views.pos.modifyQty('${item.productId}', -1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 10px; color: var(--text-dark); display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-minus"></i></button>
-                <span style="font-size: 12px; font-weight: 700; width: 18px; text-align: center; color: var(--text-dark);">${item.quantity}</span>
+                <input type="number" class="cart-qty-input" value="${item.quantity}" 
+                       onchange="views.pos.setQty('${item.productId}', parseInt(this.value) || 0)"
+                       onclick="this.select();"
+                       onkeydown="if(event.key==='Enter') { event.preventDefault(); this.blur(); }"
+                       style="background: transparent; border: none; font-size: 12px; font-weight: 700; width: 36px; text-align: center; color: var(--text-dark); outline: none;">
                 <button onclick="views.pos.modifyQty('${item.productId}', 1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 10px; color: var(--text-dark); display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-plus"></i></button>
               </div>
               <!-- Line Total -->
@@ -795,7 +821,7 @@ window.views.pos = {
     });
   },
 
-  processCheckout(skipPrint = false) {
+  processCheckout(skipPrint = false, bypassStockCheck = false) {
     if (this.cart.length === 0) {
       window.showToast("Cannot place order. The cart is empty.", "error");
       return;
@@ -868,7 +894,7 @@ window.views.pos = {
       type: this.orderType,
       tableNumber: this.orderType === "Dine-in" ? tableSelectVal : "",
       paymentMethod: this.selectedPayment
-    });
+    }, bypassStockCheck);
 
     if (response.success) {
       window.showToast(`Order #${response.order.orderNumber} successfully processed!`, "success");
@@ -899,17 +925,23 @@ window.views.pos = {
       const missingHtml = response.details.map(d => `<li><strong>${d.name}</strong>: Current stock is ${Math.round(d.current)} ${d.unit}, but order needs ${Math.round(d.needed)} ${d.unit}.</li>`).join("");
 
       window.customModal.show({
-        title: "Stock Allocation Blocked",
+        title: "Stock Allocation Alert",
         bodyHtml: `
-          <div style="color: #ff4b2b; margin-bottom: 12px; font-weight: 600;">
-            <i class="fa-solid fa-triangle-exclamation"></i> Checkout failed due to insufficient raw material ingredients:
+          <div style="color: #ff9f0a; margin-bottom: 12px; font-weight: 600;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Insufficient raw material ingredients for some items:
           </div>
-          <ul style="padding-left: 20px; font-size: 13px; line-height: 1.6; color: var(--text-muted);">
+          <ul style="padding-left: 20px; font-size: 13px; line-height: 1.6; color: var(--text-muted); margin-bottom: 12px;">
             ${missingHtml}
           </ul>
+          <div style="font-weight: 600; font-size: 13px; color: var(--text-dark);">
+            Do you want to override and place the order anyway?
+          </div>
         `,
-        confirmText: "Close & Refill",
-        hideFooter: false
+        confirmText: "Place Order Anyway",
+        cancelText: "Cancel & Refill",
+        onConfirm: () => {
+          this.processCheckout(skipPrint, true);
+        }
       });
     }
   },
