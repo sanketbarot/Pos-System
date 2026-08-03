@@ -362,10 +362,14 @@ window.views.pos = {
         statusDotColor = "var(--color-cancelled)";
       } else {
         const ingredients = window.db.get("ingredients") || [];
+        // Bypassed near-low stock warning dot - stock is always full
+        const isNearLowStock = false;
+        /*
         const isNearLowStock = p.recipe ? Object.keys(p.recipe).some(ingId => {
           const ing = ingredients.find(i => i.id === ingId);
           return ing && ing.stock <= ing.minLimit * 1.5;
         }) : false;
+        */
         if (isNearLowStock) {
           statusDotColor = "var(--color-pending)";
         }

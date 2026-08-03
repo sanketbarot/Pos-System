@@ -96,7 +96,11 @@ window.views.inventory = {
       rows = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">No ingredients found.</td></tr>`;
     } else {
       rows = filtered.map(ing => {
+        // Bypassed low stock check - company has full stock at all times
+        const isLow = false;
+        /*
         const isLow = ing.stock <= ing.minLimit;
+        */
         return `
           <tr>
             <td style="font-weight: 600;">${ing.name}</td>

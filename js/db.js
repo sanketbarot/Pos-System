@@ -349,34 +349,9 @@ const db = {
 
   // Recipe Stock checks
   checkStockAvailability(productId, qtyNeeded = 1) {
-    const products = this.get("products") || [];
-    const ingredients = this.get("ingredients") || [];
-    const product = products.find(p => p.id === productId);
-
-    if (!product || !product.recipe) return { available: true }; // No recipe means service item or simple product
-
-    const issues = [];
-
-    for (const [ingId, amount] of Object.entries(product.recipe)) {
-      const ing = ingredients.find(i => i.id === ingId);
-      if (!ing) continue;
-
-      const totalRequired = amount * qtyNeeded;
-      if (ing.stock < totalRequired) {
-        issues.push({
-          ingredientId: ingId,
-          name: ing.name,
-          currentStock: ing.stock,
-          required: totalRequired,
-          shortage: totalRequired - ing.stock,
-          unit: ing.unit
-        });
-      }
-    }
-
     return {
-      available: issues.length === 0,
-      issues: issues
+      available: true,
+      issues: []
     };
   },
 
@@ -401,6 +376,7 @@ const db = {
 
     // Verify all aggregated ingredients exist in stock
     const stockIssues = [];
+    /*
     if (!bypassStockCheck) {
       for (const [ingId, totalNeeded] of Object.entries(aggregatedIngredientsNeeded)) {
         const ing = ingredients.find(i => i.id === ingId);
@@ -415,6 +391,7 @@ const db = {
         }
       }
     }
+    */
 
     if (stockIssues.length > 0) {
       return {
@@ -424,7 +401,8 @@ const db = {
       };
     }
 
-    // 2. Deduct Stock
+    // 2. Deduct Stock (Bypassed - company has full stock)
+    /*
     for (const [ingId, totalNeeded] of Object.entries(aggregatedIngredientsNeeded)) {
       const ingIndex = ingredients.findIndex(i => i.id === ingId);
       if (ingIndex !== -1) {
@@ -432,6 +410,7 @@ const db = {
       }
     }
     this.set("ingredients", ingredients); // save updated ingredients back
+    */
 
     // 3. Create the Order
     const orders = this.get("orders") || [];
@@ -509,7 +488,8 @@ const db = {
       }
 
       // If an order is Cancelled, should we refund the inventory?
-      // Yes! To represent a realistic POS system, canceling a pending/preparing order returns ingredients back to stock.
+      // Bypassed - stock is always full and not decremented on checkout.
+      /*
       if (newStatus === "Cancelled" && oldStatus !== "Cancelled" && oldStatus !== "Completed") {
         const ingredients = this.get("ingredients") || [];
         const products = this.get("products") || [];
@@ -528,6 +508,7 @@ const db = {
         }
         this.set("ingredients", ingredients);
       }
+      */
 
       this.set("orders", orders);
       return { success: true, order: orders[index] };
