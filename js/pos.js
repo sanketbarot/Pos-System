@@ -624,8 +624,10 @@ window.views.pos = {
     bogoPrices.sort((a, b) => b - a); // Higher price first
 
     let bogoDiscount = 0;
-    for (let i = 1; i < bogoPrices.length; i += 2) {
-      bogoDiscount += bogoPrices[i]; // Second/lower price item in every pair is free
+    const numFree = Math.floor(bogoPrices.length / 2);
+    // The cheapest numFree items are free (which are at the end of the descending sorted array)
+    for (let i = bogoPrices.length - numFree; i < bogoPrices.length; i++) {
+      bogoDiscount += bogoPrices[i];
     }
 
     const bogoRow = document.getElementById("bogo-discount-row");
@@ -870,7 +872,9 @@ window.views.pos = {
 
     bogoPrices.sort((a, b) => b - a);
     let bogoDiscount = 0;
-    for (let i = 1; i < bogoPrices.length; i += 2) {
+    const numFree = Math.floor(bogoPrices.length / 2);
+    // The cheapest numFree items are free (which are at the end of the descending sorted array)
+    for (let i = bogoPrices.length - numFree; i < bogoPrices.length; i++) {
       bogoDiscount += bogoPrices[i];
     }
 
