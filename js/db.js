@@ -34,6 +34,57 @@ const db = {
       currentSettings.phone = "096648 70840";
       currentSettings.upiId = "7487980840@okbizaxis";
       this.set("settings", currentSettings);
+
+      // Auto-update Farali category and products if not present
+      const currentCategories = this.get("categories") || [];
+      let faraliCat = currentCategories.find(c => c.name.toLowerCase() === "farali" || c.id === "cat11");
+      if (!faraliCat) {
+        const maxCatNum = currentCategories.reduce((max, c) => {
+          const num = parseInt(c.id.replace(/\D/g, ""), 10);
+          return isNaN(num) ? max : Math.max(max, num);
+        }, 0);
+        faraliCat = { id: `cat${Math.max(11, maxCatNum + 1)}`, name: "Farali", icon: "bowl-rice" };
+        currentCategories.push(faraliCat);
+        this.set("categories", currentCategories);
+      }
+
+      const currentProducts = this.get("products") || [];
+      let productsUpdated = false;
+      if (!currentProducts.some(p => p.name.toLowerCase() === "farali bhel")) {
+        const maxProdNum = currentProducts.reduce((max, p) => {
+          const num = parseInt(p.id.replace(/\D/g, ""), 10);
+          return isNaN(num) ? max : Math.max(max, num);
+        }, 0);
+        currentProducts.push({
+          id: `p${Math.max(92, maxProdNum + 1)}`,
+          name: "Farali Bhel",
+          price: 89,
+          category: faraliCat.id,
+          available: true,
+          bogo: false,
+          recipe: {}
+        });
+        productsUpdated = true;
+      }
+      if (!currentProducts.some(p => p.name.toLowerCase() === "cheese farali bhel")) {
+        const maxProdNum = currentProducts.reduce((max, p) => {
+          const num = parseInt(p.id.replace(/\D/g, ""), 10);
+          return isNaN(num) ? max : Math.max(max, num);
+        }, 0);
+        currentProducts.push({
+          id: `p${Math.max(93, maxProdNum + 1)}`,
+          name: "Cheese Farali Bhel",
+          price: 119,
+          category: faraliCat.id,
+          available: true,
+          bogo: false,
+          recipe: {}
+        });
+        productsUpdated = true;
+      }
+      if (productsUpdated) {
+        this.set("products", currentProducts);
+      }
     }
 
     // Force clear old testing transactional data for live launch (preserving menu/catalog config)
@@ -149,7 +200,8 @@ const db = {
       { id: "cat7", name: "Maggi", icon: "bowl-food" },
       { id: "cat8", name: "Mojitos", icon: "glass-water" },
       { id: "cat9", name: "Combo Meals", icon: "utensils" },
-      { id: "cat10", name: "Cold Drinks & Water", icon: "glass-water" }
+      { id: "cat10", name: "Cold Drinks & Water", icon: "glass-water" },
+      { id: "cat11", name: "Farali", icon: "bowl-rice" }
     ];
     this.set("categories", categories);
 
@@ -293,7 +345,11 @@ const db = {
       { id: "p88", name: "Cold Drink (Medium)", price: 20, category: "cat10", available: true, bogo: false, recipe: {} },
       { id: "p89", name: "Cold Drink (Large)", price: 30, category: "cat10", available: true, bogo: false, recipe: {} },
       { id: "p90", name: "Water Bottle (Small)", price: 10, category: "cat10", available: true, bogo: false, recipe: {} },
-      { id: "p91", name: "Water Bottle (Large)", price: 20, category: "cat10", available: true, bogo: false, recipe: {} }
+      { id: "p91", name: "Water Bottle (Large)", price: 20, category: "cat10", available: true, bogo: false, recipe: {} },
+
+      // --- FARALI ---
+      { id: "p92", name: "Farali Bhel", price: 89, category: "cat11", available: true, bogo: false, recipe: {} },
+      { id: "p93", name: "Cheese Farali Bhel", price: 119, category: "cat11", available: true, bogo: false, recipe: {} }
     ];
     this.set("products", products);
 

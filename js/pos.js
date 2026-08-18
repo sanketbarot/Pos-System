@@ -304,6 +304,9 @@ window.views.pos = {
       if (c.icon === "wine-bottle") icon = "fa-wine-bottle";
       if (c.icon === "plus") icon = "fa-plus";
       if (c.icon === "utensils") icon = "fa-utensils";
+      if (c.icon === "bowl-rice") icon = "fa-bowl-rice";
+      if (c.icon === "leaf") icon = "fa-leaf";
+      if (c.icon === "seedling") icon = "fa-seedling";
 
       html += `
         <div class="category-tab" data-id="${c.id}">
