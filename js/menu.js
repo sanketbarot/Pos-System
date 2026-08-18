@@ -109,7 +109,7 @@ window.views.menu = {
           <tr>
             <td style="font-weight: 600;">${p.name}</td>
             <td><span class="badge badge-preparing" style="background: rgba(41,121,255,0.05); border: 1px solid var(--border-color); color: var(--text-muted);">${cat ? cat.name : 'None'}</span></td>
-            <td style="font-weight: 700; color: #ff5c00;">₹${p.price.toFixed(2)}</td>
+            <td style="font-weight: 700; color: #ea580c;">₹${p.price.toFixed(2)}</td>
             <td>
               <!-- Interactive BOGO toggle -->
               <input type="checkbox" class="toggle-bogo-chk" data-id="${p.id}" ${p.bogo ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">
@@ -121,7 +121,7 @@ window.views.menu = {
             <td>
               <div class="flex-gap-sm">
                 <button class="btn btn-secondary btn-recipe-setup" data-id="${p.id}" style="padding: 6px 12px; font-size: 12px; border-color: var(--border-color-hover);">
-                  <i class="fa-solid fa-mortar-pestle" style="color: #ff5c00;"></i> Recipe (${recipeCount})
+                  <i class="fa-solid fa-mortar-pestle" style="color: #ea580c;"></i> Recipe (${recipeCount})
                 </button>
                 <button class="btn btn-secondary btn-edit-product" data-id="${p.id}" style="padding: 6px 10px; font-size: 12px;"><i class="fa-solid fa-edit"></i></button>
                 <button class="btn btn-danger btn-delete-product" data-id="${p.id}" style="padding: 6px 10px; font-size: 12px;"><i class="fa-solid fa-trash"></i></button>
@@ -279,7 +279,7 @@ window.views.menu = {
       const itemsCount = products.filter(p => p.category === c.id).length;
       return `
         <tr>
-          <td><i class="fa-solid fa-tags" style="color:#ff5c00; margin-right: 6px;"></i> <strong>${c.name}</strong></td>
+          <td><i class="fa-solid fa-tags" style="color:#ea580c; margin-right: 6px;"></i> <strong>${c.name}</strong></td>
           <td>${c.id}</td>
           <td>${itemsCount} items linked</td>
           <td>
@@ -381,7 +381,7 @@ window.views.menu = {
         return `
           <tr id="recipe-row-${ingId}">
             <td>${ing.name}</td>
-            <td style="font-weight: 700; color: #ff5c00;">${qty} ${ing.unit}</td>
+            <td style="font-weight: 700; color: #ea580c;">${qty} ${ing.unit}</td>
             <td style="text-align: right;">
               <button class="btn btn-danger btn-delete-recipe-item" data-id="${ingId}" style="padding: 4px 8px; font-size: 11px;">
                 <i class="fa-solid fa-trash-can"></i>
@@ -426,7 +426,7 @@ window.views.menu = {
 
       <!-- Add New Ingredient Form Wrapper -->
       <div style="background: var(--bg-darker); border: 1px solid var(--border-color); padding: 12px; border-radius: var(--border-radius-md);">
-        <h4 style="font-size: 12px; margin-bottom: 8px; color: #ff5c00;">Add Ingredient Component</h4>
+        <h4 style="font-size: 12px; margin-bottom: 8px; color: #ea580c;">Add Ingredient Component</h4>
         <div class="customer-details-inputs" style="grid-template-columns: 2fr 1fr auto; gap: 8px;">
           <select id="recipe-add-ing-select" class="customer-input" style="font-size: 12px; height: 32px;">
             ${dropdownOptions || '<option value="">No more ingredients</option>'}
@@ -550,7 +550,7 @@ window.views.menu = {
       <div class="glass-card view-animate" style="padding: 24px;">
         <div class="flex-space mb-3" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
           <div>
-            <h3 style="font-size: 16px; font-weight: 700; margin: 0;"><i class="fa-solid fa-user-shield" style="color: #ff5c00; margin-right: 6px;"></i> Role Access Control Matrix</h3>
+            <h3 style="font-size: 16px; font-weight: 700; margin: 0;"><i class="fa-solid fa-user-shield" style="color: #ea580c; margin-right: 6px;"></i> Role Access Control Matrix</h3>
             <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">Configure which screens each user role has permission to access.</p>
           </div>
           <span class="badge badge-completed">Live Update</span>

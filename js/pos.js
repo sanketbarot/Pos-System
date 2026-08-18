@@ -98,7 +98,7 @@ window.views.pos = {
           </div>
 
           <!-- Dine In / Takeaway / Delivery Toggle Buttons -->
-          <div style="display: flex; gap: 10px; align-items: center;">
+          <div style="display: flex; gap: 8px; align-items: center;">
             <button class="pos-header-btn ${this.orderType === 'Dine-in' ? 'active' : ''}" id="type-dinein">
               <i class="fa-solid fa-utensils"></i> Dine In
             </button>
@@ -108,6 +108,10 @@ window.views.pos = {
             <button class="pos-header-btn ${this.orderType === 'Delivery' ? 'active' : ''}" id="type-delivery">
               <i class="fa-solid fa-motorcycle"></i> Delivery
             </button>
+            <div id="header-table-box" style="display: ${this.orderType === 'Dine-in' ? 'flex' : 'none'}; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; height: 34px; box-sizing: border-box;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-dark);"><i class="fa-solid fa-chair" style="color: #ea580c;"></i> Table:</span>
+              <input type="text" id="pos-table-input" placeholder="e.g. T-1" value="" style="border: none; outline: none; font-size: 11px; font-weight: 700; width: 55px; color: var(--text-dark); background: transparent;">
+            </div>
           </div>
 
           <!-- Right side: Notifications, User info -->
@@ -120,7 +124,7 @@ window.views.pos = {
 
             <!-- User profile info -->
             <div style="display: flex; align-items: center; gap: 8px;">
-              <div class="user-avatar" style="width: 32px; height: 32px; font-size: 13px; font-weight: 700; background: #ff5c00; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">S</div>
+              <div class="user-avatar" style="width: 32px; height: 32px; font-size: 13px; font-weight: 700; background: var(--primary-gradient); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">S</div>
               <div style="text-align: left;">
                 <div style="font-size: 12px; font-weight: 700; color: var(--text-dark); line-height: 1.2;">Sanket Barot</div>
                 <div style="font-size: 10px; color: var(--text-muted); text-transform: capitalize; line-height: 1.1;">Admin</div>
@@ -146,91 +150,141 @@ window.views.pos = {
           </div>
 
           <!-- Right Checkout Billing Drawer -->
-          <div class="pos-cart-panel" style="border-left: 1px solid var(--border-color); padding-left: 20px; display: flex; flex-direction: column; overflow: hidden; height: 100%;">
-            <div class="cart-header" style="flex-shrink: 0;">
-              <div class="cart-title" style="font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
-                Current Order <span class="cart-item-count-badge" id="cart-qty-badge" style="background: #ff5c00; font-size: 11px; color:#fff; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center;">0</span>
+          <div class="pos-cart-panel">
+            <!-- Cart Header -->
+            <div class="cart-header">
+              <div class="cart-title">
+                <i class="fa-solid fa-cart-shopping" style="color: #ea580c; font-size: 13px;"></i> Current Order 
+                <span class="cart-item-count-badge" id="cart-qty-badge">0 Items</span>
               </div>
-              <button class="btn-clear-cart" id="btn-clear-cart-trigger" style="font-size: 12px; display: flex; align-items: center; gap: 4px; color:#f44336; border:none; background:transparent; font-weight:700; cursor:pointer;"><i class="fa-solid fa-trash-can"></i> Clear</button>
+              <button class="btn-clear-cart" id="btn-clear-cart-trigger" title="Clear Cart (Alt+C)">
+                <i class="fa-solid fa-trash-can"></i> Clear
+              </button>
             </div>
 
-            <!-- Customer Details Block (Top of Sidebar) -->
-            <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--border-color); flex-shrink: 0;">
+            <!-- Customer Details Block -->
+            <div class="pos-customer-card">
               <!-- Row 1: Name -->
-              <div style="display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; background: #fff;">
-                <i class="fa-regular fa-user" style="color: var(--text-muted); font-size: 13px; margin-right: 8px;"></i>
+              <div class="pos-cust-row">
+                <i class="fa-regular fa-user cust-icon"></i>
                 <input type="text" id="cust-name" class="customer-input" placeholder="Customer Name" list="customer-names-list" value="Walk-in Customer" autocomplete="off" style="border: none; outline: none; background: transparent; font-weight: 600; font-size: 12px; color: var(--text-dark); flex-grow: 1; padding: 0;">
                 <datalist id="customer-names-list"></datalist>
-                <span id="btn-add-cust-shortcut" style="color: var(--text-muted); font-size: 11px; font-weight: 600; border-left: 1px solid var(--border-color); padding-left: 8px; margin-left: 8px; cursor: pointer; white-space: nowrap;"><i class="fa-solid fa-plus" style="font-size: 9px; margin-right: 2px;"></i> Add Customer</span>
+                <span id="btn-add-cust-shortcut" class="cust-add-btn"><i class="fa-solid fa-plus" style="font-size: 9px; margin-right: 2px;"></i> Add</span>
               </div>
               <!-- Row 2: Phone -->
-              <div style="display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; background: #fff;">
-                <i class="fa-solid fa-phone" style="color: var(--text-muted); font-size: 12px; margin-right: 8px;"></i>
-                <span style="color: var(--text-muted); font-size: 11px; font-weight: 600; margin-right: 6px;">+91</span>
-                <input type="tel" id="cust-phone" class="customer-input" placeholder="Phone number" list="customer-phones-list" autocomplete="off" style="border: none; outline: none; background: transparent; font-size: 12px; color: var(--text-dark); flex-grow: 1; padding: 0;">
+              <div class="pos-cust-row">
+                <i class="fa-solid fa-phone cust-icon"></i>
+                <span class="cust-prefix">+91</span>
+                <input type="tel" id="cust-phone" class="customer-input" placeholder="Phone number (10 digits)" list="customer-phones-list" autocomplete="off" style="border: none; outline: none; background: transparent; font-size: 12px; color: var(--text-dark); flex-grow: 1; padding: 0;">
                 <datalist id="customer-phones-list"></datalist>
               </div>
             </div>
 
             <!-- Cart items list scrollable -->
-            <div class="cart-items-scroll" id="cart-items-list" style="flex-grow: 1; overflow-y: auto; margin: 8px 0; padding-right: 4px;">
-              <div style="text-align: center; color: var(--text-muted); margin-top: 60px;">
-                <i class="fa-solid fa-basket-shopping" style="font-size: 36px; margin-bottom: 12px; display: block; opacity: 0.3;"></i>
-                Cart is currently empty.<br>Click items on the left to add.
+            <div class="cart-items-scroll" id="cart-items-list" style="flex-grow: 1; overflow-y: auto; margin: 4px 0; padding-right: 4px; min-height: 90px;">
+              <div class="cart-empty-box">
+                <div class="cart-empty-icon-circle">
+                  <i class="fa-solid fa-basket-shopping"></i>
+                </div>
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-dark); margin-bottom: 2px;">Cart is empty</div>
+                <div style="font-size: 11px; color: var(--text-muted); max-width: 180px;">Tap on menu items on the left to add to order</div>
               </div>
             </div>
 
-            <!-- Cart billing summary details -->
+            <!-- Cart billing summary & checkout panel -->
             <div class="cart-billing-details" style="flex-shrink: 0; background: transparent; padding: 0; border: none;">
-              <!-- Coupon Code Section -->
-              <div style="display: flex; gap: 8px; margin: 4px 0 8px 0; padding-bottom: 8px; border-bottom: 1px dashed var(--border-color);">
-                <input type="text" id="coupon-code-input" class="customer-input" placeholder="Enter coupon code" style="flex-grow: 1; height: 32px; font-size: 12px; padding: 0 10px; border: 1px solid var(--border-color); border-radius: 6px; outline: none; background: #fff; width: 100%;">
-                <button onclick="views.pos.applyCouponCode()" style="background: #ff5c00; border: none; color: #fff; padding: 0 16px; height: 32px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; transition: var(--transition-smooth);">Apply</button>
+              <!-- Special Cooking Note / Kitchen Instructions -->
+              <div class="pos-kitchen-note-box">
+                <i class="fa-solid fa-pencil note-icon"></i>
+                <input type="text" id="order-kitchen-note" placeholder="Kitchen instructions (e.g. Less Spicy, Jain)...">
+              </div>
+
+              <!-- Quick Discount Section & Coupon -->
+              <div class="pos-discount-section">
+                <div class="pos-discount-header">
+                  <span class="discount-label"><i class="fa-solid fa-tag" style="color: #ea580c;"></i> Quick Discount:</span>
+                  <div class="cart-discount-chips" id="cart-discount-chips">
+                    <button class="cart-discount-chip active" data-discount="0" onclick="views.pos.setQuickDiscount(0)">0%</button>
+                    <button class="cart-discount-chip" data-discount="5" onclick="views.pos.setQuickDiscount(5)">5%</button>
+                    <button class="cart-discount-chip" data-discount="10" onclick="views.pos.setQuickDiscount(10)">10%</button>
+                    <button class="cart-discount-chip" data-discount="15" onclick="views.pos.setQuickDiscount(15)">15%</button>
+                    <button class="cart-discount-chip" data-discount="20" onclick="views.pos.setQuickDiscount(20)">20%</button>
+                  </div>
+                </div>
+                <div class="pos-coupon-row">
+                  <input type="text" id="coupon-code-input" placeholder="Promo code (e.g. DISCOUNT10)">
+                  <button onclick="views.pos.applyCouponCode()">Apply</button>
+                </div>
               </div>
 
               <!-- Invoice billing summary calculations -->
-              <div class="billing-summary-lines" style="padding: 0; gap: 4px; background: transparent; border: none; box-shadow: none;">
-                <div class="billing-line" style="font-size: 12px; display: flex; justify-content: space-between;">
+              <div class="pos-billing-card">
+                <div class="billing-line">
                   <span>Subtotal</span>
-                  <span id="bill-subtotal" style="font-weight: 600; color: var(--text-dark);">₹0.00</span>
+                  <span id="bill-subtotal" class="bill-val">₹0.00</span>
                 </div>
-                <div class="billing-line" id="bogo-discount-row" style="display: none; font-size: 12px; justify-content: space-between;">
-                  <span>BOGO Discount</span>
-                  <span id="bill-bogo-discount" style="color: #ff5c00; font-weight: 600;">-₹0.00</span>
+                <div class="billing-line" id="bogo-discount-row" style="display: none;">
+                  <span style="color: #ea580c; font-weight: 700;">BOGO Savings</span>
+                  <span id="bill-bogo-discount" style="color: #ea580c; font-weight: 800;">-₹0.00</span>
                 </div>
-                <div class="billing-line" style="font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
-                  <span>Discount (<input type="number" id="bill-discount-input" style="width: 28px; border: none; background: transparent; padding: 0; font-weight: 700; color: #ff5c00; font-family: inherit; font-size: inherit; text-align: center; outline: none;" value="0" min="0" max="100">%)</span>
-                  <span id="bill-discount-amount" style="color: #4caf50; font-weight: 700;">-₹0.00</span>
+                <div class="billing-line">
+                  <span class="discount-text-line">Discount (<input type="number" id="bill-discount-input" value="0" min="0" max="100">%)</span>
+                  <span id="bill-discount-amount" class="bill-val-green">-₹0.00</span>
                 </div>
-                <div class="billing-line" style="font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
-                  <span class="flex-gap-sm" style="display: flex; align-items: center; gap: 4px;">
+                <div class="billing-line">
+                  <span class="tax-text-line">
                     Tax / GST (5%)
-                    <input type="checkbox" id="tax-enable-checkbox" style="cursor: pointer; width: 12px; height: 12px; margin: 0;" checked>
+                    <input type="checkbox" id="tax-enable-checkbox" checked>
                   </span>
-                  <span id="bill-tax" style="font-weight: 600; color: var(--text-dark);">₹0.00</span>
+                  <span id="bill-tax" class="bill-val">₹0.00</span>
                 </div>
-                <div class="billing-line total" style="font-size: 14px; padding-top: 8px; border-top: 1px dashed var(--border-color); margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-weight: 800; color: var(--text-dark);">TOTAL</span>
-                  <span id="bill-total" style="color: #ff5c00; font-weight: 800; font-size: 20px;">₹0.00</span>
+                <div class="billing-line total">
+                  <span>TOTAL</span>
+                  <span id="bill-total" class="bill-grand-total">₹0.00</span>
                 </div>
               </div>
 
               <!-- Payment Type Selection Button Options -->
-              <div class="checkout-payment-options" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; margin-bottom: 10px;">
-                <button class="payment-btn active" id="pay-upi" style="height: 52px; font-size: 11px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;"><i class="fa-solid fa-qrcode" style="font-size: 14px;"></i>UPI</button>
-                <button class="payment-btn" id="pay-cash" style="height: 52px; font-size: 11px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; color: var(--text-muted);"><i class="fa-solid fa-money-bill-wave" style="font-size: 14px;"></i>Cash</button>
-                <button class="payment-btn" id="pay-card" style="height: 52px; font-size: 11px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; color: var(--text-muted);"><i class="fa-solid fa-credit-card" style="font-size: 14px;"></i>Card</button>
-                <button class="payment-btn" id="pay-split" style="height: 52px; font-size: 11px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; color: var(--text-muted);"><i class="fa-solid fa-shuffle" style="font-size: 14px;"></i>Split</button>
+              <div class="pos-payment-grid">
+                <button class="payment-btn active" id="pay-upi"><i class="fa-solid fa-qrcode"></i>UPI</button>
+                <button class="payment-btn" id="pay-cash"><i class="fa-solid fa-money-bill-wave"></i>Cash</button>
+                <button class="payment-btn" id="pay-card"><i class="fa-solid fa-credit-card"></i>Card</button>
+                <button class="payment-btn" id="pay-split"><i class="fa-solid fa-shuffle"></i>Split</button>
+              </div>
+
+              <!-- Cash Tender Assistant (shown when Cash is active) -->
+              <div id="cash-tender-drawer" class="cash-tender-box" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 10px; font-weight: 700; color: var(--text-muted);">Cash Tendered</span>
+                  <div style="display: flex; gap: 4px;">
+                    <button class="cash-chip" onclick="views.pos.setCashTender('exact')">Exact</button>
+                    <button class="cash-chip" onclick="views.pos.setCashTender(100)">₹100</button>
+                    <button class="cash-chip" onclick="views.pos.setCashTender(200)">₹200</button>
+                    <button class="cash-chip" onclick="views.pos.setCashTender(500)">₹500</button>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="font-size: 11px; font-weight: 700;">₹</span>
+                    <input type="number" id="cash-received-input" placeholder="Amount" style="width: 70px; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; font-size: 11px; font-weight: 700; outline: none; background: #fff;" oninput="views.pos.calcChangeReturn()">
+                  </div>
+                  <span id="cash-change-return" style="font-size: 11px; font-weight: 800; color: var(--text-muted);">Change: ₹0.00</span>
+                </div>
               </div>
 
               <!-- Submit checkout and Save Order -->
-              <div style="display: flex; flex-direction: column; gap: 6px;">
-                <button class="btn-checkout" id="btn-checkout-trigger" style="padding: 10px; font-size: 14px; font-weight: 700; border-radius: 6px; background: #ff5c00; color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: var(--transition-smooth); width: 100%;">
-                  <i class="fa-solid fa-print"></i> Place Order & Print
+              <div class="pos-action-group">
+                <button class="btn-checkout" id="btn-checkout-trigger">
+                  <i class="fa-solid fa-print"></i> Place Order & Print Bill <span class="shortcut-tag">[Ctrl+B]</span>
                 </button>
-                <button class="btn btn-secondary" id="btn-save-order-trigger" style="width: 100%; padding: 8px; font-size: 13px; font-weight: 700; border-radius: 6px; border: 1.5px solid #ff5c00; background: #fff; color: #ff5c00; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: var(--transition-smooth);">
-                  <i class="fa-solid fa-bookmark"></i> Save Order
-                </button>
+                <div class="pos-secondary-actions">
+                  <button class="btn-pos-secondary btn-save-action" id="btn-save-order-trigger">
+                    <i class="fa-solid fa-bookmark"></i> Save Order
+                  </button>
+                  <button class="btn-pos-secondary btn-kot-action" id="btn-print-kot-trigger" onclick="views.pos.printKitchenKOT()">
+                    <i class="fa-solid fa-fire-burner"></i> Print KOT
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -406,14 +460,14 @@ window.views.pos = {
       const selectedClass = cartQty > 0 ? "selected" : "";
 
       return `
-        <div class="product-card ${outOfStockClass} ${selectedClass}" data-id="${p.id}" style="${cartQty > 0 ? 'border-color: #ff5c00; box-shadow: 0 4px 12px rgba(255, 92, 0, 0.08);' : ''}">
+        <div class="product-card ${outOfStockClass} ${selectedClass}" data-id="${p.id}">
           <!-- Indian Pure Veg green square-circle indicator at top left -->
           <span style="position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border: 1.2px solid #0f8a4f; padding: 1px; border-radius: 2px; background: #fff; z-index: 5;">
             <span style="width: 6px; height: 6px; border-radius: 50%; background: #0f8a4f;"></span>
           </span>
           
           <!-- BOGO offer badge at top right -->
-          ${p.bogo ? `<span class="product-bogo-badge" style="position: absolute; top: 12px; right: 12px; margin: 0; background: #4caf50; font-size: 10px; font-weight: 700; color: #fff; padding: 2px 6px; border-radius: 4px; z-index: 5;">BOGO</span>` : ""}
+          ${p.bogo ? `<span class="product-bogo-badge">BOGO</span>` : ""}
           
           <!-- Product Name in Middle -->
           <div style="margin-top: 28px; text-align: left;">
@@ -424,7 +478,7 @@ window.views.pos = {
 
           <!-- Bottom Row: Price on left, Add Button on right -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; width: 100%;">
-            <span class="product-price" style="font-weight: 800; color: #ff5c00; font-size: 15px;">₹${p.price}</span>
+            <span class="product-price" style="font-weight: 800; color: #ea580c; font-size: 15px;">₹${p.price}</span>
             <div style="display: flex; align-items: center; min-height: 28px;">
               ${actionButtonHtml}
             </div>
@@ -535,16 +589,21 @@ window.views.pos = {
     const badge = document.getElementById("cart-qty-badge");
 
     let totalQty = this.cart.reduce((sum, item) => sum + item.quantity, 0);
-    badge.textContent = totalQty;
+    if (badge) {
+      badge.textContent = `${totalQty} ${totalQty === 1 ? 'Item' : 'Items'}`;
+    }
 
     // Dynamically sync quantities on product grid cards
     this.renderProducts();
 
     if (this.cart.length === 0) {
       list.innerHTML = `
-        <div style="text-align: center; color: var(--text-muted); margin-top: 60px;">
-          <i class="fa-solid fa-basket-shopping" style="font-size: 36px; margin-bottom: 12px; display: block; opacity: 0.3;"></i>
-          Cart is currently empty.<br>Click items on the left to add.
+        <div class="cart-empty-box">
+          <div class="cart-empty-icon-circle">
+            <i class="fa-solid fa-basket-shopping"></i>
+          </div>
+          <div style="font-size: 13px; font-weight: 700; color: var(--text-dark); margin-bottom: 2px;">Cart is empty</div>
+          <div style="font-size: 11px; color: var(--text-muted); max-width: 180px;">Tap on menu items on the left to add to order</div>
         </div>
       `;
       this.calculateBillTotals();
@@ -554,48 +613,51 @@ window.views.pos = {
     list.innerHTML = this.cart.map(item => {
       let bogoTag = "";
       if (item.bogo) {
-        bogoTag = `<span style="font-size: 9px; background: #2db7f5; color:#fff; padding:1px 4px; border-radius:3px; font-weight: 700; margin-left: 4px;">BOGO</span>`;
+        bogoTag = `<span style="font-size: 9px; background: #0284c7; color:#fff; padding:1px 5px; border-radius:3px; font-weight: 700; margin-left: 4px; vertical-align: middle;">BOGO</span>`;
       }
 
       const lineTotal = item.price * item.quantity;
 
       return `
-        <div class="cart-item-row" style="position: relative; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius-md); margin-bottom: 6px; background: #fff; box-sizing: border-box; width: 100%;">
+        <div class="cart-item-row" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; width: 100%;">
           
-          <!-- Delete button x at top right -->
-          <button onclick="views.pos.removeFromCart('${item.productId}')" style="position: absolute; top: 6px; right: 8px; background: transparent; border: none; color: #f44336; cursor: pointer; font-size: 13px;"><i class="fa-solid fa-xmark"></i></button>
-
-          <!-- Left Info: Name, Veg Icon, Add Note -->
-          <div style="display: flex; flex-direction: column; gap: 4px; overflow: hidden; min-width: 0; padding-right: 40px; text-align: left;">
-            <span style="font-size: 13px; font-weight: 700; color: var(--text-dark); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              <!-- Pure Veg Green dot -->
-              <span style="display: inline-flex; align-items: center; justify-content: center; width: 11px; height: 11px; border: 1.2px solid #0f8a4f; padding: 1px; border-radius: 2px; background: #fff; flex-shrink: 0;">
+          <!-- Top Row: Veg Icon + Full Item Name + Remove Button -->
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+            <div style="display: flex; align-items: flex-start; gap: 6px; flex-grow: 1; min-width: 0;">
+              <!-- Pure Veg Green Dot -->
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; border: 1.2px solid #0f8a4f; padding: 1px; border-radius: 2px; background: #fff; flex-shrink: 0; margin-top: 2px;">
                 <span style="width: 5px; height: 5px; border-radius: 50%; background: #0f8a4f;"></span>
               </span>
-              ${item.name}
-            </span>
-            <button class="btn-add-note" onclick="views.pos.addItemNotePrompt('${item.productId}')" style="background: transparent; border: none; color: #ff5c00; font-size: 10px; font-weight: 600; cursor: pointer; padding: 0; text-align: left; display: flex; align-items: center; gap: 2px;">
-              <i class="fa-regular fa-comment-dots"></i> ${item.note ? `Note: ${item.note}` : 'Add note'}
+              <span style="font-size: 12.5px; font-weight: 700; color: #1e293b; line-height: 1.35; word-break: break-word; text-align: left;">
+                ${item.name} ${bogoTag}
+              </span>
+            </div>
+            <!-- Remove Item Button -->
+            <button onclick="views.pos.removeFromCart('${item.productId}')" style="background: rgba(239, 68, 68, 0.08); border: none; color: #ef4444; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;" title="Remove Item">
+              <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
 
-          <!-- Right Info: Price, Qty Controls, Line Total -->
-          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;">
-            <!-- Price above controls -->
-            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">₹${item.price} each ${bogoTag}</span>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <!-- Qty controls pill -->
-              <div style="display: flex; align-items: center; background: #f1f3f5; border-radius: 12px; height: 24px; padding: 0 4px;" onclick="event.stopPropagation();">
-                <button onclick="views.pos.modifyQty('${item.productId}', -1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 10px; color: var(--text-dark); display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-minus"></i></button>
+          <!-- Bottom Row: Add Note (Left) & Controls + Unit Price + Line Total (Right) -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px dashed #f1f5f9; padding-top: 5px;">
+            <button class="btn-add-note" onclick="views.pos.addItemNotePrompt('${item.productId}')" style="background: transparent; border: none; color: #ea580c; font-size: 10.5px; font-weight: 600; cursor: pointer; padding: 0; text-align: left; display: flex; align-items: center; gap: 3px; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <i class="fa-regular fa-comment-dots"></i> ${item.note ? `Note: ${item.note}` : '+ Add note'}
+            </button>
+
+            <div style="display: flex; align-items: center; gap: 7px; flex-shrink: 0;">
+              <span style="font-size: 10.5px; color: #64748b; font-weight: 600;">₹${item.price}</span>
+              <!-- Qty Stepper Pill -->
+              <div style="display: flex; align-items: center; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; height: 22px; padding: 0 3px;" onclick="event.stopPropagation();">
+                <button onclick="views.pos.modifyQty('${item.productId}', -1)" style="background: transparent; border: none; width: 18px; height: 100%; cursor: pointer; font-size: 10px; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-minus"></i></button>
                 <input type="number" class="cart-qty-input" value="${item.quantity}" 
                        onchange="views.pos.setQty('${item.productId}', parseInt(this.value) || 0)"
-                       onclick="this.select();"
+                       onclick="this.select();" 
                        onkeydown="if(event.key==='Enter') { event.preventDefault(); this.blur(); }"
-                       style="background: transparent; border: none; font-size: 12px; font-weight: 700; width: 36px; text-align: center; color: var(--text-dark); outline: none;">
-                <button onclick="views.pos.modifyQty('${item.productId}', 1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 10px; color: var(--text-dark); display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-plus"></i></button>
+                       style="background: transparent; border: none; font-size: 11px; font-weight: 800; width: 28px; text-align: center; color: #0f172a; outline: none; padding: 0;">
+                <button onclick="views.pos.modifyQty('${item.productId}', 1)" style="background: transparent; border: none; width: 18px; height: 100%; cursor: pointer; font-size: 10px; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-plus"></i></button>
               </div>
               <!-- Line Total -->
-              <span style="font-size: 13px; font-weight: 700; color: var(--text-dark); min-width: 45px; text-align: right;">₹${lineTotal}</span>
+              <span style="font-size: 12.5px; font-weight: 800; color: #0f172a; min-width: 42px; text-align: right;">₹${lineTotal}</span>
             </div>
           </div>
         </div>
@@ -663,6 +725,15 @@ window.views.pos = {
     if (discAmtEl) {
       discAmtEl.textContent = `-₹${flatDiscountAmount.toFixed(2)}`;
     }
+
+    // Sync active discount chips
+    const chips = document.querySelectorAll(".cart-discount-chip");
+    chips.forEach(chip => {
+      chip.classList.toggle("active", Number(chip.getAttribute("data-discount")) === discountPercent);
+    });
+
+    // Sync cash change calculation if open
+    this.calcChangeReturn();
   },
 
   setupListeners() {
@@ -694,6 +765,10 @@ window.views.pos = {
       if (this.cart.length > 0) {
         this.cart = [];
         this.renderCart();
+        const noteInput = document.getElementById("order-kitchen-note");
+        if (noteInput) noteInput.value = "";
+        const cashInput = document.getElementById("cash-received-input");
+        if (cashInput) cashInput.value = "";
         window.showToast("Cart has been cleared.", "info");
       }
     };
@@ -710,33 +785,25 @@ window.views.pos = {
       this.calculateBillTotals();
     };
 
-    // 5. Order Type selection
+    // 5. Order Type selection (Header buttons)
     const dinein = document.getElementById("type-dinein");
     const takeaway = document.getElementById("type-takeaway");
     const delivery = document.getElementById("type-delivery");
+    const tableBox = document.getElementById("header-table-box");
 
-    dinein.onclick = () => {
-      dinein.classList.add("active");
-      takeaway.classList.remove("active");
-      delivery.classList.remove("active");
-      this.orderType = "Dine-in";
+    const setOrderType = (type) => {
+      this.orderType = type;
+      [dinein, takeaway, delivery].forEach(b => {
+        if (b) b.classList.toggle("active", b.id === `type-${type.toLowerCase().replace(/[^a-z]/g, "")}`);
+      });
+      if (tableBox) {
+        tableBox.style.display = type === "Dine-in" ? "flex" : "none";
+      }
     };
 
-    takeaway.onclick = () => {
-      takeaway.classList.add("active");
-      dinein.classList.remove("active");
-      delivery.classList.remove("active");
-      this.orderType = "Takeaway";
-    };
-
-    delivery.onclick = () => {
-      delivery.classList.add("active");
-      dinein.classList.remove("active");
-      takeaway.classList.remove("active");
-      this.orderType = "Delivery";
-    };
-
-    // (Removed discount preset buttons)
+    if (dinein) dinein.onclick = () => setOrderType("Dine-in");
+    if (takeaway) takeaway.onclick = () => setOrderType("Takeaway");
+    if (delivery) delivery.onclick = () => setOrderType("Delivery");
 
     // 5c. Keydown keyboard hotkeys shortcuts listener
     this.handleKeydown = (e) => {
@@ -749,17 +816,22 @@ window.views.pos = {
         search.focus();
         search.select();
       }
-      // 2. F8 to instantly place order
-      if (e.key === "F8") {
+      // 2. F8 or Ctrl+B to instantly place order
+      if (e.key === "F8" || (e.ctrlKey && (e.key === "b" || e.key === "B"))) {
         e.preventDefault();
         this.processCheckout();
       }
-      // 3. Alt + C to instantly clear/reset cart
+      // 3. F3 to save order
+      if (e.key === "F3") {
+        e.preventDefault();
+        this.processCheckout(true);
+      }
+      // 4. Alt + C to instantly clear/reset cart
       if (e.altKey && (e.key === "c" || e.key === "C")) {
         e.preventDefault();
         document.getElementById("btn-clear-cart-trigger").click();
       }
-      // 4. Escape to clear search query
+      // 5. Escape to clear search query
       if (e.key === "Escape" && document.activeElement === search) {
         search.value = "";
         this.searchQuery = "";
@@ -769,24 +841,31 @@ window.views.pos = {
     };
     document.addEventListener("keydown", this.handleKeydown);
 
-    // 6. Payment Modes click select
+    // 6. Payment Modes click select & Cash assistant toggle
     const pUpi = document.getElementById("pay-upi");
     const pCash = document.getElementById("pay-cash");
     const pCard = document.getElementById("pay-card");
-    const pMore = document.getElementById("pay-more");
+    const pSplit = document.getElementById("pay-split");
+    const cashDrawer = document.getElementById("cash-tender-drawer");
 
     const selectPayment = (btn, mode) => {
-      [pUpi, pCash, pCard, pMore].forEach(b => {
+      [pUpi, pCash, pCard, pSplit].forEach(b => {
         if (b) b.classList.remove("active");
       });
-      btn.classList.add("active");
+      if (btn) btn.classList.add("active");
       this.selectedPayment = mode;
+      if (cashDrawer) {
+        cashDrawer.style.display = mode === "Cash" ? "flex" : "none";
+        if (mode === "Cash") {
+          this.calcChangeReturn();
+        }
+      }
     };
 
     if (pUpi) pUpi.onclick = () => selectPayment(pUpi, "UPI");
     if (pCash) pCash.onclick = () => selectPayment(pCash, "Cash");
     if (pCard) pCard.onclick = () => selectPayment(pCard, "Card");
-    if (pMore) pMore.onclick = () => selectPayment(pMore, "More");
+    if (pSplit) pSplit.onclick = () => selectPayment(pSplit, "Split");
 
     // 7. Checkout Process Confirmation modal & Save Order triggers
     document.getElementById("btn-checkout-trigger").onclick = () => {
@@ -830,6 +909,120 @@ window.views.pos = {
     });
   },
 
+  setQuickDiscount(percent) {
+    const discInput = document.getElementById("bill-discount-input");
+    if (discInput) {
+      discInput.value = percent;
+      this.calculateBillTotals();
+    }
+    const chips = document.querySelectorAll(".cart-discount-chip");
+    chips.forEach(chip => {
+      chip.classList.toggle("active", Number(chip.getAttribute("data-discount")) === Number(percent));
+    });
+  },
+
+  setCashTender(val) {
+    const cashInput = document.getElementById("cash-received-input");
+    if (!cashInput) return;
+    if (val === "exact") {
+      const totalEl = document.getElementById("bill-total");
+      const totalNum = parseFloat(totalEl.textContent.replace(/[^0-9.]/g, "")) || 0;
+      cashInput.value = Math.ceil(totalNum);
+    } else {
+      cashInput.value = val;
+    }
+    this.calcChangeReturn();
+  },
+
+  calcChangeReturn() {
+    const cashInput = document.getElementById("cash-received-input");
+    const changeEl = document.getElementById("cash-change-return");
+    const totalEl = document.getElementById("bill-total");
+    if (!cashInput || !changeEl || !totalEl) return;
+
+    const totalNum = parseFloat(totalEl.textContent.replace(/[^0-9.]/g, "")) || 0;
+    const received = parseFloat(cashInput.value) || 0;
+    const change = Math.max(0, received - totalNum);
+
+    if (received >= totalNum && totalNum > 0) {
+      changeEl.textContent = `Change: ₹${change.toFixed(2)}`;
+      changeEl.style.color = "#10b981";
+    } else if (received > 0) {
+      changeEl.textContent = `Due: ₹${(totalNum - received).toFixed(2)}`;
+      changeEl.style.color = "#ef4444";
+    } else {
+      changeEl.textContent = `Change: ₹0.00`;
+      changeEl.style.color = "var(--text-muted)";
+    }
+  },
+
+  printKitchenKOT() {
+    if (this.cart.length === 0) {
+      window.showToast("Cart is empty. Add items to print KOT.", "error");
+      return;
+    }
+    const settings = window.db.get("settings") || {};
+    const tableNo = document.getElementById("pos-table-input") ? document.getElementById("pos-table-input").value.trim() : "";
+    const kitchenNote = document.getElementById("order-kitchen-note") ? document.getElementById("order-kitchen-note").value.trim() : "";
+    const custName = document.getElementById("cust-name") ? document.getElementById("cust-name").value.trim() : "Walk-in";
+
+    const dateObj = new Date();
+    const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const kotHtml = `
+      <div class="receipt-wrapper" style="font-family: monospace; padding: 10px; max-width: 72mm; margin: 0 auto; text-align: left;">
+        <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 900;">*** KITCHEN ORDER TICKET (KOT) ***</h2>
+          <div style="font-size: 13px; font-weight: bold; margin-top: 2px;">${settings.restaurantName || "Crust & Chilly"}</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 4px;">
+          <span>Type: ${this.orderType} ${tableNo ? `(Table: ${tableNo})` : ''}</span>
+          <span>Time: ${timeStr}</span>
+        </div>
+        <div style="font-size: 11px; margin-bottom: 6px;">Customer: ${custName}</div>
+        <div style="border-bottom: 1px solid #000; margin-bottom: 6px;"></div>
+        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1px dashed #000;">
+              <th style="text-align: left; padding: 4px 0; width: 75%;">Item Description</th>
+              <th style="text-align: right; padding: 4px 0; width: 25%;">Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${this.cart.map(item => `
+              <tr style="border-bottom: 1px dotted #ccc;">
+                <td style="padding: 5px 0; font-weight: bold;">
+                  ${item.name}
+                  ${item.note ? `<div style="font-size: 10px; font-style: italic; color: #555;">>> Note: ${item.note}</div>` : ''}
+                </td>
+                <td style="text-align: right; padding: 5px 0; font-size: 14px; font-weight: 900;">${item.quantity}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        ${kitchenNote ? `
+          <div style="margin-top: 8px; border: 1px dashed #000; padding: 4px; font-size: 11px; font-weight: bold;">
+            SPECIAL NOTE: ${kitchenNote}
+          </div>
+        ` : ''}
+        <div style="text-align: center; border-top: 2px dashed #000; margin-top: 10px; padding-top: 6px; font-size: 11px; font-weight: bold;">
+          Total Qty: ${this.cart.reduce((s, i) => s + i.quantity, 0)} Items
+        </div>
+      </div>
+    `;
+
+    window.customModal.show({
+      title: "Kitchen Order Ticket (KOT)",
+      bodyHtml: kotHtml,
+      confirmText: "Print KOT",
+      cancelText: "Close",
+      onConfirm: () => {
+        window.print();
+        return false;
+      }
+    });
+  },
+
   processCheckout(skipPrint = false, bypassStockCheck = false) {
     if (this.cart.length === 0) {
       window.showToast("Cannot place order. The cart is empty.", "error");
@@ -838,6 +1031,8 @@ window.views.pos = {
 
     const customerName = document.getElementById("cust-name").value.trim() || "Walk-in Customer";
     const customerPhone = document.getElementById("cust-phone").value.trim() || "";
+    const tableNoVal = document.getElementById("pos-table-input") ? document.getElementById("pos-table-input").value.trim() : "";
+    const kitchenNoteVal = document.getElementById("order-kitchen-note") ? document.getElementById("order-kitchen-note").value.trim() : "";
 
     // Validate phone number length (must be empty or exactly 10 digits)
     if (customerPhone && customerPhone.length !== 10) {
@@ -893,7 +1088,6 @@ window.views.pos = {
     const netTotal = netBeforeTax + taxVal;
 
     // Call database create transaction
-    const tableSelectVal = document.getElementById("pos-table-select") ? document.getElementById("pos-table-select").value : "";
     const response = window.db.createOrder({
       customerName: customerName,
       customerPhone: customerPhone,
@@ -904,7 +1098,8 @@ window.views.pos = {
       tax: taxVal,
       total: netTotal,
       type: this.orderType,
-      tableNumber: this.orderType === "Dine-in" ? tableSelectVal : "",
+      tableNumber: this.orderType === "Dine-in" ? tableNoVal : "",
+      notes: kitchenNoteVal,
       paymentMethod: this.selectedPayment
     }, bypassStockCheck);
 
@@ -926,6 +1121,10 @@ window.views.pos = {
       document.getElementById("cust-name").value = "Walk-in Customer";
       document.getElementById("cust-phone").value = "";
       document.getElementById("bill-discount-input").value = "0";
+      const noteInput = document.getElementById("order-kitchen-note");
+      if (noteInput) noteInput.value = "";
+      const cashInput = document.getElementById("cash-received-input");
+      if (cashInput) cashInput.value = "";
       this.renderCart();
       this.renderProducts(); // refresh stock numbers on cards
       this.populateCustomerAutocompletes();
@@ -1293,7 +1492,7 @@ window.views.pos = {
           </thead>
           <tbody>
             ${order.items.map(item => {
-              let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ff5c00;">* Note: ${item.note}</span>` : "";
+              let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ea580c;">* Note: ${item.note}</span>` : "";
               return `
                 <tr>
                   <td>

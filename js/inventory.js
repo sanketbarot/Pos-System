@@ -116,7 +116,7 @@ window.views.inventory = {
             <td>
               <div class="flex-gap-sm">
                 <button class="btn btn-secondary btn-adjust-stock" data-id="${ing.id}" style="padding: 6px 10px; font-size: 12px; border-color: var(--border-color-hover);">
-                  <i class="fa-solid fa-scale-unbalanced" style="color: #ff5c00;"></i> Adjust
+                  <i class="fa-solid fa-scale-unbalanced" style="color: #ea580c;"></i> Adjust
                 </button>
                 <button class="btn btn-secondary btn-edit-ing" data-id="${ing.id}" style="padding: 6px 10px; font-size: 12px;"><i class="fa-solid fa-edit"></i></button>
                 <button class="btn btn-danger btn-delete-ing" data-id="${ing.id}" style="padding: 6px 10px; font-size: 12px;"><i class="fa-solid fa-trash"></i></button>
@@ -336,7 +336,7 @@ window.views.inventory = {
             <td>${date}</td>
             <td style="color: var(--text-muted);">${pur.supplier}</td>
             <td style="font-size: 13px;">${detailsHtml}</td>
-            <td style="font-weight: 700; color: #ff5c00;">${currency}${pur.totalCost}</td>
+            <td style="font-weight: 700; color: #ea580c;">${currency}${pur.totalCost}</td>
           </tr>
         `;
       }).join("");

@@ -515,6 +515,8 @@ const db = {
       tax: orderData.tax || 0,
       total: orderData.total,
       type: orderData.type || "Dine-in", // Dine-in or Takeaway
+      tableNumber: orderData.tableNumber || "",
+      notes: orderData.notes || "",
       paymentMethod: orderData.paymentMethod || "Cash", // Cash, UPI, Card
       status: "Pending", // Pending, Preparing, Ready, Completed, Cancelled
       createdAt: now.toISOString()
@@ -522,6 +524,7 @@ const db = {
 
     orders.unshift(newOrder); // Add to top
     this.set("orders", orders);
+    if (window.updateSidebarSummary) window.updateSidebarSummary();
 
     return {
       success: true,
@@ -567,6 +570,7 @@ const db = {
       */
 
       this.set("orders", orders);
+      if (window.updateSidebarSummary) window.updateSidebarSummary();
       return { success: true, order: orders[index] };
     }
     return { success: false, message: "Order not found" };

@@ -298,19 +298,50 @@ const app = {
     const orders = window.db.get("orders") || [];
     const today = new Date().toDateString();
 
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = yesterdayDate.toDateString();
+
     // Filter non-cancelled orders from today
     const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === today && o.status !== "Cancelled");
     const totalOrdersCount = todayOrders.length;
     const totalSalesAmount = todayOrders.reduce((sum, o) => sum + o.total, 0);
     const avgOrderValue = totalOrdersCount > 0 ? (totalSalesAmount / totalOrdersCount) : 0;
 
+    // Filter non-cancelled orders from yesterday
+    const yesterdayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === yesterdayStr && o.status !== "Cancelled");
+    const yesterdaySalesAmount = yesterdayOrders.reduce((sum, o) => sum + o.total, 0);
+
+    let growthPercent = 0;
+    let isPositive = true;
+
+    if (yesterdaySalesAmount > 0) {
+      growthPercent = ((totalSalesAmount - yesterdaySalesAmount) / yesterdaySalesAmount) * 100;
+      isPositive = growthPercent >= 0;
+    } else if (totalSalesAmount > 0) {
+      growthPercent = 100;
+      isPositive = true;
+    } else {
+      growthPercent = 0;
+      isPositive = true;
+    }
+
     const ordersEl = document.getElementById("sidebar-summary-orders");
     const salesEl = document.getElementById("sidebar-summary-sales");
     const avgEl = document.getElementById("sidebar-summary-avg");
+    const growthEl = document.getElementById("sidebar-summary-growth");
 
     if (ordersEl) ordersEl.textContent = totalOrdersCount;
     if (salesEl) salesEl.textContent = `₹${Math.round(totalSalesAmount).toLocaleString()}`;
     if (avgEl) avgEl.textContent = `₹${Math.round(avgOrderValue)}`;
+    if (growthEl) {
+      const formattedPercent = Math.abs(growthPercent).toFixed(1);
+      const icon = isPositive ? "fa-arrow-trend-up" : "fa-arrow-trend-down";
+      const color = isPositive ? "#16a34a" : "#ef4444";
+      const sign = isPositive ? "+" : "-";
+      growthEl.style.color = color;
+      growthEl.innerHTML = `<i class="fa-solid ${icon}"></i> ${sign}${formattedPercent}% vs yesterday`;
+    }
   }
 };
 
