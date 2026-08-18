@@ -627,8 +627,10 @@ window.views.pos = {
     bogoPrices.sort((a, b) => b - a); // Higher price first
 
     let bogoDiscount = 0;
-    for (let i = 1; i < bogoPrices.length; i += 2) {
-      bogoDiscount += bogoPrices[i]; // Second/lower price item in every pair is free
+    const numFree = Math.floor(bogoPrices.length / 2);
+    // The cheapest numFree items are free (which are at the end of the descending sorted array)
+    for (let i = bogoPrices.length - numFree; i < bogoPrices.length; i++) {
+      bogoDiscount += bogoPrices[i];
     }
 
     const bogoRow = document.getElementById("bogo-discount-row");
@@ -857,7 +859,8 @@ window.views.pos = {
         price: item.price,
         quantity: item.quantity,
         bogo: item.bogo,
-        lineTotal: lineTotal
+        lineTotal: lineTotal,
+        note: item.note || ""
       };
     });
 
@@ -873,7 +876,9 @@ window.views.pos = {
 
     bogoPrices.sort((a, b) => b - a);
     let bogoDiscount = 0;
-    for (let i = 1; i < bogoPrices.length; i += 2) {
+    const numFree = Math.floor(bogoPrices.length / 2);
+    // The cheapest numFree items are free (which are at the end of the descending sorted array)
+    for (let i = bogoPrices.length - numFree; i < bogoPrices.length; i++) {
       bogoDiscount += bogoPrices[i];
     }
 
@@ -1174,17 +1179,243 @@ window.views.pos = {
         }
       </style>
     `;
+ 
+    let proceededToKOT = false;
+    const proceedToKOT = (doPrint = false) => {
+      if (proceededToKOT) return;
+      proceededToKOT = true;
+      if (doPrint) {
+        window.print();
+      }
+      setTimeout(() => {
+        this.showKitchenReceiptModal(order);
+      }, 150);
+    };
 
     window.customModal.show({
-      title: "Invoice Generated Successfully",
+      title: "Invoice Generated Successfully (Customer Copy)",
       bodyHtml: receiptHtml,
-      confirmText: "Print Bill",
-      cancelText: "Close",
+      confirmText: "Print Customer Copy",
+      cancelText: "Skip to Kitchen KOT",
       onConfirm: () => {
-        window.print();
-        return false; // prevent closing immediately so they can print again if needed
+        proceedToKOT(true);
+      },
+      onCancel: () => {
+        proceedToKOT(false);
       }
     });
+
+    // Auto-trigger printing Customer Copy once all images (Logo, QR Code) are loaded
+    const modalBody = document.getElementById("modal-body");
+    if (modalBody) {
+      const images = modalBody.querySelectorAll("img");
+      let loadedCount = 0;
+      const totalImages = images.length;
+
+      const onImageLoad = () => {
+        loadedCount++;
+        if (loadedCount === totalImages) {
+          setTimeout(() => {
+            proceedToKOT(true);
+          }, 150);
+        }
+      };
+
+      if (totalImages > 0) {
+        images.forEach(img => {
+          if (img.complete) {
+            onImageLoad();
+          } else {
+            img.onload = onImageLoad;
+            img.onerror = onImageLoad; // Proceed even if an image fails to load
+          }
+        });
+      } else {
+        setTimeout(() => {
+          proceedToKOT(true);
+        }, 150);
+      }
+    } else {
+      setTimeout(() => {
+        proceedToKOT(true);
+      }, 150);
+    }
+  },
+
+  showKitchenReceiptModal(order) {
+    const settings = window.db.get("settings") || {};
+
+    // Format Date & Time
+    const dateObj = new Date(order.createdAt);
+    const dd = String(dateObj.getDate()).padStart(2, '0');
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const yy = String(dateObj.getFullYear()).slice(-2);
+    const orderDate = `${dd}/${mm}/${yy}`;
+
+    const hh = String(dateObj.getHours()).padStart(2, '0');
+    const min = String(dateObj.getMinutes()).padStart(2, '0');
+    const orderTime = `${hh}:${min}`;
+
+    // Token No.
+    const tokenNo = String(order.tokenNumber || 1).padStart(2, '0');
+
+    const kitchenHtml = `
+      <div class="receipt-wrapper kitchen-receipt-wrapper">
+        <div class="receipt-header">
+          <div class="receipt-title" style="font-size: 15px; font-weight: 800;">KITCHEN ORDER TICKET</div>
+          <div class="receipt-subtitle" style="font-weight: 800; font-size: 13px; margin-top: 4px; color: #000;">Token No.: ${tokenNo}</div>
+        </div>
+        
+        <div class="receipt-dotted-line"></div>
+        
+        <div class="receipt-meta">
+          <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
+          ${order.customerPhone ? `<div style="font-weight: bold; margin-bottom: 4px;">Phone: ${order.customerPhone}</div>` : ""}
+          <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
+          <div class="receipt-meta-row">
+            <span>Date: ${orderDate}</span>
+            <span style="font-weight: bold;">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
+          </div>
+          <div class="receipt-meta-row">
+            <span>Time: ${orderTime}</span>
+            <span>Bill No.: ${order.orderNumber}</span>
+          </div>
+        </div>
+        
+        <div class="receipt-dotted-line"></div>
+        
+        <table class="receipt-table">
+          <thead>
+            <tr>
+              <th style="width: 75%; font-weight: 800;">Item</th>
+              <th style="text-align: right; width: 25%; font-weight: 800;">Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${order.items.map(item => {
+              let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ff5c00;">* Note: ${item.note}</span>` : "";
+              return `
+                <tr>
+                  <td>
+                    <span class="receipt-item-name" style="font-size: 13px; font-weight: bold;">${item.name}</span>
+                    ${noteLabel}
+                  </td>
+                  <td style="text-align: right; font-size: 14px; font-weight: bold;">${item.quantity}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+        
+        <div class="receipt-dotted-line"></div>
+        <div class="receipt-footer" style="text-align: center; font-size: 10px; font-weight: bold; margin-top: 8px; text-transform: uppercase;">
+          Crust & Chilly - Kitchen Copy
+        </div>
+      </div>
+      
+      <style>
+        @media print {
+          @page {
+            margin: 0 !important;
+            size: auto;
+          }
+          body { 
+            background: #fff !important; 
+            color: #000 !important; 
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          * {
+            color: #000 !important;
+            text-shadow: none !important;
+            box-shadow: none !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #app-container, .toast-container, .modal-header, .modal-footer, .receipt-wa-btn { 
+            display: none !important; 
+          }
+          .modal-overlay { 
+            position: absolute !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            width: 100% !important; 
+            height: auto !important; 
+            background: transparent !important; 
+            backdrop-filter: none !important; 
+            box-shadow: none !important; 
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            padding: 0 !important; 
+            margin: 0 !important; 
+          }
+          .modal-content { 
+            border: none !important; 
+            box-shadow: none !important; 
+            background: transparent !important; 
+            width: 100% !important; 
+            max-width: 100% !important; 
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            padding: 0 !important; 
+            margin: 0 !important; 
+            transform: none !important;
+          }
+          .modal-body { 
+            padding: 0 !important; 
+            margin: 0 !important; 
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+          .receipt-wrapper { 
+            width: 70mm !important;
+            max-width: 70mm !important;
+            margin: 0 auto !important; 
+            padding: 2mm 3mm !important;
+            box-sizing: border-box !important;
+            box-shadow: none !important; 
+            border: none !important;
+            border-radius: 0 !important;
+          }
+          .receipt-table th, .receipt-table td {
+            font-size: 11px !important;
+          }
+        }
+      </style>
+    `;
+
+    let KOTDone = false;
+    const doneKOT = (doPrint = false) => {
+      if (KOTDone) return;
+      KOTDone = true;
+      if (doPrint) {
+        window.print();
+      }
+      setTimeout(() => {
+        window.customModal.hide();
+      }, 150);
+    };
+
+    window.customModal.show({
+      title: "Print Kitchen Copy (KOT)",
+      bodyHtml: kitchenHtml,
+      confirmText: "Print Kitchen KOT",
+      cancelText: "Close",
+      onConfirm: () => {
+        doneKOT(true);
+      },
+      onCancel: () => {
+        doneKOT(false);
+      }
+    });
+
+    // Auto-trigger printing Kitchen KOT
+    setTimeout(() => {
+      doneKOT(true);
+    }, 150);
   },
 
 
