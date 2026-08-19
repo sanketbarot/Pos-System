@@ -8,48 +8,48 @@ window.views.dashboard = {
 
   init(container) {
     container.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 24px;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 20px;">
         
         <!-- Welcome Header Banner -->
-        <div style="background: linear-gradient(135deg, rgba(255, 75, 43, 0.07) 0%, rgba(255, 128, 8, 0.07) 100%); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+        <div style="background: var(--bg-darkest); border: 1.5px solid rgba(255, 255, 255, 0.95); border-radius: 22px; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; gap: 20px; box-shadow: 6px 6px 16px #cad5e2, -6px -6px 16px #ffffff;">
           <div>
             <h1 style="font-size: 20px; font-weight: 800; color: var(--text-dark); margin: 0 0 4px 0;">Welcome back, Chef! 🍕</h1>
-            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Here is today's overview and analytics for Crust & Chilly.</p>
+            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Here is today's live overview and analytics for Crust & Chilly.</p>
           </div>
-          <div style="background: var(--bg-darker); padding: 8px 16px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-circle" style="color: var(--color-ready); font-size: 8px; animation: warning-pulse 1.5s infinite alternate;"></i> KDS Connected Live
+          <div style="background: var(--bg-darkest); padding: 8px 16px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.8); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: var(--neu-shadow-btn); color: #10b981;">
+            <i class="fa-solid fa-circle" style="color: #10b981; font-size: 8px; animation: pulse 1.5s infinite alternate;"></i> KDS Connected Live
           </div>
         </div>
 
         <!-- 3 Stats Cards Grid -->
         <div class="dashboard-grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 0;">
-          <div class="glass-card stat-card" style="border-left: 4px solid #f97316;">
+          <div class="glass-card stat-card" style="border-left: 4px solid #2563eb;">
             <div class="stat-info">
               <span class="stat-label">Today's Sales</span>
-              <span class="stat-value" id="dash-sales-val">₹0</span>
-              <span class="stat-change up" id="dash-sales-count"><i class="fa-solid fa-arrow-trend-up"></i> 0 orders today</span>
+              <span class="stat-value" id="dash-sales-val" style="color: #2563eb; font-size: 28px; font-weight: 900;">₹0</span>
+              <span class="stat-change up" id="dash-sales-count" style="color: #10b981; font-weight: 700;"><i class="fa-solid fa-arrow-trend-up"></i> 0 active orders today</span>
             </div>
-            <div class="stat-icon-wrapper" style="background: rgba(249, 115, 22, 0.08); border-color: rgba(249, 115, 22, 0.15); color: #ea580c;">
+            <div class="stat-icon-wrapper" style="background: #eff6ff; border-color: #bfdbfe; color: #2563eb;">
               <i class="fa-solid fa-indian-rupee-sign"></i>
             </div>
           </div>
-          <div class="glass-card stat-card" style="border-left: 4px solid #00b0ff;">
+          <div class="glass-card stat-card" style="border-left: 4px solid #2563eb;">
             <div class="stat-info">
               <span class="stat-label">Today's Orders</span>
-              <span class="stat-value" id="dash-orders-val">0</span>
-              <span class="stat-change" style="color: var(--text-muted);">Completed & Cancelled</span>
+              <span class="stat-value" id="dash-orders-val" style="color: var(--text-dark); font-size: 28px; font-weight: 900;">0</span>
+              <span class="stat-change" style="color: var(--text-muted); font-weight: 600;">Completed & Active</span>
             </div>
-            <div class="stat-icon-wrapper" style="background: rgba(0, 176, 255, 0.08); border-color: rgba(0, 176, 255, 0.15); color: #00b0ff;">
+            <div class="stat-icon-wrapper" style="background: #eff6ff; border-color: #bfdbfe; color: #2563eb;">
               <i class="fa-solid fa-receipt"></i>
             </div>
           </div>
-          <div class="glass-card stat-card" style="border-left: 4px solid #2979ff;">
+          <div class="glass-card stat-card" style="border-left: 4px solid #10b981;">
             <div class="stat-info">
               <span class="stat-label">Active Kitchen Queue</span>
-              <span class="stat-value" id="dash-active-val">0</span>
-              <span class="stat-change" id="dash-active-sub" style="color: var(--text-muted);">Preparing / Pending</span>
+              <span class="stat-value" id="dash-active-val" style="color: #10b981; font-size: 28px; font-weight: 900;">0</span>
+              <span class="stat-change" id="dash-active-sub" style="color: var(--text-muted); font-weight: 600;">Preparing / Pending</span>
             </div>
-            <div class="stat-icon-wrapper" style="background: rgba(41, 121, 255, 0.08); border-color: rgba(41, 121, 255, 0.15); color: #2979ff;">
+            <div class="stat-icon-wrapper" style="background: #ecfdf5; border-color: #a7f3d0; color: #059669;">
               <i class="fa-solid fa-fire-burner"></i>
             </div>
           </div>
@@ -58,18 +58,18 @@ window.views.dashboard = {
         <!-- Charts Layout Row -->
         <div class="dashboard-charts-row" style="margin-bottom: 0;">
           <div class="glass-card chart-card">
-            <div class="flex-space mb-3">
-              <h3 style="font-size: 15px; font-weight: 700; margin: 0;"><i class="fa-solid fa-chart-line" style="color: #ea580c; margin-right: 6px;"></i> Sales Analytics (Last 7 Days)</h3>
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Weekly Trend</span>
+            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;"><i class="fa-solid fa-chart-line" style="color: #2563eb; margin-right: 6px;"></i> Sales Analytics (Last 7 Days)</h3>
+              <span style="font-size: 11px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px; font-weight: 800; text-transform: uppercase;">Weekly Trend</span>
             </div>
             <div class="chart-container">
               <canvas id="salesTrendsChartCanvas"></canvas>
             </div>
           </div>
           <div class="glass-card chart-card">
-            <div class="flex-space mb-3">
-              <h3 style="font-size: 15px; font-weight: 700; margin: 0;"><i class="fa-solid fa-wallet" style="color: #00b0ff; margin-right: 6px;"></i> Payment Distribution</h3>
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Today's Share</span>
+            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;"><i class="fa-solid fa-wallet" style="color: #2563eb; margin-right: 6px;"></i> Payment Distribution</h3>
+              <span style="font-size: 11px; color: #10b981; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 10px; font-weight: 800; text-transform: uppercase;">Today's Share</span>
             </div>
             <div class="chart-container">
               <canvas id="paymentPieChartCanvas"></canvas>
@@ -81,8 +81,8 @@ window.views.dashboard = {
         <div class="dashboard-details-row">
           <!-- Best Selling items -->
           <div class="glass-card" style="display: flex; flex-direction: column;">
-            <div class="flex-space mb-3">
-              <h3 style="font-size: 15px; font-weight: 700; margin: 0;"><i class="fa-solid fa-star" style="color: #ffb300; margin-right: 6px;"></i> Best Selling Menu Items</h3>
+            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;"><i class="fa-solid fa-star" style="color: #2563eb; margin-right: 6px;"></i> Best Selling Menu Items</h3>
               <span class="badge badge-ready">Top Moving</span>
             </div>
             <div class="table-container" style="flex-grow: 1;">
@@ -104,26 +104,26 @@ window.views.dashboard = {
           <!-- Quick Terminal Actions -->
           <div class="glass-card" style="display: flex; flex-direction: column; gap: 16px; justify-content: space-between;">
             <div>
-              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 4px;"><i class="fa-solid fa-bolt" style="color: #ff4b2b; margin-right: 6px;"></i> Quick Management</h3>
+              <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin-bottom: 4px;"><i class="fa-solid fa-bolt" style="color: #2563eb; margin-right: 6px;"></i> Quick Management</h3>
               <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Quickly jump to active operations dashboards.</p>
             </div>
             
-            <div class="grid-3col" style="flex-grow: 1; align-items: center; gap: 12px;">
-              <button class="btn btn-secondary text-center w-100" onclick="window.location.hash='#pos'" style="flex-direction: column; padding: 20px 8px; gap: 10px; height: 110px; background: linear-gradient(135deg, rgba(255, 75, 43, 0.04) 0%, rgba(255, 128, 8, 0.04) 100%); border-color: rgba(255, 75, 43, 0.15);">
-                <i class="fa-solid fa-plus-circle" style="font-size: 24px; color: #ff4b2b;"></i>
-                <span style="font-size: 13px; font-weight: 700;">POS Terminal</span>
+            <div class="grid-3col" style="flex-grow: 1; align-items: center; gap: 12px; display: grid; grid-template-columns: repeat(3, 1fr);">
+              <button class="btn btn-secondary text-center w-100" onclick="window.location.hash='#pos'" style="flex-direction: column; padding: 18px 8px; gap: 10px; height: 110px; border-radius: 18px; box-shadow: var(--neu-shadow-btn); border: 1px solid rgba(255, 255, 255, 0.9);">
+                <i class="fa-solid fa-cash-register" style="font-size: 24px; color: #2563eb;"></i>
+                <span style="font-size: 13px; font-weight: 800; color: var(--text-dark);">POS Terminal</span>
               </button>
-              <button class="btn btn-secondary text-center w-100" onclick="window.location.hash='#orders'" style="flex-direction: column; padding: 20px 8px; gap: 10px; height: 110px; background: linear-gradient(135deg, rgba(41, 121, 255, 0.04) 0%, rgba(0, 176, 255, 0.04) 100%); border-color: rgba(41, 121, 255, 0.15);">
-                <i class="fa-solid fa-kitchen-set" style="font-size: 24px; color: #2979ff;"></i>
-                <span style="font-size: 13px; font-weight: 700;">Kitchen KDS</span>
+              <button class="btn btn-secondary text-center w-100" onclick="window.location.hash='#orders'" style="flex-direction: column; padding: 18px 8px; gap: 10px; height: 110px; border-radius: 18px; box-shadow: var(--neu-shadow-btn); border: 1px solid rgba(255, 255, 255, 0.9);">
+                <i class="fa-solid fa-kitchen-set" style="font-size: 24px; color: #2563eb;"></i>
+                <span style="font-size: 13px; font-weight: 800; color: var(--text-dark);">Kitchen KDS</span>
               </button>
-              <button class="btn btn-secondary text-center w-100" id="dash-action-menu-setup" onclick="window.location.hash='#menu'" style="flex-direction: column; padding: 20px 8px; gap: 10px; height: 110px; background: linear-gradient(135deg, rgba(255, 179, 0, 0.04) 0%, rgba(255, 128, 8, 0.04) 100%); border-color: rgba(255, 179, 0, 0.15);">
-                <i class="fa-solid fa-burger" style="font-size: 24px; color: #ffb300;"></i>
-                <span style="font-size: 13px; font-weight: 700;">Menu Setup</span>
+              <button class="btn btn-secondary text-center w-100" id="dash-action-menu-setup" onclick="window.location.hash='#menu'" style="flex-direction: column; padding: 18px 8px; gap: 10px; height: 110px; border-radius: 18px; box-shadow: var(--neu-shadow-btn); border: 1px solid rgba(255, 255, 255, 0.9);">
+                <i class="fa-solid fa-burger" style="font-size: 24px; color: #2563eb;"></i>
+                <span style="font-size: 13px; font-weight: 800; color: var(--text-dark);">Menu Setup</span>
               </button>
             </div>
             
-            <div style="border-top: 1px solid var(--border-color); padding-top: 14px; font-size: 12px; color: var(--text-muted); text-align: center;">
+            <div style="border-top: 1px solid rgba(202, 213, 226, 0.6); padding-top: 14px; font-size: 12px; color: var(--text-muted); text-align: center; font-weight: 600;">
               Crust & Chilly POS • Operating Terminal Session
             </div>
           </div>
@@ -186,7 +186,7 @@ window.views.dashboard = {
     if (bestSellersList.length === 0) {
       bestSellersBody.innerHTML = `
         <tr>
-          <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px;">
+          <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px; font-weight: 600;">
             No item sales logged yet. Place orders to see statistics.
           </td>
         </tr>
@@ -197,14 +197,14 @@ window.views.dashboard = {
         const pct = (item.quantity / maxQty) * 100;
         return `
           <tr>
-            <td style="font-weight: 600; padding: 12px 18px;">${item.name}</td>
-            <td style="color: var(--text-muted); padding: 12px 18px;">${item.category}</td>
+            <td style="font-weight: 700; padding: 12px 18px; color: var(--text-dark);">${item.name}</td>
+            <td style="color: var(--text-muted); padding: 12px 18px; font-weight: 600;">${item.category}</td>
             <td style="text-align: right; padding: 12px 18px;">
               <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
-                <div style="flex-grow: 1; max-width: 100px; height: 6px; background: var(--bg-darkest); border-radius: 3px; overflow: hidden; border: 1px solid var(--border-color);">
+                <div style="flex-grow: 1; max-width: 100px; height: 6px; background: rgba(202, 213, 226, 0.5); border-radius: 3px; overflow: hidden;">
                   <div style="width: ${pct}%; height: 100%; background: var(--primary-gradient); border-radius: 3px;"></div>
                 </div>
-                <span style="font-weight: 700; color: #ea580c; font-size: 13px; min-width: 50px; text-align: right;">${item.quantity} sold</span>
+                <span style="font-weight: 800; color: #2563eb; font-size: 13px; min-width: 50px; text-align: right;">${item.quantity} sold</span>
               </div>
             </td>
           </tr>
@@ -217,10 +217,9 @@ window.views.dashboard = {
   },
 
   renderTrendCharts(orders, todayStr) {
-    // Get style variables for theme compatibility
-    const textMuted = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#9ba1ad';
-    const bgDarker = getComputedStyle(document.documentElement).getPropertyValue('--bg-darker').trim() || '#ffffff';
-    const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || 'rgba(0,0,0,0.08)';
+    const textMuted = '#64748b';
+    const bgDarker = '#edf1f7';
+    const borderColor = 'rgba(202, 213, 226, 0.6)';
 
     const daysLabel = [];
     const salesData = [];
@@ -246,10 +245,10 @@ window.views.dashboard = {
       this.salesChart.destroy();
     }
 
-    // Create a beautiful linear gradient for the line chart fill
+    // Create a linear gradient for the line chart fill in Royal Blue
     const fillGradient = trendsCtx.createLinearGradient(0, 0, 0, 260);
-    fillGradient.addColorStop(0, 'rgba(249, 115, 22, 0.22)');
-    fillGradient.addColorStop(1, 'rgba(249, 115, 22, 0.00)');
+    fillGradient.addColorStop(0, 'rgba(37, 99, 235, 0.20)');
+    fillGradient.addColorStop(1, 'rgba(37, 99, 235, 0.00)');
 
     this.salesChart = new Chart(trendsCtx, {
       type: "line",
@@ -259,15 +258,15 @@ window.views.dashboard = {
           {
             label: "Sales (₹)",
             data: salesData,
-            borderColor: "#f97316",
+            borderColor: "#2563eb",
             backgroundColor: fillGradient,
             borderWidth: 3,
             tension: 0.35,
             fill: true,
-            pointBackgroundColor: "#f97316",
-            pointBorderColor: bgDarker,
-            pointHoverBackgroundColor: "#ea580c",
-            pointHoverBorderColor: bgDarker,
+            pointBackgroundColor: "#2563eb",
+            pointBorderColor: "#ffffff",
+            pointHoverBackgroundColor: "#1d4ed8",
+            pointHoverBorderColor: "#ffffff",
             pointRadius: 4,
             pointHoverRadius: 7
           }
@@ -278,10 +277,10 @@ window.views.dashboard = {
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            labels: { color: textMuted, font: { family: "Outfit", size: 12 } }
+            labels: { color: textMuted, font: { family: "Outfit", size: 12, weight: "bold" } }
           },
           tooltip: {
-            backgroundColor: 'rgba(43, 38, 34, 0.95)',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
             titleFont: { family: "Outfit", size: 13, weight: "bold" },
             bodyFont: { family: "Outfit", size: 12 },
             padding: 10,
@@ -291,11 +290,11 @@ window.views.dashboard = {
         scales: {
           x: {
             grid: { color: borderColor },
-            ticks: { color: textMuted, font: { family: "Outfit", size: 11 } }
+            ticks: { color: textMuted, font: { family: "Outfit", size: 11, weight: "600" } }
           },
           y: {
             grid: { color: borderColor },
-            ticks: { color: textMuted, font: { family: "Outfit", size: 11 } }
+            ticks: { color: textMuted, font: { family: "Outfit", size: 11, weight: "600" } }
           }
         }
       }
@@ -327,7 +326,7 @@ window.views.dashboard = {
         datasets: [
           {
             data: totalPayment === 0 ? [1, 1, 1] : paymentData,
-            backgroundColor: totalPayment === 0 ? [borderColor, borderColor, borderColor] : ["#2979ff", "#f97316", "#00e676"],
+            backgroundColor: totalPayment === 0 ? [borderColor, borderColor, borderColor] : ["#2563eb", "#10b981", "#6366f1"],
             borderWidth: 3,
             borderColor: bgDarker,
             borderRadius: totalPayment === 0 ? 0 : 4,
@@ -341,10 +340,10 @@ window.views.dashboard = {
         plugins: {
           legend: {
             position: "bottom",
-            labels: { color: textMuted, font: { family: "Outfit", size: 12 }, padding: 15 }
+            labels: { color: textMuted, font: { family: "Outfit", size: 12, weight: "bold" }, padding: 15 }
           },
           tooltip: {
-            backgroundColor: 'rgba(43, 38, 34, 0.95)',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
             titleFont: { family: "Outfit", size: 13, weight: "bold" },
             bodyFont: { family: "Outfit", size: 12 },
             padding: 10,

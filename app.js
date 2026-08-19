@@ -268,6 +268,11 @@ const app = {
     // Clear viewport, fade-in and render
     const viewport = document.getElementById("view-viewport");
     viewport.innerHTML = "";
+    if (hash === "pos") {
+      viewport.classList.add("pos-viewport-mode");
+    } else {
+      viewport.classList.remove("pos-viewport-mode");
+    }
 
     // Trigger module initialization callback
     window.views[hash].init(viewport);

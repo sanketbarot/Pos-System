@@ -8,20 +8,20 @@ window.views.orders = {
 
   init(container) {
     container.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 18px;">
         <!-- Sub navigation header -->
-        <div class="flex-space" style="background: var(--bg-darker); padding: 12px 20px; border-radius: var(--border-radius-lg); border: 1px solid var(--border-color);">
-          <div class="flex-gap-sm">
-            <button class="btn btn-secondary ${this.activeSubTab === 'kds' ? 'btn-primary' : ''}" id="btn-sub-kds">
+        <div style="background: var(--bg-darkest); padding: 12px 20px; border-radius: 20px; border: 1.5px solid rgba(255, 255, 255, 0.95); display: flex; justify-content: space-between; align-items: center; box-shadow: 6px 6px 16px #cad5e2, -6px -6px 16px #ffffff;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn ${this.activeSubTab === 'kds' ? 'btn-primary' : 'btn-secondary'}" id="btn-sub-kds" style="border-radius: 16px; padding: 9px 18px; font-weight: 800; font-size: 13px;">
               <i class="fa-solid fa-kitchen-set"></i> Kitchen KDS Queue
             </button>
-            <button class="btn btn-secondary ${this.activeSubTab === 'history' ? 'btn-primary' : ''}" id="btn-sub-history">
+            <button class="btn ${this.activeSubTab === 'history' ? 'btn-primary' : 'btn-secondary'}" id="btn-sub-history" style="border-radius: 16px; padding: 9px 18px; font-weight: 800; font-size: 13px;">
               <i class="fa-solid fa-clock-rotate-left"></i> Order History & Reprint
             </button>
           </div>
           
           <div id="history-search-container" style="display: ${this.activeSubTab === 'history' ? 'block' : 'none'}; width: 280px;">
-            <input type="text" id="order-history-search" class="search-bar-input" style="padding: 8px 12px; font-size: 13px;" placeholder="Search Customer, ID or Phone...">
+            <input type="text" id="order-history-search" class="form-input" style="padding: 8px 14px; font-size: 13px; width: 100%; border-radius: 16px;" placeholder="Search Customer, ID or Phone...">
           </div>
         </div>
 
@@ -87,7 +87,7 @@ window.views.orders = {
         <!-- PENDING LANE -->
         <div class="kds-column">
           <div class="kds-column-header pending">
-            <span>Pending Orders</span>
+            <span><i class="fa-regular fa-clock" style="color: #f59e0b; margin-right: 7px;"></i>Pending Orders</span>
             <span class="kds-order-count">${pendingOrders.length}</span>
           </div>
           <div class="kds-order-list">
@@ -98,7 +98,7 @@ window.views.orders = {
         <!-- PREPARING LANE -->
         <div class="kds-column">
           <div class="kds-column-header preparing">
-            <span>Preparing</span>
+            <span><i class="fa-solid fa-fire-burner" style="color: #2563eb; margin-right: 7px;"></i>Preparing</span>
             <span class="kds-order-count">${preparingOrders.length}</span>
           </div>
           <div class="kds-order-list">
@@ -109,7 +109,7 @@ window.views.orders = {
         <!-- READY LANE -->
         <div class="kds-column">
           <div class="kds-column-header ready">
-            <span>Ready for Pickup</span>
+            <span><i class="fa-solid fa-bell" style="color: #10b981; margin-right: 7px;"></i>Ready for Pickup</span>
             <span class="kds-order-count">${readyOrders.length}</span>
           </div>
           <div class="kds-order-list">
@@ -120,7 +120,7 @@ window.views.orders = {
         <!-- COMPLETED HIGHLIGHTS (showing last 5 briefly for reference) -->
         <div class="kds-column">
           <div class="kds-column-header completed">
-            <span>Recently Closed</span>
+            <span><i class="fa-solid fa-circle-check" style="color: #6366f1; margin-right: 7px;"></i>Recently Closed</span>
           </div>
           <div class="kds-order-list">
             ${this.generateClosedKdsCards(orders.filter(o => o.status === "Completed" || o.status === "Cancelled").slice(0, 5))}
@@ -158,8 +158,8 @@ window.views.orders = {
   generateKdsCards(ordersList, lane) {
     if (ordersList.length === 0) {
       return `
-        <div style="text-align: center; color: var(--text-muted); padding: 40px 10px; font-size: 13px;">
-          <i class="fa-regular fa-folder-open" style="font-size: 24px; opacity: 0.3; display: block; margin-bottom: 8px;"></i>
+        <div style="text-align: center; color: var(--text-muted); padding: 40px 10px; font-size: 13px; font-weight: 600;">
+          <i class="fa-regular fa-folder-open" style="font-size: 24px; opacity: 0.4; display: block; margin-bottom: 8px; color: #2563eb;"></i>
           No orders in this queue.
         </div>
       `;
@@ -168,8 +168,8 @@ window.views.orders = {
     return ordersList.map(order => {
       const formattedTime = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const itemsHtml = order.items.map(item => `
-        <li class="kds-order-item">
-          <span>${item.name}</span>
+        <li class="kds-order-item" style="padding: 3px 0;">
+          <span style="font-weight: 600; color: var(--text-dark);">${item.name}</span>
           <span class="kds-item-qty">x${item.quantity}</span>
         </li>
       `).join("");
@@ -191,29 +191,29 @@ window.views.orders = {
       return `
         <div class="kds-order-card">
           <div class="kds-order-top">
-            <span class="kds-order-num">#${order.orderNumber} <span style="font-size: 11px; font-weight: 500; color: var(--text-muted); opacity: 0.85;">(Tk: ${String(order.tokenNumber || 1).padStart(2, '0')})</span></span>
+            <span class="kds-order-num">#${order.orderNumber} <span style="font-size: 11px; font-weight: 600; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 1px 6px; border-radius: 8px;">Tk: ${String(order.tokenNumber || 1).padStart(2, '0')}</span></span>
             <span class="kds-order-time">${formattedTime}</span>
             <span class="kds-order-type ${order.type.toLowerCase()}">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
           </div>
           <ul class="kds-order-items">
             ${itemsHtml}
           </ul>
-          <div class="kds-order-cust">
-            <i class="fa-regular fa-user"></i> ${order.customerName}
+          <div class="kds-order-cust" style="font-weight: 600;">
+            <i class="fa-regular fa-user" style="color: #2563eb; margin-right: 4px;"></i> ${order.customerName}
           </div>
           ${(lane === "Pending" || lane === "Preparing") ? `
-            <div class="kds-timer-container">
-              <span><i class="fa-regular fa-clock"></i> Time Left:</span>
-              <span class="kds-timer-countdown" data-order-id="${order.id}" data-status="${order.status}">--:--</span>
+            <div class="kds-timer-container" style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; background: rgba(202, 213, 226, 0.25); padding: 4px 10px; border-radius: 10px; font-weight: 700;">
+              <span><i class="fa-regular fa-clock" style="color: #2563eb; margin-right: 4px;"></i> Time Left:</span>
+              <span class="kds-timer-countdown" data-order-id="${order.id}" data-status="${order.status}" style="color: #2563eb;">--:--</span>
             </div>
           ` : ""}
           
-          <div class="flex-gap-sm mt-3" style="width: 100%;">
+          <div style="display: flex; gap: 8px; width: 100%; margin-top: 6px;">
             <button class="kds-btn-advance" data-id="${order.id}" data-next="${nextStatus}" style="flex-grow: 1;">
               <i class="fa-solid ${icon}"></i> ${actionBtnText}
             </button>
             ${lane !== "Ready" ? `
-              <button class="btn btn-danger kds-btn-cancel" data-id="${order.id}" title="Cancel Order" style="padding: 8px 10px;">
+              <button class="btn btn-danger kds-btn-cancel" data-id="${order.id}" title="Cancel Order" style="padding: 8px 12px; border-radius: 14px;">
                 <i class="fa-solid fa-ban"></i>
               </button>
             ` : ""}
@@ -225,23 +225,23 @@ window.views.orders = {
 
   generateClosedKdsCards(ordersList) {
     if (ordersList.length === 0) {
-      return `<div style="text-align: center; color: var(--text-muted); padding: 40px 10px; font-size: 13px;">No recently closed orders.</div>`;
+      return `<div style="text-align: center; color: var(--text-muted); padding: 40px 10px; font-size: 13px; font-weight: 600;">No recently closed orders.</div>`;
     }
 
     return ordersList.map(order => {
       const badgeClass = order.status === "Completed" ? "badge-completed" : "badge-cancelled";
       return `
-        <div class="kds-order-card" style="opacity: 0.7;">
+        <div class="kds-order-card" style="opacity: 0.85;">
           <div class="kds-order-top">
             <span class="kds-order-num">#${order.orderNumber}</span>
             <span class="badge ${badgeClass}">${order.status.toUpperCase()}</span>
           </div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">
             ${order.items.map(i => `${i.name} x${i.quantity}`).join(", ")}
           </div>
-          <div class="flex-space mt-3" style="font-size: 12px;">
-            <span>${order.customerName}</span>
-            <strong>₹${Math.round(order.total)}</strong>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px;">
+            <span style="font-weight: 600; color: var(--text-dark);">${order.customerName}</span>
+            <strong style="color: #ebb036; font-size: 13px;">₹${Math.round(order.total)}</strong>
           </div>
         </div>
       `;
@@ -268,7 +268,7 @@ window.views.orders = {
     if (filtered.length === 0) {
       rowsHtml = `
         <tr>
-          <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">
+          <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px; font-weight: 600;">
             No transaction records matched search query.
           </td>
         </tr>
@@ -285,22 +285,22 @@ window.views.orders = {
 
         return `
           <tr>
-            <td style="font-weight: 700;">#${o.orderNumber}</td>
-            <td>${date}</td>
+            <td style="font-weight: 800; color: var(--text-dark);">#${o.orderNumber}</td>
+            <td style="color: var(--text-muted); font-size: 12.5px; font-weight: 600;">${date}</td>
             <td>
-              <div style="font-weight: 600;">${o.customerName}</div>
+              <div style="font-weight: 700; color: var(--text-dark);">${o.customerName}</div>
               <div style="font-size: 11px; color: var(--text-muted);">${o.customerPhone || 'No Phone'}</div>
             </td>
-            <td>${o.type}</td>
-            <td style="font-weight: 700; color: #ea580c;">${currency}${o.total.toFixed(2)}</td>
+            <td><span style="font-size: 11.5px; font-weight: 700; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px;">${o.type}</span></td>
+            <td style="font-weight: 800; color: #ebb036; font-size: 14px;">${currency}${o.total.toFixed(2)}</td>
             <td><span class="badge ${statusBadge}">${o.status}</span></td>
             <td>
-              <div class="flex-gap-sm">
-                <button class="btn btn-secondary btn-reprint" data-id="${o.id}" style="padding: 6px 12px; font-size: 12px;">
-                  <i class="fa-solid fa-print"></i> Receipt
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary btn-reprint" data-id="${o.id}" style="padding: 6px 12px; font-size: 12px; border-radius: 12px;">
+                  <i class="fa-solid fa-print" style="color: #2563eb;"></i> Receipt
                 </button>
                 ${o.status !== "Cancelled" && o.status !== "Completed" ? `
-                  <button class="btn btn-danger btn-cancel-history" data-id="${o.id}" style="padding: 6px 10px; font-size: 12px;">
+                  <button class="btn btn-danger btn-cancel-history" data-id="${o.id}" style="padding: 6px 10px; font-size: 12px; border-radius: 12px;">
                     <i class="fa-solid fa-ban"></i>
                   </button>
                 ` : ""}

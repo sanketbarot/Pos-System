@@ -108,8 +108,8 @@ window.views.pos = {
             <button class="pos-header-btn ${this.orderType === 'Delivery' ? 'active' : ''}" id="type-delivery">
               <i class="fa-solid fa-motorcycle"></i> Delivery
             </button>
-            <div id="header-table-box" style="display: ${this.orderType === 'Dine-in' ? 'flex' : 'none'}; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px; height: 34px; box-sizing: border-box;">
-              <span style="font-size: 11px; font-weight: 700; color: var(--text-dark);"><i class="fa-solid fa-chair" style="color: #ea580c;"></i> Table:</span>
+            <div id="header-table-box" style="display: ${this.orderType === 'Dine-in' ? 'flex' : 'none'}; align-items: center; gap: 4px; background: var(--bg-darkest); border: 1px solid rgba(255,255,255,0.7); box-shadow: var(--neu-shadow-inset); border-radius: 12px; padding: 4px 10px; height: 36px; box-sizing: border-box;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-dark);"><i class="fa-solid fa-chair" style="color: #2563eb;"></i> Table:</span>
               <input type="text" id="pos-table-input" placeholder="e.g. T-1" value="" style="border: none; outline: none; font-size: 11px; font-weight: 700; width: 55px; color: var(--text-dark); background: transparent;">
             </div>
           </div>
@@ -154,7 +154,7 @@ window.views.pos = {
             <!-- Cart Header -->
             <div class="cart-header">
               <div class="cart-title">
-                <i class="fa-solid fa-cart-shopping" style="color: #ea580c; font-size: 13px;"></i> Current Order 
+                <i class="fa-solid fa-cart-shopping" style="color: #2563eb; font-size: 13px;"></i> Current Order 
                 <span class="cart-item-count-badge" id="cart-qty-badge">0 Items</span>
               </div>
               <button class="btn-clear-cart" id="btn-clear-cart-trigger" title="Clear Cart (Alt+C)">
@@ -202,7 +202,7 @@ window.views.pos = {
               <!-- Quick Discount Section & Coupon -->
               <div class="pos-discount-section">
                 <div class="pos-discount-header">
-                  <span class="discount-label"><i class="fa-solid fa-tag" style="color: #ea580c;"></i> Quick Discount:</span>
+                  <span class="discount-label"><i class="fa-solid fa-tag" style="color: #2563eb;"></i> Quick Discount:</span>
                   <div class="cart-discount-chips" id="cart-discount-chips">
                     <button class="cart-discount-chip active" data-discount="0" onclick="views.pos.setQuickDiscount(0)">0%</button>
                     <button class="cart-discount-chip" data-discount="5" onclick="views.pos.setQuickDiscount(5)">5%</button>
@@ -224,8 +224,8 @@ window.views.pos = {
                   <span id="bill-subtotal" class="bill-val">₹0.00</span>
                 </div>
                 <div class="billing-line" id="bogo-discount-row" style="display: none;">
-                  <span style="color: #ea580c; font-weight: 700;">BOGO Savings</span>
-                  <span id="bill-bogo-discount" style="color: #ea580c; font-weight: 800;">-₹0.00</span>
+                  <span style="color: #2563eb; font-weight: 700;">BOGO Savings</span>
+                  <span id="bill-bogo-discount" style="color: #2563eb; font-weight: 800;">-₹0.00</span>
                 </div>
                 <div class="billing-line">
                   <span class="discount-text-line">Discount (<input type="number" id="bill-discount-input" value="0" min="0" max="100">%)</span>
@@ -408,7 +408,7 @@ window.views.pos = {
       return;
     }
 
-    grid.innerHTML = filtered.map(p => {
+    grid.innerHTML = filtered.map((p, index) => {
       // Check recipe stocks to display indicators
       const stockCheck = window.db.checkStockAvailability(p.id, 1);
       const isAvailable = stockCheck.available;
@@ -421,12 +421,6 @@ window.views.pos = {
         const ingredients = window.db.get("ingredients") || [];
         // Bypassed near-low stock warning dot - stock is always full
         const isNearLowStock = false;
-        /*
-        const isNearLowStock = p.recipe ? Object.keys(p.recipe).some(ingId => {
-          const ing = ingredients.find(i => i.id === ingId);
-          return ing && ing.stock <= ing.minLimit * 1.5;
-        }) : false;
-        */
         if (isNearLowStock) {
           statusDotColor = "var(--color-pending)";
         }
@@ -460,7 +454,7 @@ window.views.pos = {
       const selectedClass = cartQty > 0 ? "selected" : "";
 
       return `
-        <div class="product-card ${outOfStockClass} ${selectedClass}" data-id="${p.id}">
+        <div class="product-card ${outOfStockClass} ${selectedClass}" data-id="${p.id}" style="--card-i: ${index};">
           <!-- Indian Pure Veg green square-circle indicator at top left -->
           <span style="position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border: 1.2px solid #0f8a4f; padding: 1px; border-radius: 2px; background: #fff; z-index: 5;">
             <span style="width: 6px; height: 6px; border-radius: 50%; background: #0f8a4f;"></span>
@@ -478,7 +472,7 @@ window.views.pos = {
 
           <!-- Bottom Row: Price on left, Add Button on right -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; width: 100%;">
-            <span class="product-price" style="font-weight: 800; color: #ea580c; font-size: 15px;">₹${p.price}</span>
+            <span class="product-price" style="font-weight: 800; color: #ebb036; background: #fffbeb; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 10px; font-size: 14.5px;">₹${p.price}</span>
             <div style="display: flex; align-items: center; min-height: 28px;">
               ${actionButtonHtml}
             </div>
@@ -613,19 +607,19 @@ window.views.pos = {
     list.innerHTML = this.cart.map(item => {
       let bogoTag = "";
       if (item.bogo) {
-        bogoTag = `<span style="font-size: 9px; background: #0284c7; color:#fff; padding:1px 5px; border-radius:3px; font-weight: 700; margin-left: 4px; vertical-align: middle;">BOGO</span>`;
+        bogoTag = `<span style="font-size: 9px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color:#fff; padding:1px 6px; border-radius:4px; font-weight: 800; margin-left: 4px; vertical-align: middle;">BOGO</span>`;
       }
 
       const lineTotal = item.price * item.quantity;
 
       return `
-        <div class="cart-item-row" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; width: 100%;">
+        <div class="cart-item-row" style="background: var(--bg-darkest); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 16px; padding: 10px 12px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; width: 100%; box-shadow: 4px 4px 10px #cad5e2, -4px -4px 10px #ffffff;">
           
           <!-- Top Row: Veg Icon + Full Item Name + Remove Button -->
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
             <div style="display: flex; align-items: flex-start; gap: 6px; flex-grow: 1; min-width: 0;">
               <!-- Pure Veg Green Dot -->
-              <span style="display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; border: 1.2px solid #0f8a4f; padding: 1px; border-radius: 2px; background: #fff; flex-shrink: 0; margin-top: 2px;">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border: 1.2px solid #0f8a4f; padding: 1px; border-radius: 3px; background: #fff; flex-shrink: 0; margin-top: 2px;">
                 <span style="width: 5px; height: 5px; border-radius: 50%; background: #0f8a4f;"></span>
               </span>
               <span style="font-size: 12.5px; font-weight: 700; color: #1e293b; line-height: 1.35; word-break: break-word; text-align: left;">
@@ -633,31 +627,31 @@ window.views.pos = {
               </span>
             </div>
             <!-- Remove Item Button -->
-            <button onclick="views.pos.removeFromCart('${item.productId}')" style="background: rgba(239, 68, 68, 0.08); border: none; color: #ef4444; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;" title="Remove Item">
+            <button onclick="views.pos.removeFromCart('${item.productId}')" style="background: var(--bg-darkest); border: 1px solid rgba(255, 255, 255, 0.8); color: #ef4444; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; box-shadow: 2px 2px 5px #cad5e2, -2px -2px 5px #ffffff;" title="Remove Item">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
 
           <!-- Bottom Row: Add Note (Left) & Controls + Unit Price + Line Total (Right) -->
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px dashed #f1f5f9; padding-top: 5px;">
-            <button class="btn-add-note" onclick="views.pos.addItemNotePrompt('${item.productId}')" style="background: transparent; border: none; color: #ea580c; font-size: 10.5px; font-weight: 600; cursor: pointer; padding: 0; text-align: left; display: flex; align-items: center; gap: 3px; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px dashed rgba(200, 214, 229, 0.6); padding-top: 6px;">
+            <button class="btn-add-note" onclick="views.pos.addItemNotePrompt('${item.productId}')" style="background: transparent; border: none; color: #2563eb; font-size: 10.5px; font-weight: 700; cursor: pointer; padding: 0; text-align: left; display: flex; align-items: center; gap: 3px; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               <i class="fa-regular fa-comment-dots"></i> ${item.note ? `Note: ${item.note}` : '+ Add note'}
             </button>
 
             <div style="display: flex; align-items: center; gap: 7px; flex-shrink: 0;">
-              <span style="font-size: 10.5px; color: #64748b; font-weight: 600;">₹${item.price}</span>
-              <!-- Qty Stepper Pill -->
-              <div style="display: flex; align-items: center; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; height: 22px; padding: 0 3px;" onclick="event.stopPropagation();">
-                <button onclick="views.pos.modifyQty('${item.productId}', -1)" style="background: transparent; border: none; width: 18px; height: 100%; cursor: pointer; font-size: 10px; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-minus"></i></button>
+              <span style="font-size: 11px; color: #ebb036; font-weight: 700;">₹${item.price}</span>
+              <!-- Qty Stepper Pill - Sunken Inset -->
+              <div style="display: flex; align-items: center; background: var(--bg-darkest); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 12px; height: 24px; padding: 0 3px; box-shadow: inset 2px 2px 4px #cad5e2, inset -2px -2px 4px #ffffff;" onclick="event.stopPropagation();">
+                <button onclick="views.pos.modifyQty('${item.productId}', -1)" style="background: transparent; border: none; width: 18px; height: 100%; cursor: pointer; font-size: 10px; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-minus"></i></button>
                 <input type="number" class="cart-qty-input" value="${item.quantity}" 
                        onchange="views.pos.setQty('${item.productId}', parseInt(this.value) || 0)"
                        onclick="this.select();" 
                        onkeydown="if(event.key==='Enter') { event.preventDefault(); this.blur(); }"
-                       style="background: transparent; border: none; font-size: 11px; font-weight: 800; width: 28px; text-align: center; color: #0f172a; outline: none; padding: 0;">
-                <button onclick="views.pos.modifyQty('${item.productId}', 1)" style="background: transparent; border: none; width: 18px; height: 100%; cursor: pointer; font-size: 10px; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-plus"></i></button>
+                       style="background: transparent; border: none; font-size: 11px; font-weight: 800; width: 28px; text-align: center; color: var(--text-dark); outline: none; padding: 0;">
+                <button onclick="views.pos.modifyQty('${item.productId}', 1)" style="background: transparent; border: none; width: 18px; height: 100%; cursor: pointer; font-size: 10px; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-plus"></i></button>
               </div>
               <!-- Line Total -->
-              <span style="font-size: 12.5px; font-weight: 800; color: #0f172a; min-width: 42px; text-align: right;">₹${lineTotal}</span>
+              <span style="font-size: 13px; font-weight: 800; color: #ebb036; min-width: 44px; text-align: right;">₹${lineTotal}</span>
             </div>
           </div>
         </div>
@@ -1230,8 +1224,8 @@ window.views.pos = {
           </thead>
           <tbody>
             ${order.items.map(item => {
-              let bogoLabel = item.bogo ? "<br><span class='receipt-bogo-label'>(BOGO Eligible)</span>" : "";
-              return `
+      let bogoLabel = item.bogo ? "<br><span class='receipt-bogo-label'>(BOGO Eligible)</span>" : "";
+      return `
                 <tr>
                   <td>
                     <span class="receipt-item-name">${item.name}</span>
@@ -1242,7 +1236,7 @@ window.views.pos = {
                   <td style="text-align: right;">${item.lineTotal.toFixed(2)}</td>
                 </tr>
               `;
-            }).join("")}
+    }).join("")}
           </tbody>
         </table>
         
@@ -1378,7 +1372,7 @@ window.views.pos = {
         }
       </style>
     `;
- 
+
     let proceededToKOT = false;
     const proceedToKOT = (doPrint = false) => {
       if (proceededToKOT) return;
@@ -1492,8 +1486,8 @@ window.views.pos = {
           </thead>
           <tbody>
             ${order.items.map(item => {
-              let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ea580c;">* Note: ${item.note}</span>` : "";
-              return `
+      let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ea580c;">* Note: ${item.note}</span>` : "";
+      return `
                 <tr>
                   <td>
                     <span class="receipt-item-name" style="font-size: 13px; font-weight: bold;">${item.name}</span>
@@ -1502,7 +1496,7 @@ window.views.pos = {
                   <td style="text-align: right; font-size: 14px; font-weight: bold;">${item.quantity}</td>
                 </tr>
               `;
-            }).join("")}
+    }).join("")}
           </tbody>
         </table>
         
