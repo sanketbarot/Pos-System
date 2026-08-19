@@ -202,9 +202,9 @@ window.views.orders = {
             <i class="fa-regular fa-user" style="color: #2563eb; margin-right: 4px;"></i> ${order.customerName}
           </div>
           ${(lane === "Pending" || lane === "Preparing") ? `
-            <div class="kds-timer-container" style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; background: rgba(202, 213, 226, 0.25); padding: 4px 10px; border-radius: 10px; font-weight: 700;">
-              <span><i class="fa-regular fa-clock" style="color: #2563eb; margin-right: 4px;"></i> Time Left:</span>
-              <span class="kds-timer-countdown" data-order-id="${order.id}" data-status="${order.status}" style="color: #2563eb;">--:--</span>
+            <div class="kds-timer-container">
+              <span class="kds-timer-label"><i class="fa-regular fa-clock" style="margin-right: 4px;"></i> Time Left:</span>
+              <span class="kds-timer-countdown" data-order-id="${order.id}" data-status="${order.status}">--:--</span>
             </div>
           ` : ""}
           
@@ -410,10 +410,14 @@ window.views.orders = {
             const secs = absSeconds % 60;
             el.textContent = `Overdue (-${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')})`;
             el.className = "kds-timer-countdown overdue";
+            const container = el.closest(".kds-timer-container");
+            if (container) container.classList.add("overdue");
           } else {
             const mins = Math.floor(remainingSeconds / 60);
             const secs = remainingSeconds % 60;
             el.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            const container = el.closest(".kds-timer-container");
+            if (container) container.classList.remove("overdue");
 
             if (remainingSeconds <= 60) {
               el.className = "kds-timer-countdown warning-blink";

@@ -2186,29 +2186,49 @@ body {
 }
 
 .kds-timer-container {
-
-  font-size: 12px;
-  background: var(--bg-darkest);
-  padding: 6px 10px;
-  border-radius: var(--border-radius-sm);
-  margin-top: 6px;
-  border: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #2563eb;
+  transition: all 0.2s ease;
+  margin-top: 4px;
 }
 
 .kds-timer-countdown {
   font-weight: 800;
   font-family: monospace;
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 12.5px;
+  color: #2563eb;
 }
 
 .kds-timer-countdown.warning-blink {
-  color: #ff4b2b;
+  color: #f59e0b !important;
   animation: warning-pulse 1s infinite alternate;
 }
 
+/* Overdue State - Red Color Alert (User Request) */
+.kds-timer-container.overdue {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #ef4444 !important;
+  box-shadow: 0 1px 6px rgba(239, 68, 68, 0.18) !important;
+}
+
+.kds-timer-container.overdue i,
+.kds-timer-container.overdue span {
+  color: #ef4444 !important;
+}
+
 .kds-timer-countdown.overdue {
-  color: #d62d20;
+  color: #ef4444 !important;
+  font-weight: 900 !important;
+  animation: warning-pulse 1.2s infinite alternate;
 }
 
 @keyframes warning-pulse {
