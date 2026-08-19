@@ -1317,13 +1317,14 @@ window.views.pos = {
           #app-container, .toast-container, .modal-header, .modal-footer, .receipt-wa-btn { 
             display: none !important; 
           }
-          .modal-overlay { 
+          #modal-container, .modal-overlay { 
             position: absolute !important; 
             left: 0 !important; 
             top: 0 !important; 
             width: 100% !important; 
             height: auto !important; 
             background: transparent !important; 
+            background-color: transparent !important;
             backdrop-filter: none !important; 
             box-shadow: none !important; 
             display: block !important;
@@ -1332,10 +1333,11 @@ window.views.pos = {
             padding: 0 !important; 
             margin: 0 !important; 
           }
-          .modal-content { 
+          #modal-container .modal-content, .modal-content { 
             border: none !important; 
             box-shadow: none !important; 
             background: transparent !important; 
+            background-color: transparent !important;
             width: 100% !important; 
             max-width: 100% !important; 
             height: auto !important;
@@ -1345,12 +1347,14 @@ window.views.pos = {
             margin: 0 !important; 
             transform: none !important;
           }
-          .modal-body { 
+          #modal-container .modal-body, .modal-body { 
             padding: 0 !important; 
             margin: 0 !important; 
             height: auto !important;
             max-height: none !important;
             overflow: visible !important;
+            background: transparent !important;
+            background-color: transparent !important;
           }
           .receipt-wrapper { 
             width: 70mm !important; /* Limit width to 70mm to prevent side text clipping */
@@ -1528,13 +1532,14 @@ window.views.pos = {
           #app-container, .toast-container, .modal-header, .modal-footer, .receipt-wa-btn { 
             display: none !important; 
           }
-          .modal-overlay { 
+          #modal-container, .modal-overlay { 
             position: absolute !important; 
             left: 0 !important; 
             top: 0 !important; 
             width: 100% !important; 
             height: auto !important; 
             background: transparent !important; 
+            background-color: transparent !important;
             backdrop-filter: none !important; 
             box-shadow: none !important; 
             display: block !important;
@@ -1543,10 +1548,11 @@ window.views.pos = {
             padding: 0 !important; 
             margin: 0 !important; 
           }
-          .modal-content { 
+          #modal-container .modal-content, .modal-content { 
             border: none !important; 
             box-shadow: none !important; 
             background: transparent !important; 
+            background-color: transparent !important;
             width: 100% !important; 
             max-width: 100% !important; 
             height: auto !important;
@@ -1556,12 +1562,14 @@ window.views.pos = {
             margin: 0 !important; 
             transform: none !important;
           }
-          .modal-body { 
+          #modal-container .modal-body, .modal-body { 
             padding: 0 !important; 
             margin: 0 !important; 
             height: auto !important;
             max-height: none !important;
             overflow: visible !important;
+            background: transparent !important;
+            background-color: transparent !important;
           }
           .receipt-wrapper { 
             width: 70mm !important;
