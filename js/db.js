@@ -82,6 +82,14 @@ const db = {
         });
         productsUpdated = true;
       }
+      // Auto-update Cheese Blast items to end with ' Burger'
+      currentProducts.forEach(p => {
+        if (p.name && p.name.toLowerCase().startsWith("cheese blast") && !p.name.toLowerCase().endsWith("burger")) {
+          p.name = p.name + " Burger";
+          productsUpdated = true;
+        }
+      });
+
       if (productsUpdated) {
         this.set("products", currentProducts);
       }
@@ -244,13 +252,13 @@ const db = {
       { id: "p12", name: "Hot & Spicy Chilli Garlic Burger", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing14: 30 } },
       { id: "p13", name: "Crust &Chilly Special Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 1, ing13: 40 } },
       // Premium (BOGO: true)
-      { id: "p14", name: "Cheese Blast Aloo Tikki", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2 } },
-      { id: "p15", name: "Cheese Blast Peri Peri", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
-      { id: "p16", name: "Cheese Blast Tandoori", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
-      { id: "p17", name: "Cheese Blast Achari Masti", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
-      { id: "p18", name: "Cheese Blast Spicy Schezwan", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 20 } },
-      { id: "p19", name: "Cheese Blast Hot & Spicy Chilli Garlic", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 25 } },
-      { id: "p20", name: "Cheese Blast Crust &Chilly Special", price: 159, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 3, ing13: 30 } },
+      { id: "p14", name: "Cheese Blast Aloo Tikki Burger", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2 } },
+      { id: "p15", name: "Cheese Blast Peri Peri Burger", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
+      { id: "p16", name: "Cheese Blast Tandoori Burger", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
+      { id: "p17", name: "Cheese Blast Achari Masti Burger", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
+      { id: "p18", name: "Cheese Blast Spicy Schezwan Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 20 } },
+      { id: "p19", name: "Cheese Blast Hot & Spicy Chilli Garlic Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 25 } },
+      { id: "p20", name: "Cheese Blast Crust &Chilly Special Burger", price: 159, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 3, ing13: 30 } },
 
       // --- SLICE SANDWICH (Classic: BOGO false) ---
       { id: "p21", name: "Butter Slice", price: 29, category: "cat2", available: true, bogo: false, recipe: { ing4: 2 } },
@@ -751,10 +759,10 @@ const db = {
 window.db = db;
 
 // Force reset database once if version changes, to automatically load the user's custom menu list
-const TARGET_MENU_VERSION = "crust_chilly_v8";
+const TARGET_MENU_VERSION = "crust_chilly_v9";
 if (localStorage.getItem("cc_pos_menu_version") !== TARGET_MENU_VERSION) {
   db.init(true); // Wipes old local storage key prefix & reseeds
-  
+
   // Force sync all seeded keys to Firebase to overwrite old Firestore documents!
   if (db.fs) {
     const SYNC_KEYS = ["users", "categories", "ingredients", "products", "settings", "permissions", "orders", "expenses", "purchases", "orderCounter"];
@@ -762,7 +770,7 @@ if (localStorage.getItem("cc_pos_menu_version") !== TARGET_MENU_VERSION) {
       db.syncToFirebase(key, db.get(key));
     });
   }
-  
+
   localStorage.setItem("cc_pos_menu_version", TARGET_MENU_VERSION);
   console.log("Database reset: Crust & Chilly seed menu updated to version: " + TARGET_MENU_VERSION);
 } else {
