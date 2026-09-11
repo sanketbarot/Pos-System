@@ -97,6 +97,29 @@ const db = {
         }
       });
 
+      // Auto-update Signature and Premium items to have bogo: true and Classic to have bogo: false
+      const bogoUpdateKey = "cc_pos_bogo_sync_v2";
+      if (!localStorage.getItem(bogoUpdateKey)) {
+        const bogoProductIds = new Set([
+          // Burgers Signature & Premium
+          "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15", "p16", "p17", "p18", "p19", "p20",
+          // 3 Layer Sandwich Signature & Premium
+          "p33", "p34", "p35", "p36", "p37", "p38", "p39", "p40", "p41", "p42", "p43", "p44", "p45", "p46", "p47",
+          // Tikka Pav Signature & Premium
+          "p58", "p59", "p60", "p61", "p62", "p63", "p64", "p65", "p66", "p67"
+        ]);
+        currentProducts.forEach(p => {
+          if (bogoProductIds.has(p.id)) {
+            p.bogo = true;
+            productsUpdated = true;
+          } else if (p.id && p.id.startsWith("p") && parseInt(p.id.replace(/\D/g, ""), 10) <= 93) {
+            p.bogo = false;
+            productsUpdated = true;
+          }
+        });
+        localStorage.setItem(bogoUpdateKey, "true");
+      }
+
       if (productsUpdated) {
         this.set("products", currentProducts);
       }

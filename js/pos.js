@@ -522,7 +522,8 @@ window.views.pos = {
         name: product.name,
         price: product.price,
         quantity: 1,
-        bogo: product.bogo
+        bogo: product.bogo,
+        category: product.category
       });
     }
 
@@ -665,6 +666,67 @@ window.views.pos = {
     this.calculateBillTotals();
   },
 
+  // Category-specific BOGO calculations:
+  // - Burger pairs only with Burger (Signature & Premium burgers)
+  // - Sandwich pairs only with Sandwich (Signature & Premium sandwiches)
+  // - Tikka Pav pairs only with Tikka Pav (Signature & Premium tikka pavs)
+  // For each category group, highest priced items are charged and cheapest Math.floor(n/2) items are free
+  calculateBogoDiscount(cart = this.cart) {
+    if (!cart || cart.length === 0) return 0;
+
+    const products = window.db ? (window.db.get("products") || []) : [];
+    const categories = window.db ? (window.db.get("categories") || []) : [];
+
+    const groupPrices = {};
+
+    cart.forEach(item => {
+      if (!item.bogo) return;
+
+      let catId = item.category;
+      if (!catId) {
+        const prod = products.find(p => p.id === item.productId);
+        if (prod) catId = prod.category;
+      }
+
+      const catObj = categories.find(c => c.id === catId);
+      const catName = (catObj ? catObj.name : "").toLowerCase();
+      const itemName = (item.name || "").toLowerCase();
+
+      let groupKey = catId || "general";
+      if (catId === "cat1" || catName.includes("burger") || itemName.includes("burger")) {
+        groupKey = "burger";
+      } else if (catId === "cat2" || catId === "cat3" || catName.includes("sandwich") || catName.includes("slice") || itemName.includes("sandwich") || itemName.includes("slice")) {
+        groupKey = "sandwich";
+      } else if (catId === "cat5" || catName.includes("tikka") || itemName.includes("tikka")) {
+        groupKey = "tikkapav";
+      }
+
+      if (!groupPrices[groupKey]) {
+        groupPrices[groupKey] = [];
+      }
+
+      for (let i = 0; i < item.quantity; i++) {
+        groupPrices[groupKey].push(item.price);
+      }
+    });
+
+    let totalBogoDiscount = 0;
+
+    // For each group with 2 or more BOGO items, charge the higher priced item(s) and make cheapest free
+    Object.keys(groupPrices).forEach(k => {
+      const prices = groupPrices[k];
+      if (prices.length < 2) return;
+
+      prices.sort((a, b) => b - a); // Higher price first
+      const numFree = Math.floor(prices.length / 2);
+      for (let i = prices.length - numFree; i < prices.length; i++) {
+        totalBogoDiscount += prices[i];
+      }
+    });
+
+    return totalBogoDiscount;
+  },
+
   calculateBillTotals() {
     let subtotal = 0;
 
@@ -673,25 +735,8 @@ window.views.pos = {
       subtotal += item.price * item.quantity;
     });
 
-    // Mix-and-match BOGO calculations: 
-    // Collect all individual BOGO item prices, sort descending, and charge every odd-indexed item as FREE
-    const bogoPrices = [];
-    this.cart.forEach(item => {
-      if (item.bogo) {
-        for (let i = 0; i < item.quantity; i++) {
-          bogoPrices.push(item.price);
-        }
-      }
-    });
-
-    bogoPrices.sort((a, b) => b - a); // Higher price first
-
-    let bogoDiscount = 0;
-    const numFree = Math.floor(bogoPrices.length / 2);
-    // The cheapest numFree items are free (which are at the end of the descending sorted array)
-    for (let i = bogoPrices.length - numFree; i < bogoPrices.length; i++) {
-      bogoDiscount += bogoPrices[i];
-    }
+    // Category-specific BOGO calculations (Burger on Burger, Sandwich on Sandwich, Tikka Pav on Tikka Pav)
+    const bogoDiscount = this.calculateBogoDiscount(this.cart);
 
     const bogoRow = document.getElementById("bogo-discount-row");
     const bogoDiscountEl = document.getElementById("bill-bogo-discount");
@@ -1052,28 +1097,14 @@ window.views.pos = {
         price: item.price,
         quantity: item.quantity,
         bogo: item.bogo,
+        category: item.category,
         lineTotal: lineTotal,
         note: item.note || ""
       };
     });
 
-    // BOGO Mix-and-match calculations
-    const bogoPrices = [];
-    this.cart.forEach(item => {
-      if (item.bogo) {
-        for (let i = 0; i < item.quantity; i++) {
-          bogoPrices.push(item.price);
-        }
-      }
-    });
-
-    bogoPrices.sort((a, b) => b - a);
-    let bogoDiscount = 0;
-    const numFree = Math.floor(bogoPrices.length / 2);
-    // The cheapest numFree items are free (which are at the end of the descending sorted array)
-    for (let i = bogoPrices.length - numFree; i < bogoPrices.length; i++) {
-      bogoDiscount += bogoPrices[i];
-    }
+    // Category-specific BOGO calculations (Burger on Burger, Sandwich on Sandwich, Tikka Pav on Tikka Pav)
+    const bogoDiscount = this.calculateBogoDiscount(this.cart);
 
     const settings = window.db.get("settings") || {};
     const gstRate = settings.gstPercentage || 5;
@@ -1321,13 +1352,14 @@ window.views.pos = {
           #app-container, .toast-container, .modal-header, .modal-footer, .receipt-wa-btn { 
             display: none !important; 
           }
-          .modal-overlay { 
+          #modal-container, .modal-overlay { 
             position: absolute !important; 
             left: 0 !important; 
             top: 0 !important; 
             width: 100% !important; 
             height: auto !important; 
             background: transparent !important; 
+            background-color: transparent !important;
             backdrop-filter: none !important; 
             box-shadow: none !important; 
             display: block !important;
@@ -1336,10 +1368,11 @@ window.views.pos = {
             padding: 0 !important; 
             margin: 0 !important; 
           }
-          .modal-content { 
+          #modal-container .modal-content, .modal-content { 
             border: none !important; 
             box-shadow: none !important; 
             background: transparent !important; 
+            background-color: transparent !important;
             width: 100% !important; 
             max-width: 100% !important; 
             height: auto !important;
@@ -1349,12 +1382,14 @@ window.views.pos = {
             margin: 0 !important; 
             transform: none !important;
           }
-          .modal-body { 
+          #modal-container .modal-body, .modal-body { 
             padding: 0 !important; 
             margin: 0 !important; 
             height: auto !important;
             max-height: none !important;
             overflow: visible !important;
+            background: transparent !important;
+            background-color: transparent !important;
           }
           .receipt-wrapper { 
             width: 70mm !important; /* Limit width to 70mm to prevent side text clipping */
@@ -1532,13 +1567,14 @@ window.views.pos = {
           #app-container, .toast-container, .modal-header, .modal-footer, .receipt-wa-btn { 
             display: none !important; 
           }
-          .modal-overlay { 
+          #modal-container, .modal-overlay { 
             position: absolute !important; 
             left: 0 !important; 
             top: 0 !important; 
             width: 100% !important; 
             height: auto !important; 
             background: transparent !important; 
+            background-color: transparent !important;
             backdrop-filter: none !important; 
             box-shadow: none !important; 
             display: block !important;
@@ -1547,10 +1583,11 @@ window.views.pos = {
             padding: 0 !important; 
             margin: 0 !important; 
           }
-          .modal-content { 
+          #modal-container .modal-content, .modal-content { 
             border: none !important; 
             box-shadow: none !important; 
             background: transparent !important; 
+            background-color: transparent !important;
             width: 100% !important; 
             max-width: 100% !important; 
             height: auto !important;
@@ -1560,12 +1597,14 @@ window.views.pos = {
             margin: 0 !important; 
             transform: none !important;
           }
-          .modal-body { 
+          #modal-container .modal-body, .modal-body { 
             padding: 0 !important; 
             margin: 0 !important; 
             height: auto !important;
             max-height: none !important;
             overflow: visible !important;
+            background: transparent !important;
+            background-color: transparent !important;
           }
           .receipt-wrapper { 
             width: 70mm !important;
