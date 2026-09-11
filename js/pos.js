@@ -114,8 +114,12 @@ window.views.pos = {
             </div>
           </div>
 
-          <!-- Right side: Notifications, User info -->
-          <div style="display: flex; align-items: center; gap: 20px;">
+          <!-- Right side: Sync status, Notifications, User info -->
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <button id="pos-cloud-sync-pill" class="cloud-sync-pill" onclick="document.getElementById('cloud-sync-pill') && document.getElementById('cloud-sync-pill').click()" title="Click to view Cloud Sync details" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; transition: all 0.2s ease; box-shadow: var(--neu-shadow-btn); color: var(--text-dark);">
+              <i class="fa-solid fa-circle-notch fa-spin" id="pos-cloud-sync-icon" style="font-size: 8px; color: #f59e0b;"></i>
+              <span id="pos-cloud-sync-text">Syncing...</span>
+            </button>
             <!-- Notifications bell with badge -->
             <div class="alert-badge-container" style="position: relative; cursor: pointer; color: var(--text-dark); font-size: 18px;">
               <i class="fa-solid fa-bell"></i>

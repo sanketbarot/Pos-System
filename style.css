@@ -2351,3 +2351,35 @@ body {
 .cart-qty-input {
   -moz-appearance: textfield;
 }
+
+/* Cloud Sync Status Indicator Pill */
+.cloud-sync-pill {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+.cloud-sync-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.cloud-sync-pill.connected {
+  border-color: #a7f3d0 !important;
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+}
+.cloud-sync-pill.connecting {
+  border-color: #fde68a !important;
+  background: #fffbeb !important;
+  color: #92400e !important;
+}
+.cloud-sync-pill.permission-denied,
+.cloud-sync-pill.error {
+  border-color: #fecaca !important;
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+  animation: pulse-border 2s infinite;
+}
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}

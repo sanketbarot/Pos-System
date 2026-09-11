@@ -103,22 +103,55 @@ const app = {
   activeView: null,
 
   init() {
+    window.app = this; // Expose on window for db & external callbacks
     window.customModal.init();
 
     // Bind Session authentication
     const loginForm = document.getElementById("login-form");
+    const errorEl = document.getElementById("login-error-msg");
+    const userField = document.getElementById("login-username");
+    const passField = document.getElementById("login-password");
+
+    const clearError = () => {
+      if (errorEl) {
+        errorEl.style.display = "none";
+        errorEl.textContent = "";
+      }
+    };
+    if (userField) userField.oninput = clearError;
+    if (passField) passField.oninput = clearError;
+
     loginForm.onsubmit = (e) => {
       e.preventDefault();
-      const userField = document.getElementById("login-username").value;
-      const passField = document.getElementById("login-password").value;
+      clearError();
+      const uVal = userField.value;
+      const pVal = passField.value;
 
-      const authResult = window.db.login(userField, passField);
+      const authResult = window.db.login(uVal, pVal);
       if (authResult.success) {
         this.runAppSession();
       } else {
+        if (errorEl) {
+          errorEl.style.display = "block";
+          errorEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Invalid username or password. Please check credentials or use the 1-Click Fill button below.`;
+        }
         window.showToast("Invalid username or password.", "error");
       }
     };
+
+    // Quick 1-click Fill Admin Credentials
+    const quickAdminBtn = document.getElementById("btn-quick-admin-login");
+    if (quickAdminBtn) {
+      quickAdminBtn.onclick = () => {
+        if (userField) userField.value = "sanketadmin";
+        if (passField) passField.value = "Sanket@3901";
+        clearError();
+        const authResult = window.db.login("sanketadmin", "Sanket@3901");
+        if (authResult.success) {
+          this.runAppSession();
+        }
+      };
+    }
 
     // Toggle show/hide password view
     const togglePassBtn = document.getElementById("btn-toggle-password");
@@ -143,6 +176,17 @@ const app = {
       this.showLogin();
     };
 
+    // Setup Cloud Sync status listeners
+    this.setupCloudSyncUI();
+
+    // Setup global db-update listener
+    window.addEventListener("db-update", (e) => {
+      const detail = e.detail || {};
+      if (detail.source !== "cloud") {
+        this.updateSidebarSummary();
+      }
+    });
+
     // Check session on startup
     this.runAppSession();
 
@@ -151,6 +195,140 @@ const app = {
 
     // Start header timer
     this.startHeaderTimer();
+  },
+
+  setupCloudSyncUI() {
+    const handleStatus = (status, message) => {
+      const pill = document.getElementById("cloud-sync-pill");
+      const icon = document.getElementById("cloud-sync-icon");
+      const text = document.getElementById("cloud-sync-text");
+      const posPill = document.getElementById("pos-cloud-sync-pill");
+      const posIcon = document.getElementById("pos-cloud-sync-icon");
+      const posText = document.getElementById("pos-cloud-sync-text");
+
+      const apply = (p, i, t) => {
+        if (!p || !i || !t) return;
+        p.className = `cloud-sync-pill ${status}`;
+        if (status === "connected") {
+          i.style.color = "#10b981"; // Emerald green
+          i.className = "fa-solid fa-circle";
+          t.textContent = "Cloud Synced";
+          p.title = "Cloud sync active. All devices (Laptop & PC) are real-time connected.";
+        } else if (status === "permission-denied") {
+          i.style.color = "#ef4444"; // Red
+          i.className = "fa-solid fa-triangle-exclamation";
+          t.textContent = "Rules Permission Denied";
+          p.title = "Firebase Firestore Rules need to be updated in Firebase Console. Click for help.";
+        } else if (status === "connecting") {
+          i.style.color = "#f59e0b"; // Amber
+          i.className = "fa-solid fa-circle-notch fa-spin";
+          t.textContent = "Syncing...";
+          p.title = "Connecting to Cloud Firestore...";
+        } else {
+          i.style.color = "#ef4444";
+          i.className = "fa-solid fa-circle-exclamation";
+          t.textContent = "Sync Offline";
+          p.title = message || "Could not connect to cloud";
+        }
+      };
+
+      apply(pill, icon, text);
+      apply(posPill, posIcon, posText);
+    };
+
+    window.addEventListener("cloud-sync-status", (e) => {
+      const { status, message } = e.detail || {};
+      handleStatus(status, message);
+    });
+
+    // Initial status apply
+    handleStatus(window.cloudSyncStatus || "connecting", window.cloudSyncMessage || "");
+
+    // Click handler for help modal when status is clicked
+    const openHelp = () => {
+      const isDenied = window.cloudSyncStatus === "permission-denied";
+      window.customModal.show({
+        title: isDenied ? "Firebase Firestore Permission Required" : "Cloud Sync Status",
+        bodyHtml: `
+          <div style="font-size: 13.5px; line-height: 1.6; color: var(--text-dark);">
+            <div style="margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; background: ${isDenied ? '#fee2e2' : '#ecfdf5'}; color: ${isDenied ? '#991b1b' : '#065f46'}; font-weight: 700;">
+              <i class="fa-solid ${isDenied ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i>
+              ${isDenied ? 'Firestore Rules Denied: Multi-device sync is paused until rules are updated.' : 'Firestore Cloud is connected and synchronizing live!'}
+            </div>
+            ${isDenied ? `
+              <p style="margin-bottom: 8px;"><strong>Laptop and PC વચ્ચે ડેટા સિંક કરવા માટે Firebase Console માં આ 1 મિનિટનું સેટિંગ કરો:</strong></p>
+              <ol style="padding-left: 20px; margin-bottom: 14px; color: var(--text-muted);">
+                <li><a href="https://console.firebase.google.com/" target="_blank" style="color: #2563eb; font-weight: 700; text-decoration: underline;">Firebase Console</a> ખોલો અને <strong>crust-chilly-pos</strong> પ્રોજેક્ટ પસંદ કરો.</li>
+                <li>ડાબી બાજુએ <strong>Firestore Database</strong> પર ક્લિક કરો.</li>
+                <li>ઉપર <strong>Rules</strong> ટેબ પર ક્લિક કરો.</li>
+                <li>ત્યાં રહેલા રૂલ્સને બદલીને નીચે મુજબ પેસ્ટ કરો:
+                  <pre style="background: #1e293b; color: #f8fafc; padding: 10px; border-radius: 8px; font-size: 12px; margin: 8px 0; overflow-x: auto;"><code>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</code></pre>
+                </li>
+                <li>ઉપર <strong>Publish</strong> બટન પર ક્લિક કરો.</li>
+              </ol>
+              <p style="font-size: 12px; color: var(--text-muted);">Publish કર્યા પછી પેજ રિફ્રેશ કરશો એટલે તરત જ 🟢 <strong>Cloud Synced</strong> થઈ જશે અને લેપટોપ & PC વચ્ચે રિયલ-ટાઇમ સિંક ચાલુ થઈ જશે!</p>
+            ` : `
+              <p>તમારું POS System Google Firebase Firestore Cloud સાથે લાઈવ જોડાયેલું છે. લેપટોપ અથવા પીસી પરથી જે પણ બિલ બનશે તે તરત જ બંને ડીવાઈસ પર દેખાશે.</p>
+            `}
+          </div>
+        `,
+        confirmText: "Close",
+        hideFooter: false
+      });
+    };
+
+    const pill = document.getElementById("cloud-sync-pill");
+    if (pill) pill.onclick = openHelp;
+  },
+
+  onCloudUpdate(key, val) {
+    console.log(`[Cloud Sync] Received cloud update for '${key}'`);
+
+    // 1. Orders updated in Cloud (from another terminal / device)
+    if (key === "orders") {
+      this.updateSidebarSummary();
+
+      // If on KDS Kitchen view or Order History
+      if (this.activeView === "orders" && window.views.orders) {
+        if (typeof window.views.orders.renderActiveTab === "function") {
+          window.views.orders.renderActiveTab();
+        }
+      }
+
+      // If on Dashboard, refresh live metrics & charts
+      if (this.activeView === "dashboard" && window.views.dashboard) {
+        if (typeof window.views.dashboard.calculateAndRenderMetrics === "function") {
+          window.views.dashboard.calculateAndRenderMetrics();
+        }
+      }
+
+      // If on POS view, refresh products stock counts & table indicators
+      if (this.activeView === "pos" && window.views.pos) {
+        if (typeof window.views.pos.renderProducts === "function") {
+          window.views.pos.renderProducts();
+        }
+      }
+
+      // Friendly notification
+      window.showToast("🔔 Live Sync: Orders updated from Cloud!", "info");
+    }
+
+    // 2. Products or Categories updated
+    if (key === "products" || key === "categories") {
+      if (this.activeView === "pos" && window.views.pos) {
+        if (typeof window.views.pos.renderCategories === "function") window.views.pos.renderCategories();
+        if (typeof window.views.pos.renderProducts === "function") window.views.pos.renderProducts();
+      } else if (this.activeView === "menu" && window.views.menu) {
+        if (typeof window.views.menu.render === "function") window.views.menu.render();
+      }
+    }
   },
 
   runAppSession() {
@@ -180,7 +358,7 @@ const app = {
         el.style.display = allowedViews.includes(view) ? "block" : "none";
       });
 
-      // Trigger routing
+      // Trigger routing - preserving existing valid hash on refresh
       this.route();
 
       // Update sidebar summary metrics
@@ -196,7 +374,6 @@ const app = {
     document.getElementById("app-container").style.display = "none";
     document.getElementById("auth-view").style.display = "flex";
     document.getElementById("login-form").reset();
-    window.location.hash = "";
   },
 
   route() {
