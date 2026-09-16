@@ -668,7 +668,6 @@ window.views.pos = {
 
   // Category-specific BOGO calculations:
   // - Burger pairs only with Burger (Signature & Premium burgers)
-  // - Sandwich pairs only with Sandwich (Signature & Premium sandwiches)
   // - Tikka Pav pairs only with Tikka Pav (Signature & Premium tikka pavs)
   // For each category group, highest priced items are charged and cheapest Math.floor(n/2) items are free
   calculateBogoDiscount(cart = this.cart) {
@@ -692,14 +691,15 @@ window.views.pos = {
       const catName = (catObj ? catObj.name : "").toLowerCase();
       const itemName = (item.name || "").toLowerCase();
 
-      let groupKey = catId || "general";
+      // BOGO strictly applies ONLY to Burger and Tikka Pav (Signature & Premium)
+      let groupKey = null;
       if (catId === "cat1" || catName.includes("burger") || itemName.includes("burger")) {
         groupKey = "burger";
-      } else if (catId === "cat2" || catId === "cat3" || catName.includes("sandwich") || catName.includes("slice") || itemName.includes("sandwich") || itemName.includes("slice")) {
-        groupKey = "sandwich";
       } else if (catId === "cat5" || catName.includes("tikka") || itemName.includes("tikka")) {
         groupKey = "tikkapav";
       }
+
+      if (!groupKey) return;
 
       if (!groupPrices[groupKey]) {
         groupPrices[groupKey] = [];
@@ -735,7 +735,7 @@ window.views.pos = {
       subtotal += item.price * item.quantity;
     });
 
-    // Category-specific BOGO calculations (Burger on Burger, Sandwich on Sandwich, Tikka Pav on Tikka Pav)
+    // Category-specific BOGO calculations (Burger on Burger, Tikka Pav on Tikka Pav)
     const bogoDiscount = this.calculateBogoDiscount(this.cart);
 
     const bogoRow = document.getElementById("bogo-discount-row");
@@ -1103,7 +1103,7 @@ window.views.pos = {
       };
     });
 
-    // Category-specific BOGO calculations (Burger on Burger, Sandwich on Sandwich, Tikka Pav on Tikka Pav)
+    // Category-specific BOGO calculations (Burger on Burger, Tikka Pav on Tikka Pav)
     const bogoDiscount = this.calculateBogoDiscount(this.cart);
 
     const settings = window.db.get("settings") || {};

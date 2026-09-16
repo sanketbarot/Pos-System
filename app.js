@@ -185,6 +185,13 @@ const app = {
       if (detail.source !== "cloud") {
         this.updateSidebarSummary();
       }
+      if (detail.key === "products" || detail.key === "categories") {
+        if (this.activeView === "pos" && window.views.pos && typeof window.views.pos.renderProducts === "function") {
+          window.views.pos.renderProducts();
+        } else if (this.activeView === "menu" && window.views.menu && typeof window.views.menu.render === "function") {
+          window.views.menu.render();
+        }
+      }
     });
 
     // Check session on startup

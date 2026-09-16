@@ -27,6 +27,189 @@ const db = {
     this.syncToFirebase(key, val);
   },
 
+  // Normalize catalog items against official menu specifications
+  normalizeProducts(productsList) {
+    if (!Array.isArray(productsList) || productsList.length === 0) {
+      return { updated: false, list: productsList };
+    }
+
+    let updated = false;
+    const list = [...productsList];
+
+    const targetCatalog = {
+      // 1. Burgers
+      // Classic (BOGO: false)
+      "p1": { name: "Classic Burger", price: 49, bogo: false, category: "cat1" },
+      "p2": { name: "Veg Delight Burger", price: 59, bogo: false, category: "cat1" },
+      "p3": { name: "Aloo Tikki Burger", price: 69, bogo: false, category: "cat1" },
+      // Signature (BOGO: true)
+      "p4": { name: "Makhani Burger", price: 109, bogo: true, category: "cat1" },
+      "p5": { name: "Peri Peri Burger", price: 119, bogo: true, category: "cat1" },
+      "p6": { name: "Tandoori Burger", price: 119, bogo: true, category: "cat1" },
+      "p7": { name: "Spicy Schezwan Burger", price: 139, bogo: true, category: "cat1" },
+      "p8": { name: "Cheese Jalapeno Burger", price: 139, bogo: true, category: "cat1" },
+      "p9": { name: "Pizzeria Burger", price: 139, bogo: true, category: "cat1" },
+      "p10": { name: "Indian Style Burger", price: 149, bogo: true, category: "cat1" },
+      "p11": { name: "Afghani Burger", price: 149, bogo: true, category: "cat1" },
+      "p12": { name: "Hot & Spicy Chilli Garlic Burger", price: 149, bogo: true, category: "cat1" },
+      "p13": { name: "Crust & Chilly Special Burger", price: 169, bogo: true, category: "cat1" },
+      // Premium (BOGO: true)
+      "p14": { name: "Cheese Blast Aloo Tikki Burger", price: 149, bogo: true, category: "cat1" },
+      "p15": { name: "Cheese Blast Peri Peri Burger", price: 159, bogo: true, category: "cat1" },
+      "p16": { name: "Cheese Blast Tandoori Burger", price: 159, bogo: true, category: "cat1" },
+      "p17": { name: "Cheese Blast Cheese Jalapeno Burger", price: 159, bogo: true, category: "cat1" },
+      "p18": { name: "Cheese Blast Spicy Schezwan Burger", price: 169, bogo: true, category: "cat1" },
+      "p19": { name: "Cheese Blast Hot & Spicy Chilli Garlic Burger", price: 169, bogo: true, category: "cat1" },
+      "p20": { name: "Cheese Blast Crust & Chilly Special Burger", price: 179, bogo: true, category: "cat1" },
+
+      // 2. Slice Sandwich (All BOGO: false)
+      "p21": { name: "Butter Slice", price: 29, bogo: false, category: "cat2" },
+      "p22": { name: "Sing Sev Slice", price: 35, bogo: false, category: "cat2" },
+      "p23": { name: "Jam Slice", price: 39, bogo: false, category: "cat2" },
+      "p24": { name: "Chocolate Slice", price: 39, bogo: false, category: "cat2" },
+      "p25": { name: "Cheese Slice", price: 39, bogo: false, category: "cat2" },
+      "p26": { name: "Cheese Chutney Slice", price: 49, bogo: false, category: "cat2" },
+      "p27": { name: "Cheese Jam Slice", price: 49, bogo: false, category: "cat2" },
+      "p28": { name: "Cheese Chocolate Slice", price: 49, bogo: false, category: "cat2" },
+
+      // 3. 3 Layer Sandwich (All BOGO: false)
+      // Classic
+      "p29": { name: "Veg Sandwich", price: 79, bogo: false, category: "cat3" },
+      "p30": { name: "Cheese Chutney Sandwich", price: 109, bogo: false, category: "cat3" },
+      "p31": { name: "Coleslaw Cheese Sandwich", price: 119, bogo: false, category: "cat3" },
+      "p32": { name: "Veg Cheese Sandwich", price: 119, bogo: false, category: "cat3" },
+      // Signature
+      "p33": { name: "Junglee Sandwich", price: 169, bogo: false, category: "cat3" },
+      "p34": { name: "Pizzeria Sandwich", price: 179, bogo: false, category: "cat3" },
+      "p35": { name: "1000 Island Sandwich", price: 179, bogo: false, category: "cat3" },
+      "p36": { name: "Peri Peri Sandwich", price: 189, bogo: false, category: "cat3" },
+      "p37": { name: "Tandoori Sandwich", price: 189, bogo: false, category: "cat3" },
+      "p38": { name: "Spicy Schezwan Sandwich", price: 189, bogo: false, category: "cat3" },
+      "p39": { name: "Afghani Sandwich", price: 189, bogo: false, category: "cat3" },
+      "p40": { name: "Cheese Jalapeno Sandwich", price: 189, bogo: false, category: "cat3" },
+      "p41": { name: "Makhani Sandwich", price: 189, bogo: false, category: "cat3" },
+      "p42": { name: "Hot & Spicy Chilli Garlic Sandwich", price: 189, bogo: false, category: "cat3" },
+      // Premium
+      "p43": { name: "Tandoori Paneer Sandwich", price: 199, bogo: false, category: "cat3" },
+      "p44": { name: "Peri Peri Paneer Sandwich", price: 199, bogo: false, category: "cat3" },
+      "p94": { name: "Indian Style Paneer Sandwich", price: 199, bogo: false, category: "cat3" },
+      "p45": { name: "Afghani Garlic Paneer Sandwich", price: 209, bogo: false, category: "cat3" },
+      "p46": { name: "Spicy Schezwan Paneer Sandwich", price: 209, bogo: false, category: "cat3" },
+      "p47": { name: "Crust & Chilly Premium Sandwich", price: 219, bogo: false, category: "cat3" },
+
+      // 4. Frankie (All BOGO: false)
+      "p48": { name: "Veg Delight Frankie", price: 129, bogo: false, category: "cat4" },
+      "p49": { name: "Corn Delight Frankie", price: 139, bogo: false, category: "cat4" },
+      "p50": { name: "Paneer Delight Frankie", price: 139, bogo: false, category: "cat4" },
+      "p51": { name: "Cheese Chilli Paneer Frankie", price: 149, bogo: false, category: "cat4" },
+      "p52": { name: "Cheese Chilli Corn Frankie", price: 149, bogo: false, category: "cat4" },
+      "p53": { name: "Tandoori Frankie", price: 169, bogo: false, category: "cat4" },
+      "p54": { name: "Peri Peri Frankie", price: 169, bogo: false, category: "cat4" },
+      "p55": { name: "Crust & Chilly Special Frankie", price: 189, bogo: false, category: "cat4" },
+
+      // 5. Tikka Pav
+      // Classic (BOGO: false)
+      "p56": { name: "Veg Delight Tikka Pav", price: 129, bogo: false, category: "cat5" },
+      "p57": { name: "Makhani Tikka Pav", price: 139, bogo: false, category: "cat5" },
+      // Signature (BOGO: true)
+      "p58": { name: "Pizzeria Tikka Pav", price: 179, bogo: true, category: "cat5" },
+      "p59": { name: "1000 Island Tikka Pav", price: 179, bogo: true, category: "cat5" },
+      "p60": { name: "Cheese Jalapeno Tikka Pav", price: 189, bogo: true, category: "cat5" },
+      "p61": { name: "Spicy Schezwan Tikka Pav", price: 189, bogo: true, category: "cat5" },
+      "p62": { name: "Indian Style Tikka Pav", price: 189, bogo: true, category: "cat5" },
+      // Premium (BOGO: true)
+      "p63": { name: "Tandoori Tikka Pav", price: 199, bogo: true, category: "cat5" },
+      "p64": { name: "Peri Peri Tikka Pav", price: 199, bogo: true, category: "cat5" },
+      "p65": { name: "Hot & Spicy Chilli Garlic Tikka Pav", price: 199, bogo: true, category: "cat5" },
+      "p66": { name: "Afghani Garlic Tikka Pav", price: 209, bogo: true, category: "cat5" },
+      "p67": { name: "Crust & Chilly Special Tikka Pav", price: 229, bogo: true, category: "cat5" },
+
+      // 6. Fries (All BOGO: false)
+      "p68": { name: "Golden Fries", price: 79, bogo: false, category: "cat6" },
+      "p69": { name: "Peri Peri Fries", price: 99, bogo: false, category: "cat6" },
+      "p70": { name: "Cheesy Loaded Fries", price: 119, bogo: false, category: "cat6" },
+
+      // 7. Maggi (All BOGO: false)
+      "p71": { name: "Classic Masala Maggi", price: 59, bogo: false, category: "cat7" },
+      "p72": { name: "Tadka Maggi", price: 79, bogo: false, category: "cat7" },
+      "p73": { name: "Veg Loaded Maggi", price: 89, bogo: false, category: "cat7" },
+      "p74": { name: "Cheese Blast Maggi", price: 99, bogo: false, category: "cat7" },
+      "p75": { name: "Cheese Blast Tadka Maggi", price: 109, bogo: false, category: "cat7" },
+      "p76": { name: "Cheese Blast Veg Loaded Maggi", price: 119, bogo: false, category: "cat7" },
+
+      // 8. Mojitos (All BOGO: false)
+      "p77": { name: "Mint Mojito", price: 99, bogo: false, category: "cat8" },
+      "p78": { name: "Blue Lagoon Mojito", price: 99, bogo: false, category: "cat8" },
+      "p79": { name: "Blue Berry Mojito", price: 99, bogo: false, category: "cat8" },
+      "p80": { name: "Green Apple Mojito", price: 99, bogo: false, category: "cat8" },
+
+      // 9. Combo Meals (All BOGO: false)
+      "p81": { name: "Signature Burger + Fries + Cold Drink", price: 149, bogo: false, category: "cat9" },
+      "p82": { name: "Premium Burger + Fries + Mojito", price: 199, bogo: false, category: "cat9" },
+      "p83": { name: "Signature Sandwich + Fries + Cold Drink", price: 199, bogo: false, category: "cat9" },
+      "p84": { name: "Premium Sandwich + Fries + Mojito", price: 249, bogo: false, category: "cat9" },
+      "p85": { name: "Signature Tikka Pav + Fries + Cold Drink", price: 179, bogo: false, category: "cat9" },
+      "p86": { name: "Premium Tikka Pav + Fries + Mojito", price: 249, bogo: false, category: "cat9" }
+    };
+
+    list.forEach(p => {
+      if (targetCatalog[p.id]) {
+        const target = targetCatalog[p.id];
+        if (p.name !== target.name || p.price !== target.price || p.bogo !== target.bogo) {
+          p.name = target.name;
+          p.price = target.price;
+          p.bogo = target.bogo;
+          updated = true;
+        }
+      } else {
+        const lowerName = (p.name || "").toLowerCase();
+        if (lowerName.includes("achari masti")) {
+          if (lowerName.includes("burger")) {
+            p.name = lowerName.includes("cheese blast") ? "Cheese Blast Cheese Jalapeno Burger" : "Cheese Jalapeno Burger";
+            p.price = lowerName.includes("cheese blast") ? 159 : 139;
+            p.bogo = true;
+          } else if (lowerName.includes("sandwich")) {
+            p.name = "Cheese Jalapeno Sandwich";
+            p.price = 189;
+            p.bogo = false;
+          } else if (lowerName.includes("tikka")) {
+            p.name = "Cheese Jalapeno Tikka Pav";
+            p.price = 189;
+            p.bogo = true;
+          }
+          updated = true;
+        } else if (!p.category || (p.category !== "cat1" && p.category !== "cat5")) {
+          if (p.bogo) {
+            p.bogo = false;
+            updated = true;
+          }
+        }
+      }
+    });
+
+    // Ensure Indian Style Paneer Sandwich exists
+    if (!list.some(p => p.name && p.name.toLowerCase().includes("indian style paneer"))) {
+      const newProd = {
+        id: "p94",
+        name: "Indian Style Paneer Sandwich",
+        price: 199,
+        category: "cat3",
+        available: true,
+        bogo: false,
+        recipe: { ing4: 3, ing3: 1, ing12: 50 }
+      };
+      const p44Idx = list.findIndex(p => p.id === "p44");
+      if (p44Idx !== -1) {
+        list.splice(p44Idx + 1, 0, newProd);
+      } else {
+        list.push(newProd);
+      }
+      updated = true;
+    }
+
+    return { updated, list };
+  },
+
   // Initialize Database with Demo Data
   init(force = false) {
     // Note: NEVER clear localStorage completely to prevent erasing orders, settings, or user session
@@ -97,30 +280,11 @@ const db = {
         }
       });
 
-      // Auto-update Signature and Premium items to have bogo: true and Classic to have bogo: false
-      const bogoUpdateKey = "cc_pos_bogo_sync_v2";
-      if (!localStorage.getItem(bogoUpdateKey)) {
-        const bogoProductIds = new Set([
-          // Burgers Signature & Premium
-          "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15", "p16", "p17", "p18", "p19", "p20",
-          // 3 Layer Sandwich Signature & Premium
-          "p33", "p34", "p35", "p36", "p37", "p38", "p39", "p40", "p41", "p42", "p43", "p44", "p45", "p46", "p47",
-          // Tikka Pav Signature & Premium
-          "p58", "p59", "p60", "p61", "p62", "p63", "p64", "p65", "p66", "p67"
-        ]);
-        currentProducts.forEach(p => {
-          if (bogoProductIds.has(p.id)) {
-            p.bogo = true;
-            productsUpdated = true;
-          } else if (p.id && p.id.startsWith("p") && parseInt(p.id.replace(/\D/g, ""), 10) <= 93) {
-            p.bogo = false;
-            productsUpdated = true;
-          }
-        });
-        localStorage.setItem(bogoUpdateKey, "true");
-      }
-
-      if (productsUpdated) {
+      // Auto-update catalog with new prices, names, items, and BOGO policy
+      const normResult = this.normalizeProducts(currentProducts);
+      if (normResult.updated) {
+        this.set("products", normResult.list);
+      } else if (productsUpdated) {
         this.set("products", currentProducts);
       }
     }
@@ -147,6 +311,13 @@ const db = {
           console.warn("Firestore offline persistence notice:", err.code);
         });
 
+        // Ensure cloud Firestore has the updated products catalog immediately
+        const localProds = this.get("products");
+        if (localProds && Array.isArray(localProds)) {
+          const normLocal = this.normalizeProducts(localProds);
+          this.syncToFirebase("products", normLocal.list);
+        }
+
         // Real-time synchronization of local keys with Firestore documents
         const SYNC_KEYS = ["users", "categories", "ingredients", "products", "settings", "permissions", "orders", "expenses", "purchases", "orderCounter"];
         SYNC_KEYS.forEach(key => {
@@ -165,6 +336,15 @@ const db = {
                 }
 
                 if (val !== undefined && val !== null) {
+                  // Normalize products if fetched from cloud to keep menu items & prices up-to-date
+                  if (key === "products" && Array.isArray(val)) {
+                    const normCloud = this.normalizeProducts(val);
+                    val = normCloud.list;
+                    if (normCloud.updated) {
+                      this.syncToFirebase("products", val);
+                    }
+                  }
+
                   const localStr = localStorage.getItem(DB_PREFIX + key);
                   const remoteStr = JSON.stringify(val);
                   if (localStr !== remoteStr) {
@@ -290,24 +470,24 @@ const db = {
       { id: "p2", name: "Veg Delight Burger", price: 59, category: "cat1", available: true, bogo: false, recipe: { ing1: 1, ing2: 1, ing13: 20 } },
       { id: "p3", name: "Aloo Tikki Burger", price: 69, category: "cat1", available: true, bogo: false, recipe: { ing1: 1, ing2: 1, ing3: 1, ing13: 20 } },
       // Signature (BOGO: true)
-      { id: "p4", name: "Makhani Burger", price: 99, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 20 } },
-      { id: "p5", name: "Peri Peri Burger", price: 109, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 30 } },
-      { id: "p6", name: "Tandoori Burger", price: 109, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 30 } },
-      { id: "p7", name: "Spicy Schezwan Burger", price: 119, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing14: 20 } },
-      { id: "p8", name: "Achari Masti Burger", price: 119, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 20 } },
-      { id: "p9", name: "Pizzeria Burger", price: 119, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 1, ing13: 20 } },
-      { id: "p10", name: "Indian Style Burger", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 30 } },
-      { id: "p11", name: "Afghani Burger", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 30 } },
-      { id: "p12", name: "Hot & Spicy Chilli Garlic Burger", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing14: 30 } },
-      { id: "p13", name: "Crust &Chilly Special Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 1, ing13: 40 } },
+      { id: "p4", name: "Makhani Burger", price: 109, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 20 } },
+      { id: "p5", name: "Peri Peri Burger", price: 119, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 30 } },
+      { id: "p6", name: "Tandoori Burger", price: 119, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 30 } },
+      { id: "p7", name: "Spicy Schezwan Burger", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing14: 20 } },
+      { id: "p8", name: "Cheese Jalapeno Burger", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 20 } },
+      { id: "p9", name: "Pizzeria Burger", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 1, ing13: 20 } },
+      { id: "p10", name: "Indian Style Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 30 } },
+      { id: "p11", name: "Afghani Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing13: 30 } },
+      { id: "p12", name: "Hot & Spicy Chilli Garlic Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing14: 30 } },
+      { id: "p13", name: "Crust & Chilly Special Burger", price: 169, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 1, ing13: 40 } },
       // Premium (BOGO: true)
-      { id: "p14", name: "Cheese Blast Aloo Tikki Burger", price: 129, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2 } },
-      { id: "p15", name: "Cheese Blast Peri Peri Burger", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
-      { id: "p16", name: "Cheese Blast Tandoori Burger", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
-      { id: "p17", name: "Cheese Blast Achari Masti Burger", price: 139, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
-      { id: "p18", name: "Cheese Blast Spicy Schezwan Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 20 } },
-      { id: "p19", name: "Cheese Blast Hot & Spicy Chilli Garlic Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 25 } },
-      { id: "p20", name: "Cheese Blast Crust &Chilly Special Burger", price: 159, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 3, ing13: 30 } },
+      { id: "p14", name: "Cheese Blast Aloo Tikki Burger", price: 149, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2 } },
+      { id: "p15", name: "Cheese Blast Peri Peri Burger", price: 159, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
+      { id: "p16", name: "Cheese Blast Tandoori Burger", price: 159, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
+      { id: "p17", name: "Cheese Blast Cheese Jalapeno Burger", price: 159, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing13: 20 } },
+      { id: "p18", name: "Cheese Blast Spicy Schezwan Burger", price: 169, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 20 } },
+      { id: "p19", name: "Cheese Blast Hot & Spicy Chilli Garlic Burger", price: 169, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 2, ing14: 25 } },
+      { id: "p20", name: "Cheese Blast Crust & Chilly Special Burger", price: 179, category: "cat1", available: true, bogo: true, recipe: { ing1: 1, ing2: 1, ing3: 3, ing13: 30 } },
 
       // --- SLICE SANDWICH (Classic: BOGO false) ---
       { id: "p21", name: "Butter Slice", price: 29, category: "cat2", available: true, bogo: false, recipe: { ing4: 2 } },
@@ -319,29 +499,30 @@ const db = {
       { id: "p27", name: "Cheese Jam Slice", price: 49, category: "cat2", available: true, bogo: false, recipe: { ing4: 2, ing3: 1 } },
       { id: "p28", name: "Cheese Chocolate Slice", price: 49, category: "cat2", available: true, bogo: false, recipe: { ing4: 2, ing3: 1 } },
 
-      // --- 3 LAYER SANDWICH ---
-      // Classic (BOGO: false)
+      // --- 3 LAYER SANDWICH (BOGO: false for all) ---
+      // Classic
       { id: "p29", name: "Veg Sandwich", price: 79, category: "cat3", available: true, bogo: false, recipe: { ing4: 3 } },
-      { id: "p30", name: "Veg Cheese Sandwich", price: 109, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p31", name: "Coleslaw Cheese Sandwich", price: 109, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p32", name: "Cheese Chutney Sandwich", price: 119, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
-      // Signature (BOGO: true)
-      { id: "p33", name: "Junglee Sandwich", price: 169, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p34", name: "Pizzeria Sandwich", price: 179, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p35", name: "1000 Island Sandwich", price: 179, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p36", name: "Peri Peri Sandwich", price: 189, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p37", name: "Tandoori Sandwich", price: 189, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p38", name: "Spicy Schezwan Sandwich", price: 189, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p39", name: "Afghani Sandwich", price: 189, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p40", name: "Achari Masti Sandwich", price: 189, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p41", name: "Makhani Sandwich", price: 189, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      { id: "p42", name: "Hot & Spicy Chilli Garlic Sandwich", price: 189, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1 } },
-      // Premium (BOGO: true)
-      { id: "p43", name: "Tandoori Paneer Sandwich", price: 199, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1, ing12: 50 } },
-      { id: "p44", name: "Peri Peri Paneer Sandwich", price: 199, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1, ing12: 50 } },
-      { id: "p45", name: "Afghani Garlic Paneer Sandwich", price: 209, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1, ing12: 50 } },
-      { id: "p46", name: "Spicy Schezwan Paneer Sandwich", price: 209, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 1, ing12: 50 } },
-      { id: "p47", name: "Crust &Chilly Premium Sandwich", price: 219, category: "cat3", available: true, bogo: true, recipe: { ing4: 3, ing3: 2, ing12: 60 } },
+      { id: "p30", name: "Cheese Chutney Sandwich", price: 109, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p31", name: "Coleslaw Cheese Sandwich", price: 119, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p32", name: "Veg Cheese Sandwich", price: 119, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      // Signature
+      { id: "p33", name: "Junglee Sandwich", price: 169, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p34", name: "Pizzeria Sandwich", price: 179, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p35", name: "1000 Island Sandwich", price: 179, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p36", name: "Peri Peri Sandwich", price: 189, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p37", name: "Tandoori Sandwich", price: 189, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p38", name: "Spicy Schezwan Sandwich", price: 189, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p39", name: "Afghani Sandwich", price: 189, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p40", name: "Cheese Jalapeno Sandwich", price: 189, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p41", name: "Makhani Sandwich", price: 189, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      { id: "p42", name: "Hot & Spicy Chilli Garlic Sandwich", price: 189, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1 } },
+      // Premium
+      { id: "p43", name: "Tandoori Paneer Sandwich", price: 199, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1, ing12: 50 } },
+      { id: "p44", name: "Peri Peri Paneer Sandwich", price: 199, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1, ing12: 50 } },
+      { id: "p94", name: "Indian Style Paneer Sandwich", price: 199, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1, ing12: 50 } },
+      { id: "p45", name: "Afghani Garlic Paneer Sandwich", price: 209, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1, ing12: 50 } },
+      { id: "p46", name: "Spicy Schezwan Paneer Sandwich", price: 209, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 1, ing12: 50 } },
+      { id: "p47", name: "Crust & Chilly Premium Sandwich", price: 219, category: "cat3", available: true, bogo: false, recipe: { ing4: 3, ing3: 2, ing12: 60 } },
 
       // --- FRANKIE (BOGO: false) ---
       { id: "p48", name: "Veg Delight Frankie", price: 129, category: "cat4", available: true, bogo: false, recipe: { ing5: 1 } },
@@ -358,17 +539,17 @@ const db = {
       { id: "p56", name: "Veg Delight Tikka Pav", price: 129, category: "cat5", available: true, bogo: false, recipe: { ing1: 1 } },
       { id: "p57", name: "Makhani Tikka Pav", price: 139, category: "cat5", available: true, bogo: false, recipe: { ing1: 1 } },
       // Signature (BOGO: true)
-      { id: "p58", name: "Pizzeria Tikka Pav", price: 159, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
-      { id: "p59", name: "1000 Island Tikka Pav", price: 159, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
-      { id: "p60", name: "Achari Masti Tikka Pav", price: 169, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
-      { id: "p61", name: "Spicy Schezwan Tikka Pav", price: 169, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
-      { id: "p62", name: "Indian Style Tikka Pav", price: 169, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
+      { id: "p58", name: "Pizzeria Tikka Pav", price: 179, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
+      { id: "p59", name: "1000 Island Tikka Pav", price: 179, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
+      { id: "p60", name: "Cheese Jalapeno Tikka Pav", price: 189, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
+      { id: "p61", name: "Spicy Schezwan Tikka Pav", price: 189, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
+      { id: "p62", name: "Indian Style Tikka Pav", price: 189, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
       // Premium (BOGO: true)
-      { id: "p63", name: "Tandoori Tikka Pav", price: 179, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
-      { id: "p64", name: "Peri Peri Tikka Pav", price: 179, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
-      { id: "p65", name: "Afghani Garlic Tikka Pav", price: 189, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
-      { id: "p66", name: "Hot & Spicy Chilli Garlic Tikka Pav", price: 179, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
-      { id: "p67", name: "Crust & Chilly Special Tikka Pav", price: 199, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
+      { id: "p63", name: "Tandoori Tikka Pav", price: 199, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
+      { id: "p64", name: "Peri Peri Tikka Pav", price: 199, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
+      { id: "p65", name: "Hot & Spicy Chilli Garlic Tikka Pav", price: 199, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
+      { id: "p66", name: "Afghani Garlic Tikka Pav", price: 209, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
+      { id: "p67", name: "Crust & Chilly Special Tikka Pav", price: 229, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
 
       // --- FRIES (BOGO: false) ---
       { id: "p68", name: "Golden Fries", price: 79, category: "cat6", available: true, bogo: false, recipe: { ing6: 150 } },
@@ -390,23 +571,20 @@ const db = {
       { id: "p80", name: "Green Apple Mojito", price: 99, category: "cat8", available: true, bogo: false, recipe: { ing8: 15, ing9: 1, ing10: 250 } },
 
       // --- COMBO MEALS (BOGO: false) ---
-      { id: "p81", name: "Signature Burger + Fries + Cold Drink Combo", price: 149, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing2: 1, ing6: 100, ing11: 1 } },
-      { id: "p82", name: "Premium Burger + Fries + Mojito Combo", price: 199, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing2: 1, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
-      { id: "p83", name: "Signature Sandwich + Fries + Cold Drink Combo", price: 199, category: "cat9", available: true, bogo: false, recipe: { ing4: 3, ing6: 100, ing11: 1 } },
-      { id: "p84", name: "Premium Sandwich + Fries + Mojito Combo", price: 249, category: "cat9", available: true, bogo: false, recipe: { ing4: 3, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
-      { id: "p85", name: "Signature Tikka Pav + Fries + Cold Drink Combo", price: 179, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing6: 100, ing11: 1 } },
-      { id: "p86", name: "Premium Tikka Pav + Fries + Mojito Combo", price: 249, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
+      { id: "p81", name: "Signature Burger + Fries + Cold Drink", price: 149, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing2: 1, ing6: 100, ing11: 1 } },
+      { id: "p82", name: "Premium Burger + Fries + Mojito", price: 199, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing2: 1, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
+      { id: "p83", name: "Signature Sandwich + Fries + Cold Drink", price: 199, category: "cat9", available: true, bogo: false, recipe: { ing4: 3, ing6: 100, ing11: 1 } },
+      { id: "p84", name: "Premium Sandwich + Fries + Mojito", price: 249, category: "cat9", available: true, bogo: false, recipe: { ing4: 3, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
+      { id: "p85", name: "Signature Tikka Pav + Fries + Cold Drink", price: 179, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing6: 100, ing11: 1 } },
+      { id: "p86", name: "Premium Tikka Pav + Fries + Mojito", price: 249, category: "cat9", available: true, bogo: false, recipe: { ing1: 1, ing3: 1, ing6: 100, ing8: 15, ing9: 1, ing10: 250 } },
 
       // --- COLD DRINKS & WATER ---
       { id: "p87", name: "Cold Drink (Small)", price: 10, category: "cat10", available: true, bogo: false, recipe: {} },
       { id: "p88", name: "Cold Drink (Medium)", price: 20, category: "cat10", available: true, bogo: false, recipe: {} },
       { id: "p89", name: "Cold Drink (Large)", price: 30, category: "cat10", available: true, bogo: false, recipe: {} },
       { id: "p90", name: "Water Bottle (Small)", price: 10, category: "cat10", available: true, bogo: false, recipe: {} },
-      { id: "p91", name: "Water Bottle (Large)", price: 20, category: "cat10", available: true, bogo: false, recipe: {} },
+      { id: "p91", name: "Water Bottle (Large)", price: 20, category: "cat10", available: true, bogo: false, recipe: {} }
 
-      // --- FARALI ---
-      { id: "p92", name: "Farali Bhel", price: 89, category: "cat11", available: true, bogo: false, recipe: {} },
-      { id: "p93", name: "Cheese Farali Bhel", price: 119, category: "cat11", available: true, bogo: false, recipe: {} }
     ];
     this.set("products", products);
 
@@ -465,8 +643,8 @@ const db = {
 
       // Password matching: exact, case-insensitive, or standard admin master passwords
       const passMatches = (u.password === pInput) ||
-                          (u.password && u.password.toLowerCase() === pInput.toLowerCase()) ||
-                          (pInput === "Sanket@3901" || pInput === "sanket@3901" || pInput === "admin" || pInput === "123456");
+        (u.password && u.password.toLowerCase() === pInput.toLowerCase()) ||
+        (pInput === "Sanket@3901" || pInput === "sanket@3901" || pInput === "admin" || pInput === "123456");
       return passMatches;
     });
 
@@ -842,7 +1020,7 @@ const db = {
 window.db = db;
 
 // Database startup: Safe non-destructive load
-const TARGET_MENU_VERSION = "crust_chilly_v10";
+const TARGET_MENU_VERSION = "crust_chilly_v11";
 if (localStorage.getItem("cc_pos_menu_version") !== TARGET_MENU_VERSION) {
   // Update version flag without clearing orders, transactions, or user session
   db.init(false);
