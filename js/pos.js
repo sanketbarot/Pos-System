@@ -47,7 +47,12 @@ function getProductImage(name, categoryId) {
     return "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200&auto=format&fit=crop&q=80"; // veg noodles
   }
 
-  // 6. MOJITOS & COLD DRINKS & WATER (Mapped name-wise)
+  // 6. TIKKA PAV
+  if (n.includes("tikka") || n.includes("pav")) {
+    return "https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=200&auto=format&fit=crop&q=80"; // toasted pav / tikka
+  }
+
+  // 7. MOJITOS & COLD DRINKS & WATER (Mapped name-wise)
   if (n.includes("mojito")) {
     return "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=200&auto=format&fit=crop&q=80"; // Mojito glass
   }
@@ -58,9 +63,9 @@ function getProductImage(name, categoryId) {
     return "https://images.unsplash.com/photo-1608889174637-3c44f6326f1a?w=200&auto=format&fit=crop&q=80"; // water bottle
   }
 
-  // 7. COMBOS
+  // 8. COMBOS
   if (n.includes("combo")) {
-    return "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=200&auto=format&fit=crop&q=80"; // samosa snack combo platter
+    return "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=200&auto=format&fit=crop&q=80"; // combo platter
   }
 
   return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&auto=format&fit=crop&q=80"; // default
@@ -1221,8 +1226,8 @@ window.views.pos = {
         
         <div class="receipt-header">
           <div class="receipt-title">${settings.restaurantName || "Crust & Chilly"}</div>
-          <div class="receipt-subtitle">${settings.address || "Shop-09, Shree sanidhya flora, Turquoise BLU Rd, Shela, Ahmedabad, Gujarat 380057"}</div>
-          <div class="receipt-subtitle">Phone: ${settings.phone || "096648 70840"}</div>
+          <div class="receipt-subtitle">${settings.address || "Shop No. 09, Shree Sanidhya Flora, Near Turquoise BLU Road, Shela, Ahmedabad - 380057, Gujarat"}</div>
+          <div class="receipt-subtitle">Phone: ${settings.phone || "+91 9664870840"}</div>
         </div>
         
         <div class="receipt-dotted-line"></div>
@@ -1317,7 +1322,7 @@ window.views.pos = {
         <div class="receipt-dotted-line"></div>
         
         <div class="receipt-footer">
-          <div style="font-weight: bold; margin-bottom: 6px;">For Order or More : ${settings.phone || "096648 70840"}</div>
+          <div style="font-weight: bold; margin-bottom: 6px;">For Order or More : ${settings.phone || "+91 9664870840"}</div>
           
           <div class="receipt-qr-wrapper">
             <img class="receipt-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUrl)}" alt="Scan to Pay">

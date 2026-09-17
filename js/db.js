@@ -62,7 +62,7 @@ const db = {
       "p19": { name: "Cheese Blast Hot & Spicy Chilly Garlic", price: 169, bogo: true, category: "cat1" },
       "p20": { name: "Cheese Blast Crust & Chilly Special", price: 179, bogo: true, category: "cat1" },
 
-      // 2. Slice Sandwich (All BOGO: false)
+      // 2. Slice (All BOGO: false)
       "p21": { name: "Butter Slice", price: 29, bogo: false, category: "cat2" },
       "p22": { name: "Sing Sev Slice", price: 39, bogo: false, category: "cat2" },
       "p23": { name: "Jam Slice", price: 39, bogo: false, category: "cat2" },
@@ -101,8 +101,8 @@ const db = {
       "p48": { name: "Veg Delight Frankie", price: 129, bogo: false, category: "cat4" },
       "p49": { name: "Corn Delight Frankie", price: 139, bogo: false, category: "cat4" },
       "p50": { name: "Paneer Delight Frankie", price: 149, bogo: false, category: "cat4" },
-      "p51": { name: "Cheese Chilli Paneer Frankie", price: 149, bogo: false, category: "cat4" },
-      "p52": { name: "Cheese Chilli Corn Frankie", price: 149, bogo: false, category: "cat4" },
+      "p51": { name: "Cheese Chilly Paneer Frankie", price: 149, bogo: false, category: "cat4" },
+      "p52": { name: "Cheese Chilly Corn Frankie", price: 149, bogo: false, category: "cat4" },
       "p53": { name: "Tandoori Frankie", price: 169, bogo: false, category: "cat4" },
       "p54": { name: "Peri Peri Frankie", price: 169, bogo: false, category: "cat4" },
       "p55": { name: "Crust & Chilly Special Frankie", price: 189, bogo: false, category: "cat4" },
@@ -120,7 +120,7 @@ const db = {
       // Premium (BOGO: true)
       "p63": { name: "Tandoori Tikka Pav", price: 199, bogo: true, category: "cat5" },
       "p64": { name: "Peri Peri Tikka Pav", price: 199, bogo: true, category: "cat5" },
-      "p65": { name: "Hot & Spicy Chilli Garlic Tikka Pav", price: 199, bogo: true, category: "cat5" },
+      "p65": { name: "Hot & Spicy Chilly Garlic Tikka Pav", price: 199, bogo: true, category: "cat5" },
       "p66": { name: "Afghani Garlic Tikka Pav", price: 209, bogo: true, category: "cat5" },
       "p67": { name: "Crust & Chilly Special Tikka Pav", price: 229, bogo: true, category: "cat5" },
 
@@ -149,33 +149,68 @@ const db = {
       "p83": { name: "Signature Sandwich + Fries + Cold Drink", price: 199, bogo: false, category: "cat9" },
       "p84": { name: "Premium Sandwich + Fries + Mojito", price: 249, bogo: false, category: "cat9" },
       "p85": { name: "Signature Tikka Pav + Fries + Cold Drink", price: 179, bogo: false, category: "cat9" },
-      "p86": { name: "Premium Tikka Pav + Fries + Mojito", price: 249, bogo: false, category: "cat9" }
+      "p86": { name: "Premium Tikka Pav + Fries + Mojito", price: 249, bogo: false, category: "cat9" },
+
+      // 10. Cold Drinks & Water
+      "p87": { name: "Cold Drink (Small)", price: 10, bogo: false, category: "cat10" },
+      "p88": { name: "Cold Drink (Medium)", price: 20, bogo: false, category: "cat10" },
+      "p89": { name: "Cold Drink (Large)", price: 30, bogo: false, category: "cat10" },
+      "p90": { name: "Water Bottle (Small)", price: 10, bogo: false, category: "cat10" },
+      "p91": { name: "Water Bottle (Large)", price: 20, bogo: false, category: "cat10" }
     };
 
+    // 1. Normalize existing products in catalog
     list.forEach(p => {
       if (targetCatalog[p.id]) {
         const target = targetCatalog[p.id];
-        if (p.name !== target.name || p.price !== target.price || p.bogo !== target.bogo) {
+        if (p.name !== target.name || p.price !== target.price || p.bogo !== target.bogo || p.category !== target.category) {
           p.name = target.name;
           p.price = target.price;
           p.bogo = target.bogo;
+          p.category = target.category;
           updated = true;
         }
       } else {
-        const lowerName = (p.name || "").toLowerCase();
-        if (lowerName.includes("achari masti")) {
+        const lowerName = (p.name || "").toLowerCase().trim();
+        // Check for matching target by canonical name or common variant
+        let matchedTarget = null;
+        for (const [id, target] of Object.entries(targetCatalog)) {
+          const tLower = target.name.toLowerCase();
+          if (
+            lowerName === tLower ||
+            lowerName.replace(/chilli/g, "chilly") === tLower.replace(/chilli/g, "chilly") ||
+            lowerName.replace(/cheezy/g, "cheese") === tLower.replace(/cheezy/g, "cheese") ||
+            lowerName.replace(/\./g, "") === tLower.replace(/\./g, "")
+          ) {
+            matchedTarget = target;
+            break;
+          }
+        }
+
+        if (matchedTarget) {
+          if (p.name !== matchedTarget.name || p.price !== matchedTarget.price || p.bogo !== matchedTarget.bogo || p.category !== matchedTarget.category) {
+            p.name = matchedTarget.name;
+            p.price = matchedTarget.price;
+            p.bogo = matchedTarget.bogo;
+            p.category = matchedTarget.category;
+            updated = true;
+          }
+        } else if (lowerName.includes("achari masti")) {
           if (lowerName.includes("burger")) {
-            p.name = lowerName.includes("cheese blast") ? "Cheese Blast Cheese Jalapeno Burger" : "Cheese Jalapeno Burger";
+            p.name = lowerName.includes("cheese blast") ? "Cheese Blast Cheezy Jalapeno" : "Cheezy Jalapeno Burger";
             p.price = lowerName.includes("cheese blast") ? 159 : 139;
             p.bogo = true;
+            p.category = "cat1";
           } else if (lowerName.includes("sandwich")) {
-            p.name = "Cheese Jalapeno Sandwich";
+            p.name = "Cheezy Jalapeno Sandwich";
             p.price = 189;
             p.bogo = false;
+            p.category = "cat3";
           } else if (lowerName.includes("tikka")) {
-            p.name = "Cheese Jalapeno Tikka Pav";
+            p.name = "Cheezy Jalapeno Tikka Pav";
             p.price = 189;
             p.bogo = true;
+            p.category = "cat5";
           }
           updated = true;
         } else if (!p.category || (p.category !== "cat1" && p.category !== "cat5")) {
@@ -187,25 +222,22 @@ const db = {
       }
     });
 
-    // Ensure Indian Style Paneer Sandwich exists
-    if (!list.some(p => p.name && p.name.toLowerCase().includes("indian style paneer"))) {
-      const newProd = {
-        id: "p94",
-        name: "Indian Style Paneer Sandwich",
-        price: 199,
-        category: "cat3",
-        available: true,
-        bogo: false,
-        recipe: { ing4: 3, ing3: 1, ing12: 50 }
-      };
-      const p44Idx = list.findIndex(p => p.id === "p44");
-      if (p44Idx !== -1) {
-        list.splice(p44Idx + 1, 0, newProd);
-      } else {
-        list.push(newProd);
+    // 2. Ensure all target items exist in catalog
+    Object.entries(targetCatalog).forEach(([targetId, target]) => {
+      const exists = list.some(p => p.id === targetId || (p.name && p.name.toLowerCase().trim() === target.name.toLowerCase().trim()));
+      if (!exists) {
+        list.push({
+          id: targetId,
+          name: target.name,
+          price: target.price,
+          category: target.category,
+          available: true,
+          bogo: target.bogo,
+          recipe: {}
+        });
+        updated = true;
       }
-      updated = true;
-    }
+    });
 
     return { updated, list };
   },
@@ -218,22 +250,21 @@ const db = {
       this.set("initialized", true);
       console.log("Crust & Chilly POS: Database initialized with catalog seed data.");
     } else {
-      // Auto-update existing settings with new address, phone, and upiId
+      // Auto-update existing settings with official address, phone, owner, and upiId
       const currentSettings = this.get("settings") || {};
-      currentSettings.address = "Shop-09, Shree sanidhya flora, Turquoise BLU Rd, Shela, Ahmedabad, Gujarat 380057";
-      currentSettings.phone = "096648 70840";
+      currentSettings.restaurantName = "Crust & Chilly";
+      currentSettings.address = "Shop No. 09, Shree Sanidhya Flora, Near Turquoise BLU Road, Shela, Ahmedabad - 380057, Gujarat";
+      currentSettings.phone = "+91 9664870840";
+      currentSettings.owner = "Sanket Brahmbhatt";
+      currentSettings.instagram = "crustandchillyindia";
       currentSettings.upiId = "7487980840@okbizaxis";
       this.set("settings", currentSettings);
 
-
-
-
-      // Auto-update catalog with new prices, names, items, and BOGO policy
+      // Auto-update catalog with official menu prices, names, items, and BOGO policy
+      const currentProducts = this.get("products") || [];
       const normResult = this.normalizeProducts(currentProducts);
       if (normResult.updated) {
         this.set("products", normResult.list);
-      } else if (productsUpdated) {
-        this.set("products", currentProducts);
       }
     }
 
@@ -476,8 +507,8 @@ const db = {
       { id: "p48", name: "Veg Delight Frankie", price: 129, category: "cat4", available: true, bogo: false, recipe: { ing5: 1 } },
       { id: "p49", name: "Corn Delight Frankie", price: 139, category: "cat4", available: true, bogo: false, recipe: { ing5: 1 } },
       { id: "p50", name: "Paneer Delight Frankie", price: 149, category: "cat4", available: true, bogo: false, recipe: { ing5: 1, ing12: 50 } },
-      { id: "p51", name: "Cheese Chilli Paneer Frankie", price: 149, category: "cat4", available: true, bogo: false, recipe: { ing5: 1, ing12: 50, ing3: 1 } },
-      { id: "p52", name: "Cheese Chilli Corn Frankie", price: 149, category: "cat4", available: true, bogo: false, recipe: { ing5: 1, ing3: 1 } },
+      { id: "p51", name: "Cheese Chilly Paneer Frankie", price: 149, category: "cat4", available: true, bogo: false, recipe: { ing5: 1, ing12: 50, ing3: 1 } },
+      { id: "p52", name: "Cheese Chilly Corn Frankie", price: 149, category: "cat4", available: true, bogo: false, recipe: { ing5: 1, ing3: 1 } },
       { id: "p53", name: "Tandoori Frankie", price: 169, category: "cat4", available: true, bogo: false, recipe: { ing5: 1 } },
       { id: "p54", name: "Peri Peri Frankie", price: 169, category: "cat4", available: true, bogo: false, recipe: { ing5: 1 } },
       { id: "p55", name: "Crust & Chilly Special Frankie", price: 189, category: "cat4", available: true, bogo: false, recipe: { ing5: 1, ing3: 1, ing12: 55 } },
@@ -495,7 +526,7 @@ const db = {
       // Premium (BOGO: true)
       { id: "p63", name: "Tandoori Tikka Pav", price: 199, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
       { id: "p64", name: "Peri Peri Tikka Pav", price: 199, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
-      { id: "p65", name: "Hot & Spicy Chilli Garlic Tikka Pav", price: 199, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
+      { id: "p65", name: "Hot & Spicy Chilly Garlic Tikka Pav", price: 199, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
       { id: "p66", name: "Afghani Garlic Tikka Pav", price: 209, category: "cat5", available: true, bogo: true, recipe: { ing1: 1 } },
       { id: "p67", name: "Crust & Chilly Special Tikka Pav", price: 229, category: "cat5", available: true, bogo: true, recipe: { ing1: 1, ing3: 1 } },
 
@@ -539,13 +570,15 @@ const db = {
     // 5. System Settings
     const settings = {
       restaurantName: "Crust & Chilly",
+      owner: "Sanket Brahmbhatt",
+      phone: "+91 9664870840",
+      address: "Shop No. 09, Shree Sanidhya Flora, Near Turquoise BLU Road, Shela, Ahmedabad - 380057, Gujarat",
+      instagram: "crustandchillyindia",
+      upiId: "7487980840@okbizaxis",
       gstPercentage: 5,
       enableGst: false,
       serviceCharge: 0,
-      currencySymbol: "₹",
-      phone: "096648 70840",
-      address: "Shop-09, Shree sanidhya flora, Turquoise BLU Rd, Shela, Ahmedabad, Gujarat 380057",
-      upiId: "7487980840@okbizaxis"
+      currencySymbol: "₹"
     };
     this.set("settings", settings);
 
@@ -968,7 +1001,7 @@ const db = {
 window.db = db;
 
 // Database startup: Safe non-destructive load
-const TARGET_MENU_VERSION = "crust_chilly_v11";
+const TARGET_MENU_VERSION = "crust_chilly_v12";
 if (localStorage.getItem("cc_pos_menu_version") !== TARGET_MENU_VERSION) {
   // Update version flag without clearing orders, transactions, or user session
   db.init(false);
