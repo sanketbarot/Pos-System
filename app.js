@@ -485,18 +485,35 @@ service cloud.firestore {
       document.getElementById("header-role").textContent = this.currentUser.role;
       document.getElementById("header-avatar-letter").textContent = this.currentUser.name.charAt(0);
 
-      // Hide or show links in sidebar based on dynamic permissions matrix
-      const role = this.currentUser.role;
-      const permissions = window.db.get("permissions") || {
+      // Ensure admin always has unrestricted full permissions across all views
+      let permissions = window.db.get("permissions") || {
         admin: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
         manager: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
         staff: ["pos", "orders"]
       };
-      const allowedViews = permissions[role] || ["pos", "orders"];
+      
+      const allAppViews = ["dashboard", "reports", "counter", "pos", "orders", "menu"];
+      if (!permissions.admin) permissions.admin = [...allAppViews];
+      allAppViews.forEach(v => {
+        if (!permissions.admin.includes(v)) permissions.admin.push(v);
+      });
+      if (permissions.manager && !permissions.manager.includes("counter")) {
+        permissions.manager.push("counter");
+      }
+      window.db.set("permissions", permissions);
+
+      const role = this.currentUser.role;
+      const allowedViews = (role === "admin") ? allAppViews : (permissions[role] || ["pos", "orders"]);
 
       document.querySelectorAll('.nav-menu .nav-item').forEach(el => {
         const view = el.getAttribute("data-view");
-        el.style.display = allowedViews.includes(view) ? "block" : "none";
+        el.style.display = (role === "admin" || allowedViews.includes(view)) ? "block" : "none";
+      });
+
+      // Update mobile bottom nav visibility
+      document.querySelectorAll(".mobile-bottom-nav .mobile-nav-item").forEach(item => {
+        const view = item.getAttribute("data-view");
+        item.style.display = (role === "admin" || allowedViews.includes(view)) ? "flex" : "none";
       });
 
       // Trigger routing - preserving existing valid hash on refresh
@@ -524,12 +541,15 @@ service cloud.firestore {
     let hash = window.location.hash.replace("#", "");
 
     // Read dynamic permissions matrix
+    const allAppViews = ["dashboard", "reports", "counter", "pos", "orders", "menu"];
     const permissions = window.db.get("permissions") || {
-      admin: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
-      manager: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
+      admin: allAppViews,
+      manager: allAppViews,
       staff: ["pos", "orders"]
     };
-    const allowedViews = permissions[role] || ["pos", "orders"];
+    
+    // Admin role has unconditional 100% full access to all sections
+    const allowedViews = (role === "admin") ? allAppViews : (permissions[role] || ["pos", "orders"]);
 
     // Landing fallback defaults to first allowed view
     const defaultHash = allowedViews.includes("dashboard") ? "dashboard" : allowedViews[0];
@@ -540,7 +560,7 @@ service cloud.firestore {
       return;
     }
 
-    if (!allowedViews.includes(hash)) {
+    if (role !== "admin" && !allowedViews.includes(hash)) {
       window.showToast(`Access Restricted: your role (${role}) does not have permission to access this page.`, "error");
       window.location.hash = `#${defaultHash}`;
       return;

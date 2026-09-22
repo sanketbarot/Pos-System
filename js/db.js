@@ -652,12 +652,27 @@ const db = {
     if (!this.get("orderCounter")) localStorage.setItem(DB_PREFIX + "orderCounter", JSON.stringify(1000));
 
     // 7. Initialize default permissions matrix
-    const permissions = {
-      admin: ["dashboard", "pos", "orders", "menu", "reports"],
-      manager: ["dashboard", "pos", "orders", "menu"],
+    const defaultPerms = {
+      admin: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
+      manager: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
       staff: ["pos", "orders"]
     };
-    if (!this.get("permissions")) this.set("permissions", permissions);
+    const currentPerms = this.get("permissions");
+    if (!currentPerms) {
+      this.set("permissions", defaultPerms);
+    } else {
+      let updated = false;
+      const allAdminViews = ["dashboard", "reports", "counter", "pos", "orders", "menu"];
+      if (!currentPerms.admin) { currentPerms.admin = [...allAdminViews]; updated = true; }
+      allAdminViews.forEach(v => {
+        if (!currentPerms.admin.includes(v)) { currentPerms.admin.push(v); updated = true; }
+      });
+      if (currentPerms.manager && !currentPerms.manager.includes("counter")) {
+        currentPerms.manager.push("counter");
+        updated = true;
+      }
+      if (updated) this.set("permissions", currentPerms);
+    }
   },
 
   // Helper APIs for CRUD

@@ -1,18 +1,18 @@
 // Crust & Chilly - Service Worker for PWA Support
-const CACHE_NAME = "cc-pos-v4.5";
+const CACHE_NAME = "cc-pos-v4.6";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
-  "./style.css?v=4.5",
+  "./style.css?v=4.6",
   "./logo.jpg",
-  "./app.js?v=4.5",
-  "./js/db.js?v=4.5",
-  "./js/dashboard.js?v=4.5",
-  "./js/pos.js?v=4.5",
-  "./js/orders.js?v=4.5",
-  "./js/menu.js?v=4.5",
-  "./js/reports.js?v=4.5",
-  "./js/counter.js?v=4.5",
+  "./app.js?v=4.6",
+  "./js/db.js?v=4.6",
+  "./js/dashboard.js?v=4.6",
+  "./js/pos.js?v=4.6",
+  "./js/orders.js?v=4.6",
+  "./js/menu.js?v=4.6",
+  "./js/reports.js?v=4.6",
+  "./js/counter.js?v=4.6",
   "./manifest.json",
   "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
   "https://cdn.jsdelivr.net/npm/chart.js"

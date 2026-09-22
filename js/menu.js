@@ -502,17 +502,18 @@ window.views.menu = {
 
   renderPermissions(mount) {
     const permissions = window.db.get("permissions") || {
-      admin: ["dashboard", "pos", "orders", "menu", "reports"],
-      manager: ["dashboard", "pos", "orders", "menu"],
+      admin: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
+      manager: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
       staff: ["pos", "orders"]
     };
 
     const viewsList = [
       { id: "dashboard", name: "Dashboard Overview", desc: "View business sales summaries, profits, and charts." },
+      { id: "reports", name: "Sales & Profit Reports", desc: "Granular historical analytics reports and CSV exports." },
+      { id: "counter", name: "Daily Counter & Bills", desc: "Day-by-day cash & UPI counter totals, bills history & reprints." },
       { id: "pos", name: "POS Terminal Billing", desc: "Access the cashier billing screen to create orders." },
       { id: "orders", name: "KDS Kitchen Queue", desc: "Display running kitchen orders and advance status." },
-      { id: "menu", name: "Menu Setup & Recipes", desc: "Manage categories, food prices, BOGO, and recipes." },
-      { id: "reports", name: "Sales & Profit Reports", desc: "Granular historical analytics reports and CSV exports." }
+      { id: "menu", name: "Menu Setup & Recipes", desc: "Manage categories, food prices, BOGO, and recipes." }
     ];
 
     const rolesList = [
