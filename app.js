@@ -182,10 +182,10 @@ const app = {
     // Setup global db-update listener
     window.addEventListener("db-update", (e) => {
       const detail = e.detail || {};
-      if (detail.source !== "cloud") {
-        this.updateSidebarSummary();
-      }
-      if (detail.key === "products" || detail.key === "categories") {
+      this.updateSidebarSummary();
+      if (detail.source === "cloud") {
+        this.onCloudUpdate(detail.key, detail.val);
+      } else if (detail.key === "products" || detail.key === "categories") {
         if (this.activeView === "pos" && window.views.pos && typeof window.views.pos.renderProducts === "function") {
           window.views.pos.renderProducts();
         } else if (this.activeView === "menu" && window.views.menu && typeof window.views.menu.render === "function") {
@@ -316,10 +316,20 @@ service cloud.firestore {
         }
       }
 
-      // If on POS view, refresh products stock counts & table indicators
+      // If on Reports view, refresh reports
+      if (this.activeView === "reports" && window.views.reports) {
+        if (typeof window.views.reports.processDataAndRender === "function") {
+          window.views.reports.processDataAndRender();
+        }
+      }
+
+      // If on POS view, refresh products stock counts, table indicators, and customer autocompletes
       if (this.activeView === "pos" && window.views.pos) {
         if (typeof window.views.pos.renderProducts === "function") {
           window.views.pos.renderProducts();
+        }
+        if (typeof window.views.pos.populateCustomerAutocompletes === "function") {
+          window.views.pos.populateCustomerAutocompletes();
         }
       }
 
@@ -327,13 +337,37 @@ service cloud.firestore {
       window.showToast("🔔 Live Sync: Orders updated from Cloud!", "info");
     }
 
-    // 2. Products or Categories updated
+    // 2. Expenses or Purchases updated
+    if (key === "expenses" || key === "purchases") {
+      this.updateSidebarSummary();
+      if (this.activeView === "dashboard" && window.views.dashboard) {
+        if (typeof window.views.dashboard.calculateAndRenderMetrics === "function") {
+          window.views.dashboard.calculateAndRenderMetrics();
+        }
+      }
+      if (this.activeView === "reports" && window.views.reports) {
+        if (typeof window.views.reports.processDataAndRender === "function") {
+          window.views.reports.processDataAndRender();
+        }
+      }
+    }
+
+    // 3. Products or Categories updated
     if (key === "products" || key === "categories") {
       if (this.activeView === "pos" && window.views.pos) {
         if (typeof window.views.pos.renderCategories === "function") window.views.pos.renderCategories();
         if (typeof window.views.pos.renderProducts === "function") window.views.pos.renderProducts();
       } else if (this.activeView === "menu" && window.views.menu) {
         if (typeof window.views.menu.render === "function") window.views.menu.render();
+      }
+    }
+
+    // 4. Settings updated
+    if (key === "settings") {
+      if (this.activeView === "dashboard" && window.views.dashboard) {
+        if (typeof window.views.dashboard.calculateAndRenderMetrics === "function") {
+          window.views.dashboard.calculateAndRenderMetrics();
+        }
       }
     }
   },

@@ -244,27 +244,30 @@ const db = {
 
   // Initialize Database with Demo Data
   init(force = false) {
-    // Note: NEVER clear localStorage completely to prevent erasing orders, settings, or user session
+    // Safe initialization without erasing orders, transactions, or user session
     if (!this.get("initialized") || force) {
       this.seedData();
-      this.set("initialized", true);
+      localStorage.setItem(DB_PREFIX + "initialized", "true");
       console.log("Crust & Chilly POS: Database initialized with catalog seed data.");
     } else {
-      // Auto-update existing settings with official address, phone, owner, and upiId
+      // Auto-update missing settings without overwriting user custom changes
       const currentSettings = this.get("settings") || {};
-      currentSettings.restaurantName = "Crust & Chilly";
-      currentSettings.address = "Shop No. 09, Shree Sanidhya Flora, Near Turquoise BLU Road, Shela, Ahmedabad - 380057, Gujarat";
-      currentSettings.phone = "+91 9664870840";
-      currentSettings.owner = "Sanket Brahmbhatt";
-      currentSettings.instagram = "crustandchillyindia";
-      currentSettings.upiId = "7487980840@okbizaxis";
-      this.set("settings", currentSettings);
+      let settingsChanged = false;
+      if (!currentSettings.restaurantName) { currentSettings.restaurantName = "Crust & Chilly"; settingsChanged = true; }
+      if (!currentSettings.address) { currentSettings.address = "Shop No. 09, Shree Sanidhya Flora, Near Turquoise BLU Road, Shela, Ahmedabad - 380057, Gujarat"; settingsChanged = true; }
+      if (!currentSettings.phone) { currentSettings.phone = "+91 9664870840"; settingsChanged = true; }
+      if (!currentSettings.owner) { currentSettings.owner = "Sanket Brahmbhatt"; settingsChanged = true; }
+      if (!currentSettings.instagram) { currentSettings.instagram = "crustandchillyindia"; settingsChanged = true; }
+      if (!currentSettings.upiId) { currentSettings.upiId = "7487980840@okbizaxis"; settingsChanged = true; }
+      if (settingsChanged) {
+        localStorage.setItem(DB_PREFIX + "settings", JSON.stringify(currentSettings));
+      }
 
-      // Auto-update catalog with official menu prices, names, items, and BOGO policy
+      // Auto-normalize local catalog to ensure all target items exist
       const currentProducts = this.get("products") || [];
       const normResult = this.normalizeProducts(currentProducts);
       if (normResult.updated) {
-        this.set("products", normResult.list);
+        localStorage.setItem(DB_PREFIX + "products", JSON.stringify(normResult.list));
       }
     }
 
@@ -285,17 +288,10 @@ const db = {
         }
         this.fs = firebase.firestore();
 
-        // Enable offline persistence safely
-        this.fs.enablePersistence().catch(err => {
+        // Enable offline persistence safely with multi-tab synchronization
+        this.fs.enablePersistence({ synchronizeTabs: true }).catch(err => {
           console.warn("Firestore offline persistence notice:", err.code);
         });
-
-        // Ensure cloud Firestore has the updated products catalog immediately
-        const localProds = this.get("products");
-        if (localProds && Array.isArray(localProds)) {
-          const normLocal = this.normalizeProducts(localProds);
-          this.syncToFirebase("products", normLocal.list);
-        }
 
         // Real-time synchronization of local keys with Firestore documents
         const SYNC_KEYS = ["users", "categories", "ingredients", "products", "settings", "permissions", "orders", "expenses", "purchases", "orderCounter"];
@@ -315,6 +311,73 @@ const db = {
                 }
 
                 if (val !== undefined && val !== null) {
+                  // --- BI-DIRECTIONAL MERGE FOR ORDERS (Never lose any order across PC & Laptop) ---
+                  if (key === "orders" && Array.isArray(val)) {
+                    const localOrders = this.get("orders") || [];
+                    const mergedMap = new Map();
+
+                    // 1. Ingest all incoming remote orders from cloud
+                    val.forEach(o => {
+                      if (o && o.id) mergedMap.set(o.id, o);
+                    });
+
+                    // 2. Ingest local orders: preserve any locally created orders not yet in cloud, and preserve newest status
+                    let hasLocalAdditions = false;
+                    localOrders.forEach(localO => {
+                      if (!localO || !localO.id) return;
+                      if (!mergedMap.has(localO.id)) {
+                        mergedMap.set(localO.id, localO);
+                        hasLocalAdditions = true;
+                      } else {
+                        const remoteO = mergedMap.get(localO.id);
+                        const localTime = new Date(localO.updatedAt || localO.createdAt || 0).getTime();
+                        const remoteTime = new Date(remoteO.updatedAt || remoteO.createdAt || 0).getTime();
+                        if (localTime > remoteTime) {
+                          mergedMap.set(localO.id, localO);
+                          hasLocalAdditions = true;
+                        }
+                      }
+                    });
+
+                    // Sort newest first
+                    val = Array.from(mergedMap.values()).sort((a, b) => {
+                      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+                    });
+
+                    // If local device had orders or updates not yet in cloud, push merged back to cloud!
+                    if (hasLocalAdditions) {
+                      this.syncToFirebase("orders", val);
+                    }
+                  }
+
+                  // --- BI-DIRECTIONAL MERGE FOR EXPENSES & PURCHASES ---
+                  if ((key === "expenses" || key === "purchases") && Array.isArray(val)) {
+                    const localList = this.get(key) || [];
+                    const mergedMap = new Map();
+                    val.forEach(item => { if (item && item.id) mergedMap.set(item.id, item); });
+                    let hasLocalAdditions = false;
+                    localList.forEach(localItem => {
+                      if (!localItem || !localItem.id) return;
+                      if (!mergedMap.has(localItem.id)) {
+                        mergedMap.set(localItem.id, localItem);
+                        hasLocalAdditions = true;
+                      }
+                    });
+                    val = Array.from(mergedMap.values()).sort((a, b) => {
+                      return new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0);
+                    });
+                    if (hasLocalAdditions) {
+                      this.syncToFirebase(key, val);
+                    }
+                  }
+
+                  // --- ORDER COUNTER KEEP HIGHEST ---
+                  if (key === "orderCounter") {
+                    const localCounter = this.get("orderCounter") || 1000;
+                    const remoteCounter = Number(val) || 1000;
+                    val = Math.max(localCounter, remoteCounter);
+                  }
+
                   // Normalize products if fetched from cloud to keep menu items & prices up-to-date
                   if (key === "products" && Array.isArray(val)) {
                     const normCloud = this.normalizeProducts(val);
@@ -330,7 +393,7 @@ const db = {
                     localStorage.setItem(DB_PREFIX + key, remoteStr);
                     window.dispatchEvent(new CustomEvent("db-update", { detail: { key, val, source: "cloud" } }));
 
-                    // Trigger reactive UI update in app controller if available
+                    // Trigger reactive UI update in app controller
                     if (window.app && typeof window.app.onCloudUpdate === "function") {
                       window.app.onCloudUpdate(key, val);
                     }
@@ -340,7 +403,7 @@ const db = {
                 // If document does NOT exist in cloud, upload local copy only if non-empty
                 const localData = this.get(key);
                 if (localData !== null) {
-                  if (key !== "orders" || (Array.isArray(localData) && localData.length > 0)) {
+                  if (!["orders", "expenses", "purchases"].includes(key) || (Array.isArray(localData) && localData.length > 0)) {
                     this.syncToFirebase(key, localData);
                   }
                 }
@@ -583,10 +646,10 @@ const db = {
     this.set("settings", settings);
 
     // 6. Initialize empty lists for transactions only if not already present
-    if (!this.get("orders")) this.set("orders", []);
-    if (!this.get("expenses")) this.set("expenses", []);
-    if (!this.get("purchases")) this.set("purchases", []);
-    if (!this.get("orderCounter")) this.set("orderCounter", 1000);
+    if (!this.get("orders")) localStorage.setItem(DB_PREFIX + "orders", JSON.stringify([]));
+    if (!this.get("expenses")) localStorage.setItem(DB_PREFIX + "expenses", JSON.stringify([]));
+    if (!this.get("purchases")) localStorage.setItem(DB_PREFIX + "purchases", JSON.stringify([]));
+    if (!this.get("orderCounter")) localStorage.setItem(DB_PREFIX + "orderCounter", JSON.stringify(1000));
 
     // 7. Initialize default permissions matrix
     const permissions = {
@@ -720,7 +783,9 @@ const db = {
 
     // 3. Create the Order
     const orders = this.get("orders") || [];
-    const nextCounter = (this.get("orderCounter") || 1000) + 1;
+    const currentCounter = this.get("orderCounter") || 1000;
+    const maxOrderNum = orders.reduce((max, o) => Math.max(max, Number(o.orderNumber) || 0), currentCounter);
+    const nextCounter = maxOrderNum + 1;
     this.set("orderCounter", nextCounter);
 
     // Calculate daily token number (starts from 1, resets daily based on IST)
@@ -769,7 +834,8 @@ const db = {
       notes: orderData.notes || "",
       paymentMethod: orderData.paymentMethod || "Cash", // Cash, UPI, Card
       status: "Pending", // Pending, Preparing, Ready, Completed, Cancelled
-      createdAt: now.toISOString()
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString()
     };
 
     orders.unshift(newOrder); // Add to top
@@ -790,6 +856,7 @@ const db = {
     if (index !== -1) {
       const oldStatus = orders[index].status;
       orders[index].status = newStatus;
+      orders[index].updatedAt = new Date().toISOString();
 
       // Track when preparing started for timer countdown
       if (newStatus === "Preparing" && !orders[index].preparingStartedAt) {
