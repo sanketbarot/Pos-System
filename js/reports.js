@@ -21,21 +21,23 @@ window.views.reports = {
       <div class="view-animate" style="display: flex; flex-direction: column; gap: 20px;">
         
         <!-- Date Filters Control Panel Bar -->
-        <div class="glass-card" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <span style="font-size: 13px; font-weight: 800; color: var(--text-dark);"><i class="fa-solid fa-calendar-days" style="color: #2563eb; margin-right: 6px;"></i> Custom Period:</span>
-            <input type="date" id="report-start-date" class="form-input" style="height: 36px; font-size: 12.5px; padding: 4px 12px; border-radius: 14px;" value="${this.startDate}">
-            <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">to</span>
-            <input type="date" id="report-end-date" class="form-input" style="height: 36px; font-size: 12.5px; padding: 4px 12px; border-radius: 14px;" value="${this.endDate}">
-            <button class="btn btn-primary" id="btn-reports-apply-filter" style="padding: 0 18px; height: 36px; font-size: 12.5px; border-radius: 14px;">
+        <div class="glass-card report-filter-bar" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+          <div class="report-dates-group" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 13px; font-weight: 800; color: var(--text-dark); white-space: nowrap;"><i class="fa-solid fa-calendar-days" style="color: #2563eb; margin-right: 6px;"></i> Custom Period:</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <input type="date" id="report-start-date" class="form-input" style="height: 38px; font-size: 12.5px; padding: 4px 12px; border-radius: 12px;" value="${this.startDate}">
+              <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">to</span>
+              <input type="date" id="report-end-date" class="form-input" style="height: 38px; font-size: 12.5px; padding: 4px 12px; border-radius: 12px;" value="${this.endDate}">
+            </div>
+            <button class="btn btn-primary" id="btn-reports-apply-filter" style="padding: 0 18px; height: 38px; font-size: 12.5px; border-radius: 12px; font-weight: 700;">
               Apply Filters
             </button>
           </div>
-          <div style="display: flex; gap: 10px;">
-            <button class="btn btn-secondary" id="btn-report-export-csv" style="padding: 0 16px; height: 36px; font-size: 12.5px; border-radius: 14px;">
+          <div class="report-actions-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" id="btn-report-export-csv" style="padding: 0 16px; height: 38px; font-size: 12.5px; border-radius: 12px; font-weight: 700;">
               <i class="fa-solid fa-file-csv" style="color: #2563eb; font-size: 14px;"></i> Export CSV
             </button>
-            <button class="btn btn-secondary" id="btn-report-print-summary" style="padding: 0 16px; height: 36px; font-size: 12.5px; border-radius: 14px;">
+            <button class="btn btn-secondary" id="btn-report-print-summary" style="padding: 0 16px; height: 38px; font-size: 12.5px; border-radius: 12px; font-weight: 700;">
               <i class="fa-solid fa-print" style="color: #2563eb;"></i> Print Summary
             </button>
           </div>

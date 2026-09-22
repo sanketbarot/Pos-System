@@ -15,18 +15,20 @@ window.views.counter = {
       <div class="view-animate" style="display: flex; flex-direction: column; gap: 20px;">
         
         <!-- Top Date & Quick Action Bar -->
-        <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <span style="font-size: 14px; font-weight: 800; color: var(--text-dark);">
+        <div class="glass-card counter-control-bar" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+          <div class="counter-date-group" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span style="font-size: 14px; font-weight: 800; color: var(--text-dark); white-space: nowrap;">
               <i class="fa-solid fa-cash-register" style="color: #2563eb; margin-right: 6px;"></i> Daily Counter:
             </span>
             <input type="date" id="counter-date-picker" class="form-input" value="${this.activeDateStr}" style="height: 38px; font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 12px;">
-            <button class="btn btn-secondary" id="btn-counter-today" style="padding: 0 14px; height: 38px; font-size: 12px; border-radius: 12px; font-weight: 700;">
-              Today
-            </button>
-            <button class="btn btn-secondary" id="btn-counter-yesterday" style="padding: 0 14px; height: 38px; font-size: 12px; border-radius: 12px; font-weight: 700;">
-              Yesterday
-            </button>
+            <div class="counter-quick-days" style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" id="btn-counter-today" style="padding: 0 14px; height: 38px; font-size: 12px; border-radius: 12px; font-weight: 700;">
+                Today
+              </button>
+              <button class="btn btn-secondary" id="btn-counter-yesterday" style="padding: 0 14px; height: 38px; font-size: 12px; border-radius: 12px; font-weight: 700;">
+                Yesterday
+              </button>
+            </div>
           </div>
 
           <div style="display: flex; align-items: center; gap: 10px;">
@@ -37,7 +39,7 @@ window.views.counter = {
         </div>
 
         <!-- Daily Counter KPI Cards Grid -->
-        <div class="dashboard-grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 0;">
+        <div class="dashboard-grid-stats counter-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 0;">
           <!-- Total Collection -->
           <div class="glass-card stat-card" style="border-left: 4px solid #2563eb;">
             <div class="stat-info">
@@ -98,14 +100,14 @@ window.views.counter = {
             </div>
 
             <!-- Search and Filter controls -->
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-              <select id="counter-payment-filter" class="form-input" style="height: 38px; font-size: 12px; font-weight: 700; border-radius: 12px; width: 120px;">
+            <div class="counter-search-row" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <select id="counter-payment-filter" class="form-input" style="height: 38px; font-size: 12px; font-weight: 700; border-radius: 12px; width: 110px; flex-shrink: 0;">
                 <option value="all">All Modes</option>
                 <option value="Cash">Cash</option>
                 <option value="UPI">UPI</option>
                 <option value="Card">Card</option>
               </select>
-              <div style="position: relative; width: 240px;">
+              <div class="counter-search-box" style="position: relative; width: 240px;">
                 <input type="text" id="counter-search-input" class="form-input" placeholder="Search Cust / Phone / Bill#" style="padding: 6px 12px 6px 30px; font-size: 12.5px; height: 38px; border-radius: 12px; width: 100%;">
                 <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 12px; color: var(--text-muted); font-size: 12px; pointer-events: none;"></i>
               </div>
