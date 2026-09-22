@@ -200,6 +200,9 @@ const app = {
     // Bind route listener
     window.onhashchange = () => this.route();
 
+    // Setup PWA Service Worker and Install Prompts
+    this.setupPWA();
+
     // Start header timer
     this.startHeaderTimer();
   },
@@ -295,6 +298,96 @@ service cloud.firestore {
     if (pill) pill.onclick = openHelp;
   },
 
+  deferredInstallPrompt: null,
+
+  setupPWA() {
+    // 1. Register Service Worker for PWA
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js?v=4.5")
+          .then((reg) => {
+            console.log("[PWA] Service Worker registered with scope:", reg.scope);
+          })
+          .catch((err) => {
+            console.warn("[PWA] Service Worker registration failed:", err);
+          });
+      });
+    }
+
+    // 2. Capture install prompt on Desktop & Android Chrome/Edge
+    const installBtn = document.getElementById("btn-pwa-install");
+    const mobileInstallBtn = document.getElementById("mobile-btn-pwa-install");
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      this.deferredInstallPrompt = e;
+      if (installBtn) installBtn.style.display = "inline-flex";
+      console.log("[PWA] beforeinstallprompt event captured and ready");
+    });
+
+    const triggerInstall = () => {
+      if (this.deferredInstallPrompt) {
+        this.deferredInstallPrompt.prompt();
+        this.deferredInstallPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === "accepted") {
+            window.showToast("Thank you for installing Crust & Chilly App!", "success");
+            if (installBtn) installBtn.style.display = "none";
+          }
+          this.deferredInstallPrompt = null;
+        });
+      } else {
+        // Fallback guidance for iOS Safari or other browsers
+        const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+        const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+
+        if (isStandalone) {
+          window.showToast("App is already installed and running!", "info");
+          return;
+        }
+
+        window.customModal.show({
+          title: "Install Crust & Chilly App",
+          bodyHtml: isIos ? `
+            <div style="font-size: 13.5px; line-height: 1.6; color: var(--text-dark);">
+              <div style="margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; background: #eff6ff; color: #1e40af; font-weight: 700;">
+                <i class="fa-solid fa-mobile-screen"></i> iPhone / iPad પર એપ બનાવવાની રીત:
+              </div>
+              <ol style="padding-left: 20px; margin: 10px 0; color: var(--text-muted);">
+                <li>Safari બ્રાઉઝરમાં નીચે <strong>Share બટન</strong> (<i class="fa-solid fa-arrow-up-from-bracket"></i>) દબાવો.</li>
+                <li>નીચે સ્ક્રોલ કરીને <strong>"Add to Home Screen"</strong> (<i class="fa-solid fa-plus-square"></i>) પસંદ કરો.</li>
+                <li>ઉપર ખૂણામાં <strong>"Add"</strong> પર ક્લિક કરો.</li>
+              </ol>
+              <p style="color: var(--text-dark); font-size: 12.5px; font-weight: 600;">તમારા ફોનની હોમ સ્ક્રીન પર ક્રસ્ટ એન્ડ ચીલીની એપ બની જશે!</p>
+            </div>
+          ` : `
+            <div style="font-size: 13.5px; line-height: 1.6; color: var(--text-dark);">
+              <div style="margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; background: #eff6ff; color: #1e40af; font-weight: 700;">
+                <i class="fa-solid fa-download"></i> એપ ઇન્સ્ટોલ કરવાની રીત:
+              </div>
+              <ol style="padding-left: 20px; margin: 10px 0; color: var(--text-muted);">
+                <li>બ્રાઉઝરમાં જમણી બાજુ ઉપરના <strong>3 ડોટ્સ (Menu)</strong> પર ક્લિક કરો.</li>
+                <li><strong>"Install app"</strong> અથવા <strong>"Add to Home screen"</strong> પર ક્લિક કરો.</li>
+                <li><strong>"Install"</strong> કન્ફર્મ કરો.</li>
+              </ol>
+              <p style="color: var(--text-dark); font-size: 12.5px; font-weight: 600;">આ એપ તમારા મોબાઈલ અને કમ્પ્યુટરમાં સોફ્ટવેરની જેમ સેવ થઈ જશે!</p>
+            </div>
+          `,
+          confirmText: "Got It",
+          hideFooter: false
+        });
+      }
+    };
+
+    if (installBtn) installBtn.onclick = triggerInstall;
+    if (mobileInstallBtn) mobileInstallBtn.onclick = triggerInstall;
+
+    window.addEventListener("appinstalled", () => {
+      console.log("[PWA] App installed successfully");
+      if (installBtn) installBtn.style.display = "none";
+      window.showToast("Crust & Chilly App installed successfully!", "success");
+    });
+  },
+
   onCloudUpdate(key, val) {
     console.log(`[Cloud Sync] Received cloud update for '${key}'`);
 
@@ -320,6 +413,13 @@ service cloud.firestore {
       if (this.activeView === "reports" && window.views.reports) {
         if (typeof window.views.reports.processDataAndRender === "function") {
           window.views.reports.processDataAndRender();
+        }
+      }
+
+      // If on Daily Counter view, refresh counter & table
+      if (this.activeView === "counter" && window.views.counter) {
+        if (typeof window.views.counter.render === "function") {
+          window.views.counter.render();
         }
       }
 
@@ -388,8 +488,8 @@ service cloud.firestore {
       // Hide or show links in sidebar based on dynamic permissions matrix
       const role = this.currentUser.role;
       const permissions = window.db.get("permissions") || {
-        admin: ["dashboard", "pos", "orders", "menu", "reports"],
-        manager: ["dashboard", "pos", "orders", "menu"],
+        admin: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
+        manager: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
         staff: ["pos", "orders"]
       };
       const allowedViews = permissions[role] || ["pos", "orders"];
@@ -425,8 +525,8 @@ service cloud.firestore {
 
     // Read dynamic permissions matrix
     const permissions = window.db.get("permissions") || {
-      admin: ["dashboard", "pos", "orders", "menu", "reports"],
-      manager: ["dashboard", "pos", "orders", "menu"],
+      admin: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
+      manager: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
       staff: ["pos", "orders"]
     };
     const allowedViews = permissions[role] || ["pos", "orders"];
@@ -463,13 +563,24 @@ service cloud.firestore {
       }
     });
 
+    // Highlight mobile bottom navigation items
+    const mobileNavItems = document.querySelectorAll(".mobile-bottom-nav .mobile-nav-item");
+    mobileNavItems.forEach(item => {
+      if (item.getAttribute("data-view") === hash) {
+        item.classList.add("active");
+      } else {
+        item.classList.remove("active");
+      }
+    });
+
     // Update Header Title
     const viewTitles = {
-      dashboard: "Dashboard Overview",
+      dashboard: "Executive Dashboard",
+      reports: "Sales & Profit Analytics",
+      counter: "Daily Counter & Bills History",
       pos: "Point of Sale (POS)",
       orders: "Kitchen Display System (KDS)",
-      menu: "Menu Management",
-      reports: "Sales & Profit Reports"
+      menu: "Menu Management"
     };
 
     const titleElem = document.getElementById("current-view-title");
