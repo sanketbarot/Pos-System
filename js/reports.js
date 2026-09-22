@@ -18,7 +18,7 @@ window.views.reports = {
     this.endDate = today.toISOString().substring(0, 10);
 
     container.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 20px;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 20px; max-width: 100%; width: 100%; overflow-x: hidden;">
         
         <!-- Date Filters Control Panel Bar -->
         <div class="glass-card report-filter-bar" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
@@ -44,7 +44,7 @@ window.views.reports = {
         </div>
 
         <!-- 4 Stats Cards Row -->
-        <div class="dashboard-grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 0;">
+        <div class="dashboard-grid-stats" style="margin-bottom: 0;">
           <div class="glass-card stat-card" style="border-left: 4px solid #2563eb;">
             <div class="stat-info">
               <span class="stat-label">Gross Revenue</span>
@@ -118,7 +118,7 @@ window.views.reports = {
               <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;"><i class="fa-solid fa-list-ol" style="color: #2563eb; margin-right: 6px;"></i> Itemized Sales Velocity</h3>
               <span class="badge badge-ready">Top Sellers First</span>
             </div>
-            <div class="table-container" style="max-height: 280px; overflow-y: auto; flex-grow: 1;">
+            <div class="table-container" style="max-height: 320px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; flex-grow: 1;">
               <table class="premium-table" style="font-size: 13px;">
                 <thead>
                   <tr>
@@ -142,7 +142,7 @@ window.views.reports = {
                 <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;"><i class="fa-solid fa-credit-card" style="color: #2563eb; margin-right: 6px;"></i> Payment Collection Split</h3>
                 <span class="badge badge-completed" id="rep-total-orders-badge">0 Transactions</span>
               </div>
-              <div class="table-container">
+              <div class="table-container" style="overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
                 <table class="premium-table" style="font-size: 13px;">
                   <thead>
                     <tr>

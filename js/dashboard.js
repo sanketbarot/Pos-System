@@ -1,5 +1,5 @@
-// Crust & Chilly POS - Executive Dashboard Analytics Module
-// Calculates live business metrics, renders interactive Chart.js graphs, best-sellers leaderboard, and recent activity.
+// Crust & Chilly POS - Executive Dashboard & Business Intelligence Module
+// Real-time operations metrics, cash reconciliation, order type breakouts, shift rush analysis, and charts.
 
 window.views = window.views || {};
 window.views.dashboard = {
@@ -27,25 +27,25 @@ window.views.dashboard = {
     });
 
     container.innerHTML = `
-      <div class="dash-container view-animate">
+      <div class="dash-container view-animate" style="max-width: 100%; width: 100%; overflow-x: hidden;">
         
         <!-- Welcome Executive Banner -->
         <div class="dash-banner">
           <div>
-            <h1>Crust & Chilly Business Dashboard 🍕</h1>
-            <p><i class="fa-regular fa-calendar" style="color: #2563eb; margin-right: 5px;"></i> ${formattedDate} • Real-time Business Intelligence</p>
+            <h1>Crust & Chilly Business Overview 🍕</h1>
+            <p><i class="fa-regular fa-calendar" style="color: #2563eb; margin-right: 5px;"></i> ${formattedDate} • Live Business Analytics</p>
           </div>
-          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <div class="dash-status-pill">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div class="dash-status-pill" style="height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 12px; font-size: 11px; font-weight: 700; box-sizing: border-box; line-height: 1;">
               <i class="fa-solid fa-circle" style="font-size: 7px; animation: pulse 1.5s infinite alternate;"></i> Live Cloud Connected
             </div>
-            <button class="btn btn-secondary" id="dash-btn-refresh" style="padding: 6px 14px; border-radius: 14px; font-size: 12px; font-weight: 700; height: 36px;">
+            <button class="btn btn-secondary" id="dash-btn-refresh" style="height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 12px; font-size: 11.5px; font-weight: 700; box-sizing: border-box; line-height: 1;">
               <i class="fa-solid fa-rotate-right"></i> Refresh
             </button>
           </div>
         </div>
 
-        <!-- 4 KPI Cards Grid -->
+        <!-- 4 Primary KPI Cards Grid -->
         <div class="dash-kpi-grid">
           
           <!-- KPI 1: Gross Sales -->
@@ -94,7 +94,7 @@ window.views.dashboard = {
               <div class="dash-card-val" id="dash-orders-val">0</div>
             </div>
             <div class="dash-breakdown-tags">
-              <span class="dash-sub-pill pill-neutral" id="dash-aov-pill"><i class="fa-solid fa-calculator"></i> Avg: ₹0/order</span>
+              <span class="dash-sub-pill pill-neutral" id="dash-aov-pill"><i class="fa-solid fa-calculator"></i> Avg: ₹0/bill</span>
               <span class="dash-sub-pill pill-neutral" id="dash-completed-pill">0 Completed</span>
             </div>
           </div>
@@ -111,7 +111,7 @@ window.views.dashboard = {
               <div class="dash-card-val" id="dash-active-val" style="color: #7c3aed;">0</div>
             </div>
             <div class="dash-breakdown-tags">
-              <span class="dash-sub-pill pill-neutral" id="dash-queue-status">Pending / Preparing</span>
+              <span class="dash-sub-pill pill-neutral" id="dash-queue-status">Kitchen Normal</span>
             </div>
           </div>
 
@@ -124,10 +124,10 @@ window.views.dashboard = {
           <div class="dash-chart-card">
             <div class="chart-header">
               <div class="chart-title">
-                <i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> 7-Day Revenue Trend
+                <i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> 7-Day Revenue Trajectory
               </div>
               <span style="font-size: 11px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
-                Weekly Flow
+                Weekly Trend
               </span>
             </div>
             <div class="dash-chart-wrap">
@@ -139,14 +139,80 @@ window.views.dashboard = {
           <div class="dash-chart-card">
             <div class="chart-header">
               <div class="chart-title">
-                <i class="fa-solid fa-wallet" style="color: #10b981;"></i> Today's Payment Split
+                <i class="fa-solid fa-wallet" style="color: #10b981;"></i> Payment Mode Distribution
               </div>
               <span style="font-size: 11px; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
-                Cash vs UPI
+                Today's Collection
               </span>
             </div>
             <div class="dash-chart-wrap">
               <canvas id="paymentPieChartCanvas"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- NEW: Comprehensive Business Intelligence Suite (4 Key Insights Cards) -->
+        <div class="dash-insights-grid">
+          
+          <!-- Insight Card 1: Order Types (Dine-in vs Takeaway vs Delivery) -->
+          <div class="dash-insight-card">
+            <div class="insight-header">
+              <div class="insight-title">
+                <i class="fa-solid fa-utensils" style="color: #2563eb;"></i> Order Fulfillment Channels
+              </div>
+              <span class="insight-badge" id="dash-orders-total-badge">0 Total Bills</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;" id="dash-order-types-container">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+
+          <!-- Insight Card 2: Daily Cash Drawer & Reconciliation -->
+          <div class="dash-insight-card">
+            <div class="insight-header">
+              <div class="insight-title">
+                <i class="fa-solid fa-cash-register" style="color: #059669;"></i> Cash Drawer Reconciliation
+              </div>
+              <span class="insight-badge" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">Closing Drawer</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;" id="dash-cash-reconcile-container">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+
+          <!-- Insight Card 3: Shift Rush & Peak Hours -->
+          <div class="dash-insight-card">
+            <div class="insight-header">
+              <div>
+                <div class="insight-title">
+                  <i class="fa-solid fa-stopwatch" style="color: #f59e0b;"></i> Peak Hours & Shifts
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                  <i class="fa-regular fa-clock"></i> Shop Time: 2:00 PM – 12:00 AM
+                </div>
+              </div>
+              <span class="insight-badge" id="dash-peak-hour-badge" style="background: #fffbeb; color: #b45309; border-color: #fde68a;">Calculating...</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;" id="dash-shifts-container">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+
+          <!-- Insight Card 4: Promotional Impact & Discounts -->
+          <div class="dash-insight-card">
+            <div class="insight-header">
+              <div class="insight-title">
+                <i class="fa-solid fa-tags" style="color: #8b5cf6;"></i> Offers & BOGO Discounts
+              </div>
+              <span class="insight-badge" id="dash-discount-rate-badge" style="background: #f5f3ff; color: #5b21b6; border-color: #ddd6fe;">0% Discount</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;" id="dash-discounts-container">
+              <!-- Injected dynamically -->
             </div>
           </div>
 
@@ -187,36 +253,6 @@ window.views.dashboard = {
 
         </div>
 
-        <!-- Executive Quick Navigation Cards -->
-        <div>
-          <h3 style="font-size: 14px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
-            <i class="fa-solid fa-bolt" style="color: #2563eb; margin-right: 6px;"></i> Quick Navigation
-          </h3>
-          <div class="dash-actions-row">
-            
-            <a href="#counter" class="dash-quick-btn">
-              <i class="fa-solid fa-cash-register"></i>
-              <span>Daily Counter & Bills</span>
-            </a>
-
-            <a href="#reports" class="dash-quick-btn">
-              <i class="fa-solid fa-chart-pie"></i>
-              <span>Sales & Analytics</span>
-            </a>
-
-            <a href="#pos" class="dash-quick-btn" id="dash-btn-pos">
-              <i class="fa-solid fa-calculator"></i>
-              <span>POS Billing</span>
-            </a>
-
-            <a href="#orders" class="dash-quick-btn" id="dash-btn-orders">
-              <i class="fa-solid fa-kitchen-set"></i>
-              <span>Kitchen KDS</span>
-            </a>
-
-          </div>
-        </div>
-
       </div>
     `;
 
@@ -226,7 +262,6 @@ window.views.dashboard = {
     });
 
     this.calculateAndRenderMetrics();
-    this.setupRoleRestrictions();
   },
 
   calculateAndRenderMetrics() {
@@ -273,13 +308,11 @@ window.views.dashboard = {
     }
     document.getElementById("dash-sales-breakdown").innerHTML = breakdownHtml;
 
-    // 3. Estimated Net Profit
-    // Today's expenses
+    // 3. Estimated Net Profit & Margins
     const todayExpenses = expenses
       .filter(e => e.date === todayStr || (e.createdAt && e.createdAt.substring(0, 10) === todayStr))
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-    // Approximate Cost of Goods Sold (approx 32% food cost default or calculated from recipes)
     const estimatedCOGS = grossSales * 0.32;
     const netProfit = Math.max(0, grossSales - estimatedCOGS - todayExpenses);
     const profitMargin = grossSales > 0 ? Math.round((netProfit / grossSales) * 100) : 0;
@@ -302,14 +335,294 @@ window.views.dashboard = {
     document.getElementById("dash-active-val").textContent = activeQueueCount;
     document.getElementById("dash-queue-status").textContent = activeQueueCount > 5 ? "High Demand Live" : (activeQueueCount > 0 ? "Orders in Kitchen" : "Kitchen Clear");
 
-    // 6. Best Selling Menu Items Leaderboard
+    // 6. Render Business Intelligence Suite Cards
+    this.renderOrderChannels(todayValidOrders, grossSales, currencySymbol);
+    this.renderCashReconciliation(cashTotal, upiTotal, todayExpenses, currencySymbol);
+    this.renderShiftsAndPeak(todayValidOrders, currencySymbol);
+    this.renderDiscountsImpact(todayValidOrders, grossSales, currencySymbol);
+
+    // 7. Best Selling Menu Items Leaderboard
     this.renderBestSellers(orders, products, categories, currencySymbol);
 
-    // 7. Today's Recent Bills Activity Stream
+    // 8. Today's Recent Bills Activity Stream
     this.renderRecentBills(todayOrders, currencySymbol);
 
-    // 8. Visual Charts (7-day trend + Payment Split)
+    // 9. Visual Charts (7-day trend + Payment Split)
     this.renderTrendCharts(orders, todayStr);
+  },
+
+  // 1. Order Types Channel Breakdown
+  renderOrderChannels(todayValidOrders, grossSales, currencySymbol) {
+    const container = document.getElementById("dash-order-types-container");
+    if (!container) return;
+
+    let dineCount = 0, dineSales = 0;
+    let takeCount = 0, takeSales = 0;
+    let delCount = 0, delSales = 0;
+
+    todayValidOrders.forEach(o => {
+      const type = (o.type || "Dine-in").toLowerCase();
+      const amt = Number(o.total) || 0;
+      if (type.includes("takeaway") || type.includes("parcel")) {
+        takeCount++;
+        takeSales += amt;
+      } else if (type.includes("delivery")) {
+        delCount++;
+        delSales += amt;
+      } else {
+        dineCount++;
+        dineSales += amt;
+      }
+    });
+
+    const totalBills = todayValidOrders.length;
+    document.getElementById("dash-orders-total-badge").textContent = `${totalBills} Bills Today`;
+
+    const dinePct = grossSales > 0 ? Math.round((dineSales / grossSales) * 100) : 0;
+    const takePct = grossSales > 0 ? Math.round((takeSales / grossSales) * 100) : 0;
+    const delPct = grossSales > 0 ? Math.round((delSales / grossSales) * 100) : 0;
+
+    container.innerHTML = `
+      <!-- Dine In -->
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-chair" style="color: #2563eb;"></i> Dine-in (Tables)
+          </span>
+          <span style="font-size: 12.5px; font-weight: 900; color: #2563eb;">${currencySymbol}${Math.round(dineSales).toLocaleString("en-IN")} (${dinePct}%)</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600;">
+          <span>${dineCount} orders</span>
+          <span>Avg: ${currencySymbol}${dineCount > 0 ? Math.round(dineSales / dineCount) : 0}/table</span>
+        </div>
+        <div class="leaderboard-progress-bg" style="margin-top: 5px;">
+          <div class="leaderboard-progress-bar" style="width: ${dinePct}%; background: #2563eb;"></div>
+        </div>
+      </div>
+
+      <!-- Takeaway / Parcel -->
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-bag-shopping" style="color: #10b981;"></i> Takeaway (Parcel)
+          </span>
+          <span style="font-size: 12.5px; font-weight: 900; color: #059669;">${currencySymbol}${Math.round(takeSales).toLocaleString("en-IN")} (${takePct}%)</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600;">
+          <span>${takeCount} orders</span>
+          <span>Avg: ${currencySymbol}${takeCount > 0 ? Math.round(takeSales / takeCount) : 0}/parcel</span>
+        </div>
+        <div class="leaderboard-progress-bg" style="margin-top: 5px;">
+          <div class="leaderboard-progress-bar" style="width: ${takePct}%; background: #10b981;"></div>
+        </div>
+      </div>
+
+      ${delCount > 0 ? `
+      <!-- Delivery -->
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-motorcycle" style="color: #f59e0b;"></i> Direct Delivery
+          </span>
+          <span style="font-size: 12.5px; font-weight: 900; color: #d97706;">${currencySymbol}${Math.round(delSales).toLocaleString("en-IN")} (${delPct}%)</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600;">
+          <span>${delCount} orders</span>
+          <span>Avg: ${currencySymbol}${delCount > 0 ? Math.round(delSales / delCount) : 0}/delivery</span>
+        </div>
+        <div class="leaderboard-progress-bg" style="margin-top: 5px;">
+          <div class="leaderboard-progress-bar" style="width: ${delPct}%; background: #f59e0b;"></div>
+        </div>
+      </div>
+      ` : ""}
+    `;
+  },
+
+  // 2. Cash Drawer Reconciliation (Closing Register)
+  renderCashReconciliation(cashTotal, upiTotal, todayExpenses, currencySymbol) {
+    const container = document.getElementById("dash-cash-reconcile-container");
+    if (!container) return;
+
+    const expectedCashInDrawer = Math.max(0, cashTotal - todayExpenses);
+
+    container.innerHTML = `
+      <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">Expected Cash in Drawer</div>
+          <div style="font-size: 22px; font-weight: 900; color: #15803d; margin-top: 2px;">${currencySymbol}${Math.round(expectedCashInDrawer).toLocaleString("en-IN")}</div>
+        </div>
+        <div style="background: #ffffff; padding: 6px 12px; border-radius: 10px; border: 1px solid #bbf7d0; font-size: 11.5px; font-weight: 800; color: #166534;">
+          <i class="fa-solid fa-lock"></i> Closing Cash
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px;">
+          <span style="color: var(--text-muted); font-size: 11px;">Cash Sales (+)</span>
+          <div style="font-weight: 800; color: #059669; font-size: 13.5px;">${currencySymbol}${Math.round(cashTotal).toLocaleString("en-IN")}</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px;">
+          <span style="color: var(--text-muted); font-size: 11px;">Cash Expenses (-)</span>
+          <div style="font-weight: 800; color: #dc2626; font-size: 13.5px;">${currencySymbol}${Math.round(todayExpenses).toLocaleString("en-IN")}</div>
+        </div>
+      </div>
+
+      <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+        <span style="font-weight: 700; color: #1e40af;"><i class="fa-solid fa-building-columns"></i> Bank / UPI Received:</span>
+        <span style="font-weight: 900; color: #2563eb; font-size: 13.5px;">${currencySymbol}${Math.round(upiTotal).toLocaleString("en-IN")}</span>
+      </div>
+    `;
+  },
+
+  // 3. Shift Rush & Peak Hours (Store Operational Hours: 2:00 PM – 12:00 AM Midnight)
+  renderShiftsAndPeak(todayValidOrders, currencySymbol) {
+    const container = document.getElementById("dash-shifts-container");
+    if (!container) return;
+
+    let afternoonOrders = 0, afternoonSales = 0;
+    let nightOrders = 0, nightSales = 0;
+    let otherOrders = 0, otherSales = 0;
+    const hourFrequency = {};
+
+    todayValidOrders.forEach(o => {
+      const d = new Date(o.createdAt);
+      if (isNaN(d.getTime())) return;
+      const hour = d.getHours();
+      const amt = Number(o.total) || 0;
+
+      hourFrequency[hour] = (hourFrequency[hour] || 0) + 1;
+
+      // 2:00 PM to 7:00 PM (14:00 to 18:59)
+      if (hour >= 14 && hour < 19) {
+        afternoonOrders++;
+        afternoonSales += amt;
+      } 
+      // 7:00 PM to 12:00 AM Midnight (19:00 to 23:59 or 00:00 midnight close)
+      else if (hour >= 19 || hour === 0) {
+        nightOrders++;
+        nightSales += amt;
+      } 
+      // Orders outside 2 PM - 12 AM (Pre-opening / morning prep)
+      else {
+        otherOrders++;
+        otherSales += amt;
+      }
+    });
+
+    let peakHour = null;
+    let maxOrdersInHour = 0;
+    Object.keys(hourFrequency).forEach(h => {
+      if (hourFrequency[h] > maxOrdersInHour) {
+        maxOrdersInHour = hourFrequency[h];
+        peakHour = Number(h);
+      }
+    });
+
+    const formatHourWindow = (h) => {
+      const ampm1 = h >= 12 ? 'PM' : 'AM';
+      const h1 = h % 12 || 12;
+      const nextH = (h + 1) % 24;
+      const ampm2 = nextH >= 12 ? 'PM' : 'AM';
+      const h2 = nextH % 12 || 12;
+      return `${h1} ${ampm1} - ${h2} ${ampm2}`;
+    };
+
+    const peakBadgeEl = document.getElementById("dash-peak-hour-badge");
+    if (peakBadgeEl) {
+      if (peakHour !== null && maxOrdersInHour > 0) {
+        peakBadgeEl.textContent = `Peak: ${formatHourWindow(peakHour)} (${maxOrdersInHour} bills)`;
+      } else {
+        peakBadgeEl.textContent = "Open 2 PM - 12 AM";
+      }
+    }
+
+    let otherHtml = '';
+    if (otherOrders > 0) {
+      otherHtml = `
+        <div style="background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 12px; padding: 8px 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-clock-rotate-left"></i> Pre-Opening / Off-Hours (< 2 PM)
+            </span>
+            <span style="font-weight: 800; color: var(--text-dark); font-size: 12px;">${currencySymbol}${Math.round(otherSales).toLocaleString("en-IN")}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">
+            <span>${otherOrders} orders placed</span>
+            <span>Avg: ${currencySymbol}${Math.round(otherSales / otherOrders)}/bill</span>
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <!-- Afternoon Shift (2 PM - 7 PM) -->
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-cloud-sun" style="color: #f59e0b;"></i> Afternoon Shift (2 PM - 7 PM)
+          </span>
+          <span style="font-weight: 900; color: #2563eb; font-size: 13.5px;">${currencySymbol}${Math.round(afternoonSales).toLocaleString("en-IN")}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px;">
+          <span>${afternoonOrders} orders placed</span>
+          <span>Avg: ${currencySymbol}${afternoonOrders > 0 ? Math.round(afternoonSales / afternoonOrders) : 0}/bill</span>
+        </div>
+      </div>
+
+      <!-- Dinner / Night Rush (7 PM - 12 AM) -->
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-moon" style="color: #6366f1;"></i> Night Rush (7 PM - 12 AM)
+          </span>
+          <span style="font-weight: 900; color: #4f46e5; font-size: 13.5px;">${currencySymbol}${Math.round(nightSales).toLocaleString("en-IN")}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px;">
+          <span>${nightOrders} orders placed</span>
+          <span>Avg: ${currencySymbol}${nightOrders > 0 ? Math.round(nightSales / nightOrders) : 0}/bill</span>
+        </div>
+      </div>
+      ${otherHtml}
+    `;
+  },
+
+  // 4. Discounts & Promotional Impact
+  renderDiscountsImpact(todayValidOrders, grossSales, currencySymbol) {
+    const container = document.getElementById("dash-discounts-container");
+    if (!container) return;
+
+    let bogoDiscount = 0;
+    let flatDiscount = 0;
+    let grossOriginal = 0;
+
+    todayValidOrders.forEach(o => {
+      bogoDiscount += (Number(o.bogoDiscount) || 0);
+      flatDiscount += (Number(o.discount) || 0);
+      grossOriginal += (Number(o.subtotal) || Number(o.total) || 0);
+    });
+
+    const totalDiscounts = bogoDiscount + flatDiscount;
+    const discountRate = grossOriginal > 0 ? Math.round((totalDiscounts / grossOriginal) * 100) : 0;
+    document.getElementById("dash-discount-rate-badge").textContent = `${discountRate}% Disc Rate`;
+
+    container.innerHTML = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 12px; padding: 8px 10px;">
+          <span style="font-size: 11px; font-weight: 700; color: #9d174d;"><i class="fa-solid fa-gift"></i> BOGO Savings</span>
+          <div style="font-size: 16px; font-weight: 900; color: #be185d; margin-top: 2px;">${currencySymbol}${Math.round(bogoDiscount).toLocaleString("en-IN")}</div>
+        </div>
+
+        <div style="background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 12px; padding: 8px 10px;">
+          <span style="font-size: 11px; font-weight: 700; color: #9d174d;"><i class="fa-solid fa-percent"></i> Flat Discounts</span>
+          <div style="font-size: 16px; font-weight: 900; color: #be185d; margin-top: 2px;">${currencySymbol}${Math.round(flatDiscount).toLocaleString("en-IN")}</div>
+        </div>
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+        <span style="font-weight: 600; color: var(--text-muted);">Total Promotional Savings Given:</span>
+        <span style="font-weight: 900; color: #be185d; font-size: 13.5px;">-${currencySymbol}${Math.round(totalDiscounts).toLocaleString("en-IN")}</span>
+      </div>
+    `;
   },
 
   renderBestSellers(orders, products, categories, currencySymbol) {
@@ -399,7 +712,6 @@ window.views.dashboard = {
       return;
     }
 
-    // Sort descending by order id or creation time
     const sorted = [...todayOrders].sort((a, b) => (b.orderNumber || 0) - (a.orderNumber || 0)).slice(0, 5);
 
     container.innerHTML = sorted.map(o => {
@@ -419,21 +731,21 @@ window.views.dashboard = {
         : "Order items";
 
       return `
-        <div style="padding: 10px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-          <div style="min-width: 0;">
-            <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="padding: 10px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="min-width: 0; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <span style="font-weight: 800; font-size: 13px; color: var(--text-dark);">#${o.orderNumber || "Bill"}</span>
               <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">${timeStr}</span>
               <span class="dash-sub-pill ${payPillClass}" style="padding: 2px 6px; font-size: 10.5px;">
                 <i class="fa-solid ${payIcon}"></i> ${o.paymentMethod || "UPI"}
               </span>
             </div>
-            <div style="font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; max-width: 220px;">
+            <div style="font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; max-width: 100%;">
               ${itemsSummary}
             </div>
           </div>
           <div style="text-align: right; flex-shrink: 0;">
-            <div style="font-weight: 800; font-size: 14px; color: var(--text-dark);">${currencySymbol}${Math.round(o.total || 0)}</div>
+            <div style="font-weight: 800; font-size: 13.5px; color: var(--text-dark);">${currencySymbol}${Math.round(o.total || 0)}</div>
             <span style="display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 10.5px; font-weight: 700; color: ${statusColor}; background: ${statusBg}; margin-top: 2px;">
               ${o.status || "Pending"}
             </span>
@@ -611,18 +923,6 @@ window.views.dashboard = {
           cutout: "70%"
         }
       });
-    }
-  },
-
-  setupRoleRestrictions() {
-    const user = window.db.getCurrentUser();
-    if (!user) return;
-    const role = user.role;
-
-    if (role === "staff") {
-      const btnPos = document.getElementById("dash-btn-pos");
-      const btnOrders = document.getElementById("dash-btn-orders");
-      // Staff can access POS and KDS
     }
   }
 };
