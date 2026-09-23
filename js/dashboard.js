@@ -45,6 +45,31 @@ window.views.dashboard = {
           </div>
         </div>
 
+        <!-- Daily Sales Goal / Target Progress Card -->
+        <div class="glass-card" style="padding: 12px 18px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-bullseye" style="color: #2563eb;"></i> Daily Revenue Goal
+              </span>
+              <span id="dash-target-badge" style="font-size: 11px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px;">0% Achieved</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="dash-target-amounts" style="font-size: 12.5px; font-weight: 800; color: var(--text-dark);">₹0 / ₹15,000</span>
+              <button id="dash-btn-set-target" title="Set Today's Target" style="background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 10px; cursor: pointer; color: var(--text-dark); font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                <i class="fa-solid fa-pen-to-square" style="color: #2563eb;"></i> Set Target
+              </button>
+            </div>
+          </div>
+          <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <div id="dash-target-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #2563eb, #10b981); border-radius: 8px; transition: width 0.6s ease;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600;">
+            <span id="dash-target-remaining">Calculating target progress...</span>
+            <span id="dash-target-status" style="font-weight: 700; color: #d97706;">In Progress</span>
+          </div>
+        </div>
+
         <!-- 4 Primary KPI Cards Grid -->
         <div class="dash-kpi-grid">
           
@@ -197,7 +222,7 @@ window.views.dashboard = {
               <span class="insight-badge" id="dash-peak-hour-badge" style="background: #fffbeb; color: #b45309; border-color: #fde68a;">Calculating...</span>
             </div>
             
-            <div style="display: flex; flex-direction: column; gap: 12px;" id="dash-shifts-container">
+            <div style="display: flex; flex-direction: column; gap: 8px;" id="dash-shifts-container">
               <!-- Injected dynamically -->
             </div>
           </div>
@@ -261,6 +286,21 @@ window.views.dashboard = {
       window.showToast("Dashboard metrics refreshed!", "info");
     });
 
+    const btnSetTarget = document.getElementById("dash-btn-set-target");
+    if (btnSetTarget) {
+      btnSetTarget.addEventListener("click", () => {
+        const curSettings = window.db.get("settings") || {};
+        const curTarget = Number(curSettings.dailySalesTarget) || 15000;
+        const newTarget = prompt("Enter Today's Daily Revenue Target (₹):", curTarget);
+        if (newTarget !== null && !isNaN(Number(newTarget)) && Number(newTarget) > 0) {
+          curSettings.dailySalesTarget = Number(newTarget);
+          window.db.set("settings", curSettings);
+          this.calculateAndRenderMetrics();
+          window.showToast(`Daily target set to ${curSettings.currencySymbol || "₹"}${Number(newTarget).toLocaleString("en-IN")}`, "success");
+        }
+      });
+    }
+
     this.calculateAndRenderMetrics();
   },
 
@@ -298,6 +338,35 @@ window.views.dashboard = {
     });
 
     document.getElementById("dash-sales-val").textContent = `${currencySymbol}${Math.round(grossSales).toLocaleString("en-IN")}`;
+    
+    // Render Daily Sales Goal Tracker
+    const targetGoal = Number(settings.dailySalesTarget) || 15000;
+    const targetPct = targetGoal > 0 ? Math.min(100, Math.round((grossSales / targetGoal) * 100)) : 0;
+    const targetBadgeEl = document.getElementById("dash-target-badge");
+    const targetAmountsEl = document.getElementById("dash-target-amounts");
+    const targetBarEl = document.getElementById("dash-target-bar");
+    const targetRemEl = document.getElementById("dash-target-remaining");
+    const targetStatusEl = document.getElementById("dash-target-status");
+
+    if (targetBadgeEl) targetBadgeEl.textContent = `${targetPct}% Achieved`;
+    if (targetAmountsEl) targetAmountsEl.textContent = `${currencySymbol}${Math.round(grossSales).toLocaleString("en-IN")} / ${currencySymbol}${Math.round(targetGoal).toLocaleString("en-IN")}`;
+    if (targetBarEl) targetBarEl.style.width = `${targetPct}%`;
+    if (targetRemEl) {
+      if (grossSales >= targetGoal) {
+        targetRemEl.innerHTML = `<span style="color: #059669; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> Great job! Today's revenue target exceeded!</span>`;
+      } else {
+        targetRemEl.textContent = `${currencySymbol}${Math.round(targetGoal - grossSales).toLocaleString("en-IN")} remaining to hit today's target`;
+      }
+    }
+    if (targetStatusEl) {
+      if (grossSales >= targetGoal) {
+        targetStatusEl.textContent = "Goal Achieved! 🎉";
+        targetStatusEl.style.color = "#059669";
+      } else {
+        targetStatusEl.textContent = "In Progress";
+        targetStatusEl.style.color = "#d97706";
+      }
+    }
     
     let breakdownHtml = `
       <span class="dash-sub-pill pill-cash"><i class="fa-solid fa-money-bill-wave"></i> Cash: ${currencySymbol}${Math.round(cashTotal).toLocaleString("en-IN")}</span>
@@ -475,12 +544,54 @@ window.views.dashboard = {
   },
 
   // 3. Shift Rush & Peak Hours (Store Operational Hours: 2:00 PM – 12:00 AM Midnight)
+  // Shifts: 2 to 5 PM, 5 to 7 PM, 7 to 10 PM, 10 to 12 AM
   renderShiftsAndPeak(todayValidOrders, currencySymbol) {
     const container = document.getElementById("dash-shifts-container");
     if (!container) return;
 
-    let afternoonOrders = 0, afternoonSales = 0;
-    let nightOrders = 0, nightSales = 0;
+    const shifts = [
+      {
+        name: "2 PM – 5 PM",
+        label: "Afternoon",
+        icon: "fa-sun",
+        iconColor: "#f59e0b",
+        color: "#d97706",
+        orders: 0,
+        sales: 0,
+        match: (h) => h >= 14 && h < 17
+      },
+      {
+        name: "5 PM – 7 PM",
+        label: "Evening",
+        icon: "fa-mug-hot",
+        iconColor: "#ea580c",
+        color: "#ea580c",
+        orders: 0,
+        sales: 0,
+        match: (h) => h >= 17 && h < 19
+      },
+      {
+        name: "7 PM – 10 PM",
+        label: "Dinner Rush",
+        icon: "fa-utensils",
+        iconColor: "#7c3aed",
+        color: "#7c3aed",
+        orders: 0,
+        sales: 0,
+        match: (h) => h >= 19 && h < 22
+      },
+      {
+        name: "10 PM – 12 AM",
+        label: "Late Night",
+        icon: "fa-moon",
+        iconColor: "#4f46e5",
+        color: "#4f46e5",
+        orders: 0,
+        sales: 0,
+        match: (h) => (h >= 22 && h <= 23) || h === 0
+      }
+    ];
+
     let otherOrders = 0, otherSales = 0;
     const hourFrequency = {};
 
@@ -492,18 +603,17 @@ window.views.dashboard = {
 
       hourFrequency[hour] = (hourFrequency[hour] || 0) + 1;
 
-      // 2:00 PM to 7:00 PM (14:00 to 18:59)
-      if (hour >= 14 && hour < 19) {
-        afternoonOrders++;
-        afternoonSales += amt;
-      } 
-      // 7:00 PM to 12:00 AM Midnight (19:00 to 23:59 or 00:00 midnight close)
-      else if (hour >= 19 || hour === 0) {
-        nightOrders++;
-        nightSales += amt;
-      } 
-      // Orders outside 2 PM - 12 AM (Pre-opening / morning prep)
-      else {
+      let matched = false;
+      for (const shift of shifts) {
+        if (shift.match(hour)) {
+          shift.orders++;
+          shift.sales += amt;
+          matched = true;
+          break;
+        }
+      }
+
+      if (!matched) {
         otherOrders++;
         otherSales += amt;
       }
@@ -539,7 +649,7 @@ window.views.dashboard = {
     let otherHtml = '';
     if (otherOrders > 0) {
       otherHtml = `
-        <div style="background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 12px; padding: 8px 12px;">
+        <div style="background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 10px; padding: 7px 12px; margin-top: 2px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-clock-rotate-left"></i> Pre-Opening / Off-Hours (< 2 PM)
@@ -554,36 +664,25 @@ window.views.dashboard = {
       `;
     }
 
-    container.innerHTML = `
-      <!-- Afternoon Shift (2 PM - 7 PM) -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
+    const currentHour = new Date().getHours();
+    container.innerHTML = shifts.map(s => {
+      const isNow = s.match(currentHour);
+      return `
+      <div style="background: ${isNow ? '#eff6ff' : '#f8fafc'}; border: ${isNow ? '1.5px solid #2563eb' : '1px solid var(--border-color)'}; border-radius: 10px; padding: 8px 12px; transition: all 0.2s; box-shadow: ${isNow ? '0 0 10px rgba(37,99,235,0.1)' : 'none'};">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-cloud-sun" style="color: #f59e0b;"></i> Afternoon Shift (2 PM - 7 PM)
+          <span style="font-size: 12px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid ${s.icon}" style="color: ${s.iconColor};"></i> ${s.name} <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted);">(${s.label})</span>
+            ${isNow ? `<span style="background: #2563eb; color: #fff; font-size: 9px; font-weight: 800; padding: 1.5px 6px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle" style="font-size: 5px; animation: pulse 1s infinite alternate;"></i> ACTIVE NOW</span>` : ''}
           </span>
-          <span style="font-weight: 900; color: #2563eb; font-size: 13.5px;">${currencySymbol}${Math.round(afternoonSales).toLocaleString("en-IN")}</span>
+          <span style="font-weight: 900; color: ${s.color}; font-size: 13px;">${currencySymbol}${Math.round(s.sales).toLocaleString("en-IN")}</span>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px;">
-          <span>${afternoonOrders} orders placed</span>
-          <span>Avg: ${currencySymbol}${afternoonOrders > 0 ? Math.round(afternoonSales / afternoonOrders) : 0}/bill</span>
+        <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); font-weight: 600; margin-top: 3px;">
+          <span>${s.orders} orders placed</span>
+          <span>Avg: ${currencySymbol}${s.orders > 0 ? Math.round(s.sales / s.orders) : 0}/bill</span>
         </div>
       </div>
-
-      <!-- Dinner / Night Rush (7 PM - 12 AM) -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-moon" style="color: #6366f1;"></i> Night Rush (7 PM - 12 AM)
-          </span>
-          <span style="font-weight: 900; color: #4f46e5; font-size: 13.5px;">${currencySymbol}${Math.round(nightSales).toLocaleString("en-IN")}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px;">
-          <span>${nightOrders} orders placed</span>
-          <span>Avg: ${currencySymbol}${nightOrders > 0 ? Math.round(nightSales / nightOrders) : 0}/bill</span>
-        </div>
-      </div>
-      ${otherHtml}
     `;
+    }).join('') + otherHtml;
   },
 
   // 4. Discounts & Promotional Impact
