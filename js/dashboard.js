@@ -136,7 +136,8 @@ window.views.dashboard = {
               <div class="dash-card-val" id="dash-active-val" style="color: #7c3aed;">0</div>
             </div>
             <div class="dash-breakdown-tags">
-              <span class="dash-sub-pill pill-neutral" id="dash-queue-status">Kitchen Normal</span>
+              <span class="dash-sub-pill pill-neutral" id="dash-queue-status"><i class="fa-solid fa-stopwatch"></i> Avg: --m</span>
+              <span class="dash-sub-pill pill-cash" id="dash-delay-pill"><i class="fa-solid fa-circle-check"></i> On-Time</span>
             </div>
           </div>
 
@@ -399,10 +400,53 @@ window.views.dashboard = {
     document.getElementById("dash-aov-pill").innerHTML = `<i class="fa-solid fa-calculator"></i> Avg: ${currencySymbol}${aov}/bill`;
     document.getElementById("dash-completed-pill").textContent = `${completedCount} Completed`;
 
-    // 5. Active Kitchen Queue
+    // 5. Active Kitchen Queue & Live Delay Alert Monitoring
     const activeQueueCount = orders.filter(o => o.status === "Pending" || o.status === "Preparing").length;
     document.getElementById("dash-active-val").textContent = activeQueueCount;
-    document.getElementById("dash-queue-status").textContent = activeQueueCount > 5 ? "High Demand Live" : (activeQueueCount > 0 ? "Orders in Kitchen" : "Kitchen Clear");
+
+    // Calculate today's avg prep duration
+    const todayPrepOrders = todayOrders.filter(o => (o.status === "Ready" || o.status === "Completed") && (o.prepDurationSeconds || (o.readyAt && o.createdAt)));
+    let totalPrepSecs = 0;
+    todayPrepOrders.forEach(o => {
+      const dur = o.prepDurationSeconds || Math.round((new Date(o.readyAt || o.completedAt) - new Date(o.preparingStartedAt || o.createdAt)) / 1000);
+      totalPrepSecs += Math.max(0, dur);
+    });
+    const avgPrepSecs = todayPrepOrders.length > 0 ? Math.round(totalPrepSecs / todayPrepOrders.length) : 0;
+    const avgPrepMins = Math.floor(avgPrepSecs / 60);
+
+    // Check overdue orders in kitchen right now
+    const targetPrepMinutes = Number(settings.targetPrepMinutes) || 15;
+    const targetPrepSecs = targetPrepMinutes * 60;
+    const nowTs = new Date();
+    const overdueCount = orders.filter(o => {
+      if (o.status !== "Preparing") return false;
+      const start = new Date(o.preparingStartedAt || o.createdAt);
+      return Math.floor((nowTs - start) / 1000) > targetPrepSecs;
+    }).length;
+
+    const queueStatusEl = document.getElementById("dash-queue-status");
+    if (queueStatusEl) {
+      queueStatusEl.innerHTML = `<i class="fa-solid fa-stopwatch"></i> Avg: ${avgPrepMins > 0 ? `${avgPrepMins}m` : (todayPrepOrders.length > 0 ? `${avgPrepSecs}s` : '--m')}`;
+    }
+
+    const delayPillEl = document.getElementById("dash-delay-pill");
+    if (delayPillEl) {
+      if (overdueCount > 0) {
+        delayPillEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${overdueCount} Delayed!`;
+        delayPillEl.style.background = "#fee2e2";
+        delayPillEl.style.color = "#dc2626";
+        delayPillEl.style.borderColor = "#fca5a5";
+        delayPillEl.style.fontWeight = "800";
+        delayPillEl.style.animation = "warning-pulse 1.2s infinite alternate";
+      } else {
+        delayPillEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> On-Time`;
+        delayPillEl.style.background = "#ecfdf5";
+        delayPillEl.style.color = "#059669";
+        delayPillEl.style.borderColor = "#a7f3d0";
+        delayPillEl.style.fontWeight = "600";
+        delayPillEl.style.animation = "none";
+      }
+    }
 
     // 6. Render Business Intelligence Suite Cards
     this.renderOrderChannels(todayValidOrders, grossSales, currencySymbol);

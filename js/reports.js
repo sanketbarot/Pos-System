@@ -332,20 +332,20 @@ window.views.reports = {
                 <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;">
                   <i class="fa-solid fa-triangle-exclamation" style="color: #ea580c; margin-right: 6px;"></i> Low Velocity Menu Watchlist
                 </h3>
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                  Items with low sales volume in selected period
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;" id="rep-slow-items-subtext">
+                  Items with 0 sales in selected period
                 </div>
               </div>
-              <span class="badge" style="background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;" id="rep-slow-items-badge">Menu Attention</span>
+              <span class="badge" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;" id="rep-slow-items-badge">0 Unsold Items</span>
             </div>
-            <div class="table-container" style="max-height: 280px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; flex-grow: 1;">
+            <div class="table-container" style="max-height: 340px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; flex-grow: 1;">
               <table class="premium-table" style="font-size: 13px;">
                 <thead>
                   <tr>
                     <th>Menu Item</th>
                     <th>Category</th>
                     <th>Price</th>
-                    <th style="text-align: right;">Units Sold</th>
+                    <th style="text-align: right;">Sales Status</th>
                   </tr>
                 </thead>
                 <tbody id="rep-slow-items-tbody">
@@ -942,7 +942,7 @@ window.views.reports = {
     }
   },
 
-  // 6. Low Velocity / Menu Watchlist
+  // 6. Low Velocity / Menu Watchlist (All items that did not sell)
   renderLowVelocityMenu(products, categories, itemSoldMap, currencySymbol) {
     const tbody = document.getElementById("rep-slow-items-tbody");
     if (!tbody) return;
@@ -957,25 +957,51 @@ window.views.reports = {
         price: Number(p.price) || 0,
         quantitySold: soldInfo ? soldInfo.quantity : 0
       };
-    }).sort((a, b) => a.quantitySold - b.quantitySold);
+    });
 
-    const lowVelocityItems = itemVelocityList.slice(0, 5);
+    // Filter ALL items that did not sell (0 sales)
+    const unsoldItems = itemVelocityList
+      .filter(item => item.quantitySold === 0)
+      .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
 
-    if (lowVelocityItems.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:25px; color:var(--text-muted); font-size:12px; font-weight:600;">All active menu items are performing well.</td></tr>`;
-    } else {
-      tbody.innerHTML = lowVelocityItems.map(item => `
+    const badgeEl = document.getElementById("rep-slow-items-badge");
+    const subtextEl = document.getElementById("rep-slow-items-subtext");
+
+    if (unsoldItems.length > 0) {
+      if (badgeEl) {
+        badgeEl.textContent = `${unsoldItems.length} Unsold Items`;
+        badgeEl.style.background = "#fef2f2";
+        badgeEl.style.color = "#dc2626";
+        badgeEl.style.borderColor = "#fecaca";
+      }
+      if (subtextEl) {
+        subtextEl.textContent = `All ${unsoldItems.length} active menu items with 0 sales in selected period`;
+      }
+
+      tbody.innerHTML = unsoldItems.map(item => `
         <tr>
           <td style="font-weight: 700; color: var(--text-dark);">${item.name}</td>
           <td style="color: var(--text-muted); font-size: 12px;">${item.category}</td>
           <td style="color: var(--text-muted); font-weight: 600;">${currencySymbol}${item.price.toFixed(0)}</td>
           <td style="text-align: right;">
-            <span style="font-weight: 800; color: ${item.quantitySold === 0 ? '#dc2626' : '#ea580c'}; background: ${item.quantitySold === 0 ? '#fef2f2' : '#fff7ed'}; border: 1px solid ${item.quantitySold === 0 ? '#fecaca' : '#ffedd5'}; padding: 2px 8px; border-radius: 10px; font-size: 11px;">
-              ${item.quantitySold} sold
+            <span style="font-weight: 800; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 2px 8px; border-radius: 10px; font-size: 11px;">
+              0 sold (Unsold)
             </span>
           </td>
         </tr>
       `).join("");
+    } else {
+      if (badgeEl) {
+        badgeEl.textContent = "100% Sold 🎉";
+        badgeEl.style.background = "#ecfdf5";
+        badgeEl.style.color = "#059669";
+        badgeEl.style.borderColor = "#a7f3d0";
+      }
+      if (subtextEl) {
+        subtextEl.textContent = "Every active menu item recorded sales in this period!";
+      }
+
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:25px; color:#059669; font-size:12px; font-weight:700;"><i class="fa-solid fa-circle-check" style="margin-right:6px;"></i> Excellent! All active menu items were sold in this period.</td></tr>`;
     }
   },
 

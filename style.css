@@ -2253,8 +2253,22 @@ body {
 }
 
 .kds-timer-countdown.warning-blink {
-  color: #f59e0b !important;
-  animation: warning-pulse 1s infinite alternate;
+  color: #d97706 !important;
+  font-weight: 900 !important;
+  animation: warning-pulse 0.9s infinite alternate;
+}
+
+/* 1 Minute Remaining Warning State - Amber Alert */
+.kds-timer-container.one-min-warn {
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #d97706 !important;
+  box-shadow: 0 1px 6px rgba(217, 119, 6, 0.18) !important;
+}
+
+.kds-timer-container.one-min-warn i,
+.kds-timer-container.one-min-warn span {
+  color: #d97706 !important;
 }
 
 /* Overdue State - Red Color Alert (User Request) */

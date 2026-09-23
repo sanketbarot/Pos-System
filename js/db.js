@@ -878,6 +878,21 @@ const db = {
         orders[index].preparingStartedAt = customStartTime || new Date().toISOString();
       }
 
+      // Track exact kitchen prep completion timestamp and duration in seconds
+      if (newStatus === "Ready" && !orders[index].readyAt) {
+        orders[index].readyAt = new Date().toISOString();
+        const start = new Date(orders[index].preparingStartedAt || orders[index].createdAt);
+        orders[index].prepDurationSeconds = Math.max(0, Math.round((new Date() - start) / 1000));
+      }
+
+      if (newStatus === "Completed" && !orders[index].completedAt) {
+        orders[index].completedAt = new Date().toISOString();
+        if (!orders[index].prepDurationSeconds) {
+          const start = new Date(orders[index].preparingStartedAt || orders[index].createdAt);
+          orders[index].prepDurationSeconds = Math.max(0, Math.round((new Date() - start) / 1000));
+        }
+      }
+
       // If an order is Cancelled, should we refund the inventory?
       // Bypassed - stock is always full and not decremented on checkout.
       /*
