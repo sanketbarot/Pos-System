@@ -1,23 +1,46 @@
 // Crust & Chilly POS - KDS (Kitchen Display System) & History Module
 // Handles Kanban card progression (Pending -> Preparing -> Ready -> Completed), live prep-time metrics, order delay alerts, and chime audio.
 
-window.views = window.views || {};
-window.views.orders = {
-  activeSubTab: "kds", // 'kds' or 'history'
-  searchQuery: "",
-  kdsTimerInterval: null,
-  soundAlertEnabled: true,
+// Global Kitchen Audio & Orders Alert Service
+// Runs continuously in background across ALL app pages (Dashboard, POS, Counter, Reports, Menu, KDS)
+window.soundAlerts = {
+  audioCtx: null,
+  globalMonitorInterval: null,
   notifiedOneMinIds: new Set(),
   notifiedOverdueIds: new Set(),
   lastReminderTimestamp: 0,
 
+  // Persistent Sound Setting across reloads & pages
+  get soundEnabled() {
+    const val = localStorage.getItem("pos_kitchen_sound_enabled");
+    return val === null ? true : val === "true";
+  },
+  set soundEnabled(enabled) {
+    localStorage.setItem("pos_kitchen_sound_enabled", enabled ? "true" : "false");
+    this.updateAllSoundUI();
+  },
+
+  getAudioContext() {
+    try {
+      if (!this.audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.audioCtx = new AudioCtx();
+      }
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+    } catch (e) {
+      console.warn("AudioContext init error:", e);
+    }
+    return this.audioCtx;
+  },
+
   // 1. Gentle Warning Chime ("Sehaj Sound" - when 1 minute is left in Preparing)
   playOneMinWarningSound() {
-    if (!this.soundAlertEnabled) return;
+    if (!this.soundEnabled) return;
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
       if (ctx.state === 'suspended') ctx.resume();
 
       const now = ctx.currentTime;
@@ -31,23 +54,22 @@ window.views.orders = {
       osc.frequency.setValueAtTime(659.25, now);
       osc.frequency.setValueAtTime(987.77, now + 0.16);
 
-      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.setValueAtTime(0.3, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
 
       osc.start(now);
       osc.stop(now + 0.65);
     } catch (e) {
-      console.warn("One-min warning audio prevented or unsupported:", e);
+      console.warn("One-min warning audio error:", e);
     }
   },
 
   // 2. Urgent Overtime Alert ("Bijo Sound" - when order exceeds target prep time)
   playOverdueSound() {
-    if (!this.soundAlertEnabled) return;
+    if (!this.soundEnabled) return;
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
       if (ctx.state === 'suspended') ctx.resume();
 
       const now = ctx.currentTime;
@@ -69,12 +91,320 @@ window.views.orders = {
         osc.stop(now + offset + 0.14);
       });
     } catch (e) {
-      console.warn("Overdue alert audio prevented or unsupported:", e);
+      console.warn("Overdue alert audio error:", e);
+    }
+  },
+
+  // 3. New Order Chime (When a new order is received from POS or Cloud sync)
+  playNewOrderSound() {
+    if (!this.soundEnabled) return;
+    try {
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const now = ctx.currentTime;
+      // Bright cheerful 3-note order bell: C5 (523.25Hz) -> E5 (659.25Hz) -> G5 (783.99Hz)
+      [
+        { freq: 523.25, time: 0, dur: 0.14 },
+        { freq: 659.25, time: 0.13, dur: 0.14 },
+        { freq: 783.99, time: 0.26, dur: 0.42 }
+      ].forEach(note => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.frequency.setValueAtTime(note.freq, now + note.time);
+        gain.gain.setValueAtTime(0.3, now + note.time);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + note.time + note.dur);
+
+        osc.start(now + note.time);
+        osc.stop(now + note.time + note.dur);
+      });
+    } catch (e) {
+      console.warn("New order chime error:", e);
     }
   },
 
   playKitchenChime() {
     this.playOneMinWarningSound();
+  },
+
+  toggleSound(withPreview = true) {
+    this.soundEnabled = !this.soundEnabled;
+    if (this.soundEnabled) {
+      if (withPreview) {
+        this.playOneMinWarningSound();
+        setTimeout(() => this.playOverdueSound(), 700);
+      }
+      window.showToast("Kitchen audio alerts enabled 🔔 (Sound active on ALL pages)", "success");
+    } else {
+      window.showToast("Kitchen audio alerts muted 🔇", "info");
+    }
+    this.updateAllSoundUI();
+  },
+
+  init() {
+    // Unlock browser audio policy on first user interaction anywhere
+    const unlock = () => {
+      this.getAudioContext();
+      ['click', 'touchstart', 'keydown'].forEach(evt => {
+        document.removeEventListener(evt, unlock);
+      });
+    };
+    ['click', 'touchstart', 'keydown'].forEach(evt => {
+      document.addEventListener(evt, unlock, { once: true, passive: true });
+    });
+
+    this.startGlobalMonitor();
+  },
+
+  startGlobalMonitor() {
+    if (this.globalMonitorInterval) return;
+
+    // Run every 1000ms permanently across all views (Dashboard, POS, Counter, Reports, Menu, KDS)
+    this.globalMonitorInterval = setInterval(() => {
+      this.checkOrdersAndAlert();
+    }, 1000);
+  },
+
+  checkOrdersAndAlert() {
+    if (!window.db || typeof window.db.get !== "function") return;
+    const orders = window.db.get("orders") || [];
+    const settings = window.db.get("settings") || {};
+    const targetSeconds = (Number(settings.targetPrepMinutes) || 15) * 60;
+    const now = new Date();
+    const nowTs = now.getTime();
+
+    let needsKdsRerender = false;
+    let anyOverdue = false;
+
+    const activePrepIds = new Set();
+
+    orders.forEach(order => {
+      if (!order || !order.id) return;
+
+      if (order.status === "Pending") {
+        const createdTime = new Date(order.createdAt).getTime();
+        const elapsedSeconds = Math.floor((nowTs - createdTime) / 1000);
+        // Auto-start after 15 seconds
+        if (elapsedSeconds >= 15) {
+          const autoStartTime = new Date(createdTime + 15 * 1000).toISOString();
+          window.db.updateOrderStatus(order.id, "Preparing", autoStartTime);
+          needsKdsRerender = true;
+        }
+      } else if (order.status === "Preparing") {
+        activePrepIds.add(order.id);
+        const createdTime = new Date(order.createdAt).getTime();
+        const autoPrepStartTime = createdTime + 15 * 1000;
+        const startedTime = order.preparingStartedAt
+          ? new Date(Math.min(new Date(order.preparingStartedAt).getTime(), autoPrepStartTime)).getTime()
+          : autoPrepStartTime;
+        const elapsedSeconds = Math.floor((nowTs - startedTime) / 1000);
+        const remainingSeconds = targetSeconds - elapsedSeconds;
+
+        if (remainingSeconds <= 0) {
+          anyOverdue = true;
+          if (!this.notifiedOverdueIds.has(order.id)) {
+            this.notifiedOverdueIds.add(order.id);
+            this.playOverdueSound(); // Bijo Sound - Urgent overtime alert!
+            needsKdsRerender = true;
+          }
+        } else if (remainingSeconds <= 60) {
+          if (!this.notifiedOneMinIds.has(order.id)) {
+            this.notifiedOneMinIds.add(order.id);
+            this.playOneMinWarningSound(); // Sehaj Sound - 1 minute chime!
+            needsKdsRerender = true;
+          }
+        }
+      }
+    });
+
+    // Cleanup finished orders from tracking sets
+    for (const id of this.notifiedOneMinIds) {
+      if (!activePrepIds.has(id)) this.notifiedOneMinIds.delete(id);
+    }
+    for (const id of this.notifiedOverdueIds) {
+      if (!activePrepIds.has(id)) this.notifiedOverdueIds.delete(id);
+    }
+
+    // Overdue repeating buzzer every 60 seconds if any order remains overdue
+    if (anyOverdue && (nowTs - this.lastReminderTimestamp > 60000)) {
+      this.lastReminderTimestamp = nowTs;
+      this.playOverdueSound();
+    }
+
+    // Update DOM countdown timers if user is currently on KDS view
+    const isKdsActive = window.app && window.app.activeView === "orders" && window.views.orders && window.views.orders.activeSubTab === "kds";
+    if (isKdsActive) {
+      if (needsKdsRerender) {
+        window.views.orders.renderActiveTab();
+      } else {
+        this.updateKdsDomTimers(orders, targetSeconds, now);
+      }
+    }
+  },
+
+  updateKdsDomTimers(orders, targetSeconds, now) {
+    const countdownEls = document.querySelectorAll(".kds-timer-countdown");
+    if (!countdownEls || countdownEls.length === 0) return;
+
+    countdownEls.forEach(el => {
+      const orderId = el.getAttribute("data-order-id");
+      const status = el.getAttribute("data-status");
+      const order = orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const createdTime = new Date(order.createdAt);
+      const container = el.closest(".kds-timer-container");
+      const label = container ? container.querySelector(".kds-timer-label") : null;
+
+      if (status === "Pending") {
+        const elapsedSeconds = Math.floor((now - createdTime) / 1000);
+        const remainingSeconds = 15 - elapsedSeconds;
+        if (remainingSeconds > 0) {
+          el.textContent = `${remainingSeconds}s`;
+          if (label) {
+            label.innerHTML = `<i class="fa-regular fa-hourglass-half" style="margin-right: 4px; color: #f59e0b;"></i> Auto-Start:`;
+          }
+          if (remainingSeconds <= 5) {
+            el.className = "kds-timer-countdown warning-blink";
+          } else {
+            el.className = "kds-timer-countdown";
+          }
+        }
+      } else if (status === "Preparing") {
+        const autoPrepStartTime = createdTime.getTime() + 15 * 1000;
+        const startedTime = order.preparingStartedAt 
+          ? new Date(Math.min(new Date(order.preparingStartedAt).getTime(), autoPrepStartTime)) 
+          : new Date(autoPrepStartTime);
+        const elapsedSeconds = Math.floor((now - startedTime) / 1000);
+        const remainingSeconds = targetSeconds - elapsedSeconds;
+
+        if (remainingSeconds <= 0) {
+          const absSeconds = Math.abs(remainingSeconds);
+          const mins = Math.floor(absSeconds / 60);
+          const secs = absSeconds % 60;
+          el.textContent = `Overdue (-${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')})`;
+          el.className = "kds-timer-countdown overdue";
+          if (container) {
+            container.classList.remove("one-min-warn");
+            container.classList.add("overdue");
+          }
+          if (label) {
+            label.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="margin-right: 4px; color: #ef4444;"></i> Overtime:`;
+          }
+        } else if (remainingSeconds <= 60) {
+          const secs = remainingSeconds % 60;
+          el.textContent = `00:${secs.toString().padStart(2, '0')}`;
+          el.className = "kds-timer-countdown warning-blink";
+          if (container) {
+            container.classList.remove("overdue");
+            container.classList.add("one-min-warn");
+          }
+          if (label) {
+            label.innerHTML = `<i class="fa-solid fa-hourglass-end" style="margin-right: 4px; color: #d97706;"></i> 1 Min Left:`;
+          }
+        } else {
+          const mins = Math.floor(remainingSeconds / 60);
+          const secs = remainingSeconds % 60;
+          el.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+          el.className = "kds-timer-countdown";
+          if (container) {
+            container.classList.remove("overdue");
+            container.classList.remove("one-min-warn");
+          }
+          if (label) {
+            label.innerHTML = `<i class="fa-regular fa-clock" style="margin-right: 4px;"></i> Time Left:`;
+          }
+        }
+      }
+    });
+  },
+
+  updateAllSoundUI() {
+    const isEnabled = this.soundEnabled;
+    // 1. KDS sound button
+    const kdsBtn = document.getElementById("btn-kds-sound-toggle");
+    if (kdsBtn) {
+      kdsBtn.style.background = isEnabled ? '#eff6ff' : '#f1f5f9';
+      kdsBtn.style.borderColor = isEnabled ? '#bfdbfe' : 'var(--border-color)';
+      kdsBtn.style.color = isEnabled ? '#2563eb' : 'var(--text-muted)';
+      kdsBtn.innerHTML = `<i class="fa-solid ${isEnabled ? 'fa-volume-high' : 'fa-volume-xmark'}"></i> Sound: ${isEnabled ? 'ON (1m Chime + Alarm)' : 'MUTED'}`;
+    }
+    // 2. Global top header sound toggle
+    const headerPill = document.getElementById("header-sound-toggle-pill");
+    const headerIcon = document.getElementById("header-sound-icon");
+    const headerText = document.getElementById("header-sound-text");
+    if (headerPill) {
+      headerPill.className = `sound-toggle-pill ${isEnabled ? 'active' : 'muted'}`;
+      if (headerIcon) {
+        headerIcon.className = `fa-solid ${isEnabled ? 'fa-volume-high' : 'fa-volume-xmark'}`;
+        headerIcon.style.color = isEnabled ? '#2563eb' : '#94a3b8';
+      }
+      if (headerText) {
+        headerText.textContent = `Sound: ${isEnabled ? 'ON' : 'MUTED'}`;
+      }
+    }
+    // 3. POS view pill
+    const posPill = document.getElementById("pos-sound-toggle-pill");
+    const posIcon = document.getElementById("pos-sound-icon");
+    const posText = document.getElementById("pos-sound-text");
+    if (posPill) {
+      posPill.className = `sound-toggle-pill ${isEnabled ? 'active' : 'muted'}`;
+      if (posIcon) {
+        posIcon.className = `fa-solid ${isEnabled ? 'fa-volume-high' : 'fa-volume-xmark'}`;
+        posIcon.style.color = isEnabled ? '#2563eb' : '#94a3b8';
+      }
+      if (posText) {
+        posText.textContent = `Sound: ${isEnabled ? 'ON' : 'MUTED'}`;
+      }
+    }
+  }
+};
+
+// Auto-initialize sound alerts on load
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => window.soundAlerts.init());
+} else {
+  window.soundAlerts.init();
+}
+
+window.views = window.views || {};
+window.views.orders = {
+  activeSubTab: "kds", // 'kds' or 'history'
+  searchQuery: "",
+
+  // Backward-compatible accessors bound to global sound alerts
+  get soundAlertEnabled() {
+    return window.soundAlerts ? window.soundAlerts.soundEnabled : true;
+  },
+  set soundAlertEnabled(val) {
+    if (window.soundAlerts) window.soundAlerts.soundEnabled = val;
+  },
+  get notifiedOneMinIds() {
+    return window.soundAlerts ? window.soundAlerts.notifiedOneMinIds : new Set();
+  },
+  get notifiedOverdueIds() {
+    return window.soundAlerts ? window.soundAlerts.notifiedOverdueIds : new Set();
+  },
+  get lastReminderTimestamp() {
+    return window.soundAlerts ? window.soundAlerts.lastReminderTimestamp : 0;
+  },
+  set lastReminderTimestamp(val) {
+    if (window.soundAlerts) window.soundAlerts.lastReminderTimestamp = val;
+  },
+
+  playOneMinWarningSound() {
+    if (window.soundAlerts) window.soundAlerts.playOneMinWarningSound();
+  },
+  playOverdueSound() {
+    if (window.soundAlerts) window.soundAlerts.playOverdueSound();
+  },
+  playKitchenChime() {
+    if (window.soundAlerts) window.soundAlerts.playKitchenChime();
   },
 
   init(container) {
@@ -311,16 +641,9 @@ window.views.orders = {
     const soundToggle = document.getElementById("btn-kds-sound-toggle");
     if (soundToggle) {
       soundToggle.onclick = () => {
-        this.soundAlertEnabled = !this.soundAlertEnabled;
-        if (this.soundAlertEnabled) {
-          // Play 1-min chime then overdue sound preview so user knows both
-          this.playOneMinWarningSound();
-          setTimeout(() => this.playOverdueSound(), 700);
-          window.showToast("Kitchen audio chime enabled 🔔 (Tested: 1m chime + overtime buzzer)", "success");
-        } else {
-          window.showToast("Kitchen audio alerts muted 🔇", "info");
+        if (window.soundAlerts) {
+          window.soundAlerts.toggleSound(true);
         }
-        this.renderActiveTab();
       };
     }
 
@@ -629,131 +952,10 @@ window.views.orders = {
   },
 
   startKdsTimerLoop(targetSeconds = 900) {
-    if (this.kdsTimerInterval) {
-      clearInterval(this.kdsTimerInterval);
+    if (window.soundAlerts) {
+      window.soundAlerts.startGlobalMonitor();
+      window.soundAlerts.checkOrdersAndAlert();
     }
-
-    this.kdsTimerInterval = setInterval(() => {
-      // Check if KDS queue is still active and visible in DOM
-      const countdownEls = document.querySelectorAll(".kds-timer-countdown");
-      if (countdownEls.length === 0 || this.activeSubTab !== "kds") {
-        clearInterval(this.kdsTimerInterval);
-        this.kdsTimerInterval = null;
-        return;
-      }
-
-      const orders = window.db.get("orders") || [];
-      const currentTargetSecs = (Number(window.db.get("settings")?.targetPrepMinutes) || 15) * 60;
-      let needsRerender = false;
-      let anyOverdueOrder = false;
-
-      const now = new Date();
-
-      countdownEls.forEach(el => {
-        const orderId = el.getAttribute("data-order-id");
-        const status = el.getAttribute("data-status");
-        const order = orders.find(o => o.id === orderId);
-
-        if (!order) return;
-
-        const createdTime = new Date(order.createdAt);
-
-        const container = el.closest(".kds-timer-container");
-        const label = container ? container.querySelector(".kds-timer-label") : null;
-
-        if (status === "Pending") {
-          const elapsedSeconds = Math.floor((now - createdTime) / 1000);
-          const remainingSeconds = 15 - elapsedSeconds;
-
-          if (remainingSeconds <= 0) {
-            const autoStartTime = new Date(createdTime.getTime() + 15 * 1000).toISOString();
-            window.db.updateOrderStatus(orderId, "Preparing", autoStartTime);
-            needsRerender = true;
-          } else {
-            el.textContent = `${remainingSeconds}s`;
-            if (label) {
-              label.innerHTML = `<i class="fa-regular fa-hourglass-half" style="margin-right: 4px; color: #f59e0b;"></i> Auto-Start:`;
-            }
-            if (remainingSeconds <= 5) {
-              el.className = "kds-timer-countdown warning-blink";
-            } else {
-              el.className = "kds-timer-countdown";
-            }
-          }
-        } else if (status === "Preparing") {
-          const autoPrepStartTime = createdTime.getTime() + 15 * 1000;
-          const startedTime = order.preparingStartedAt 
-            ? new Date(Math.min(new Date(order.preparingStartedAt).getTime(), autoPrepStartTime)) 
-            : new Date(autoPrepStartTime);
-          const elapsedSeconds = Math.floor((now - startedTime) / 1000);
-          const remainingSeconds = currentTargetSecs - elapsedSeconds;
-
-          if (remainingSeconds <= 0) {
-            anyOverdueOrder = true;
-            const absSeconds = Math.abs(remainingSeconds);
-            const mins = Math.floor(absSeconds / 60);
-            const secs = absSeconds % 60;
-            el.textContent = `Overdue (-${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')})`;
-            el.className = "kds-timer-countdown overdue";
-            if (container) {
-              container.classList.remove("one-min-warn");
-              container.classList.add("overdue");
-            }
-            if (label) {
-              label.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="margin-right: 4px; color: #ef4444;"></i> Overtime:`;
-            }
-
-            // Check if this order just became overdue and hasn't chimed yet
-            if (!this.notifiedOverdueIds.has(orderId)) {
-              this.notifiedOverdueIds.add(orderId);
-              this.playOverdueSound(); // "Bijo Sound" - Urgent Overtime Alert
-              needsRerender = true; // Rerender to show red card border & banner
-            }
-          } else if (remainingSeconds <= 60) {
-            // 1 MINUTE REMAINING ("Preparing ma 1 min baki hoy sehaj sound aave")
-            const secs = remainingSeconds % 60;
-            el.textContent = `00:${secs.toString().padStart(2, '0')}`;
-            el.className = "kds-timer-countdown warning-blink";
-            if (container) {
-              container.classList.remove("overdue");
-              container.classList.add("one-min-warn");
-            }
-            if (label) {
-              label.innerHTML = `<i class="fa-solid fa-hourglass-end" style="margin-right: 4px; color: #d97706;"></i> 1 Min Left:`;
-            }
-
-            // Check if 1-min reminder chime hasn't sounded yet for this order
-            if (!this.notifiedOneMinIds.has(orderId)) {
-              this.notifiedOneMinIds.add(orderId);
-              this.playOneMinWarningSound(); // "Sehaj Sound" - Gentle Warning Chime
-              needsRerender = true; // Rerender to show amber warning card border & banner
-            }
-          } else {
-            const mins = Math.floor(remainingSeconds / 60);
-            const secs = remainingSeconds % 60;
-            el.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            el.className = "kds-timer-countdown";
-            if (container) {
-              container.classList.remove("overdue");
-              container.classList.remove("one-min-warn");
-            }
-            if (label) {
-              label.innerHTML = `<i class="fa-regular fa-clock" style="margin-right: 4px;"></i> Time Left:`;
-            }
-          }
-        }
-      });
-
-      // Repeat overtime buzzer every 60s if any order remains overdue
-      const nowTs = Date.now();
-      if (anyOverdueOrder && (nowTs - this.lastReminderTimestamp > 60000)) {
-        this.lastReminderTimestamp = nowTs;
-        this.playOverdueSound();
-      }
-
-      if (needsRerender) {
-        this.renderActiveTab();
-      }
-    }, 1000);
   }
 };
+

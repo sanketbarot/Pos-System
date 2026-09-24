@@ -81,6 +81,7 @@ input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
 input[type=number] {
   -moz-appearance: textfield;
 }
@@ -2416,20 +2417,24 @@ body {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
 }
+
 .cloud-sync-pill:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
+
 .cloud-sync-pill.connected {
   border-color: #a7f3d0 !important;
   background: #ecfdf5 !important;
   color: #065f46 !important;
 }
+
 .cloud-sync-pill.connecting {
   border-color: #fde68a !important;
   background: #fffbeb !important;
   color: #92400e !important;
 }
+
 .cloud-sync-pill.permission-denied,
 .cloud-sync-pill.error {
   border-color: #fecaca !important;
@@ -2437,10 +2442,44 @@ body {
   color: #991b1b !important;
   animation: pulse-border 2s infinite;
 }
+
 @keyframes pulse-border {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Global Sound Alert Toggle Pill */
+.sound-toggle-pill {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sound-toggle-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.sound-toggle-pill.active {
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #1e40af !important;
+}
+
+.sound-toggle-pill.muted {
+  border-color: var(--border-color) !important;
+  background: var(--bg-card) !important;
+  color: var(--text-muted) !important;
 }
 
 /* PWA Install Button */
@@ -2448,6 +2487,7 @@ body {
   transition: all 0.2s ease;
   outline: none;
 }
+
 .btn-pwa-install:hover {
   background: #dbeafe !important;
   transform: translateY(-1px);
@@ -2594,10 +2634,21 @@ body {
   transform: translateY(-2px);
 }
 
-.dash-card.accent-blue { border-left: 4px solid #2563eb; }
-.dash-card.accent-green { border-left: 4px solid #10b981; }
-.dash-card.accent-amber { border-left: 4px solid #f59e0b; }
-.dash-card.accent-purple { border-left: 4px solid #8b5cf6; }
+.dash-card.accent-blue {
+  border-left: 4px solid #2563eb;
+}
+
+.dash-card.accent-green {
+  border-left: 4px solid #10b981;
+}
+
+.dash-card.accent-amber {
+  border-left: 4px solid #f59e0b;
+}
+
+.dash-card.accent-purple {
+  border-left: 4px solid #8b5cf6;
+}
 
 .dash-card-header {
   display: flex;
@@ -2624,10 +2675,29 @@ body {
   font-size: 17px;
 }
 
-.icon-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-.icon-green { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
-.icon-amber { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
-.icon-purple { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+.icon-blue {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.icon-green {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.icon-amber {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.icon-purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
 
 .dash-card-val {
   font-size: 28px;
@@ -2654,10 +2724,29 @@ body {
   font-weight: 700;
 }
 
-.dash-sub-pill.pill-cash { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-.dash-sub-pill.pill-upi { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-.dash-sub-pill.pill-card { background: #f5f3ff; color: #5b21b6; border: 1px solid #ddd6fe; }
-.dash-sub-pill.pill-neutral { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.dash-sub-pill.pill-cash {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.dash-sub-pill.pill-upi {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.dash-sub-pill.pill-card {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+
+.dash-sub-pill.pill-neutral {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
 
 .dash-charts-grid {
   display: grid;
@@ -2722,10 +2811,29 @@ body {
   flex-shrink: 0;
 }
 
-.rank-pill.rank-1 { background: #fef3c7; color: #b45309; border: 1.5px solid #fcd34d; }
-.rank-pill.rank-2 { background: #f1f5f9; color: #475569; border: 1.5px solid #cbd5e1; }
-.rank-pill.rank-3 { background: #ffedd5; color: #c2410c; border: 1.5px solid #fdba74; }
-.rank-pill.rank-norm { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+.rank-pill.rank-1 {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1.5px solid #fcd34d;
+}
+
+.rank-pill.rank-2 {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1.5px solid #cbd5e1;
+}
+
+.rank-pill.rank-3 {
+  background: #ffedd5;
+  color: #c2410c;
+  border: 1.5px solid #fdba74;
+}
+
+.rank-pill.rank-norm {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
 
 .leaderboard-progress-bg {
   width: 100%;
@@ -2802,6 +2910,7 @@ body {
 
 /* Tablet Optimization (<= 1024px) */
 @media (max-width: 1024px) {
+
   .dash-charts-grid,
   .dashboard-charts-row,
   .dash-details-grid,
@@ -2813,6 +2922,7 @@ body {
 
 /* Mobile Devices (<= 768px) */
 @media (max-width: 768px) {
+
   /* Workspace & Viewport - ZERO OVERLAP */
   .mobile-bottom-nav {
     display: flex !important;
@@ -2826,6 +2936,7 @@ body {
     justify-content: space-evenly !important;
     box-sizing: border-box !important;
   }
+
   .mobile-nav-item {
     display: flex !important;
     flex-direction: column !important;
@@ -2841,6 +2952,7 @@ body {
     box-sizing: border-box !important;
     text-align: center !important;
   }
+
   .mobile-nav-item i {
     font-size: 18px !important;
     line-height: 1 !important;
@@ -2849,6 +2961,7 @@ body {
     align-items: center !important;
     justify-content: center !important;
   }
+
   .mobile-nav-item span {
     font-size: 11px !important;
     font-weight: 700 !important;
@@ -2860,13 +2973,16 @@ body {
     display: block !important;
     text-align: center !important;
   }
+
   .mobile-nav-item.active {
     color: #2563eb !important;
     background: rgba(37, 99, 235, 0.09) !important;
   }
+
   .sidebar {
     display: none !important;
   }
+
   .main-workspace {
     margin-left: 0 !important;
     width: 100% !important;
@@ -2876,6 +2992,7 @@ body {
     display: flex !important;
     flex-direction: column !important;
   }
+
   .view-viewport {
     padding: 12px 10px 105px 10px !important;
     flex-grow: 1 !important;
@@ -2902,12 +3019,14 @@ body {
     gap: 8px !important;
     box-sizing: border-box !important;
   }
+
   .header-title-area {
     min-width: 0 !important;
     flex: 1 1 auto !important;
     display: flex !important;
     align-items: center !important;
   }
+
   .header-title-area h2 {
     font-size: 16px !important;
     font-weight: 800 !important;
@@ -2918,15 +3037,19 @@ body {
     color: var(--text-dark) !important;
     line-height: 1.2 !important;
   }
+
   .header-actions {
     flex-shrink: 0 !important;
     gap: 6px !important;
     display: flex !important;
     align-items: center !important;
   }
+
   .date-time-widget {
-    display: none !important; /* Hide long date widget on mobile to prevent overflow */
+    display: none !important;
+    /* Hide long date widget on mobile to prevent overflow */
   }
+
   .cloud-sync-pill {
     height: 32px !important;
     display: inline-flex !important;
@@ -2938,6 +3061,7 @@ body {
     box-sizing: border-box !important;
     line-height: 1 !important;
   }
+
   .btn-pwa-install {
     height: 32px !important;
     display: inline-flex !important;
@@ -2963,6 +3087,7 @@ body {
     gap: 12px !important;
     padding-bottom: 10px !important;
   }
+
   .dash-banner {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -2970,42 +3095,51 @@ body {
     padding: 12px 14px !important;
     border-radius: 14px !important;
   }
+
   .dash-banner h1 {
     font-size: 17px !important;
     line-height: 1.3 !important;
     margin-bottom: 2px !important;
   }
+
   .dash-banner p {
     font-size: 11.5px !important;
   }
+
   .dash-status-pill {
     font-size: 10.5px !important;
     padding: 4px 10px !important;
     align-self: flex-start !important;
   }
+
   .dash-kpi-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
   }
+
   .dash-card {
     padding: 12px 12px !important;
     border-radius: 14px !important;
     min-width: 0 !important;
     box-sizing: border-box !important;
   }
+
   .dash-card-header {
     margin-bottom: 6px !important;
   }
+
   .dash-card-label {
     font-size: 10.5px !important;
     letter-spacing: 0.3px !important;
   }
+
   .dash-card-icon {
     width: 32px !important;
     height: 32px !important;
     font-size: 14px !important;
     border-radius: 10px !important;
   }
+
   .dash-card-val {
     font-size: clamp(20px, 5.5vw, 24px) !important;
     margin-bottom: 6px !important;
@@ -3013,12 +3147,14 @@ body {
     white-space: normal !important;
     line-height: 1.15 !important;
   }
+
   .dash-breakdown-tags {
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 4px !important;
     margin-top: 4px !important;
   }
+
   .dash-sub-pill {
     font-size: 10.5px !important;
     padding: 2px 7px !important;
@@ -3026,21 +3162,26 @@ body {
     white-space: nowrap !important;
     max-width: 100% !important;
   }
+
   .dash-charts-grid {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
+
   .dash-chart-card {
     padding: 12px 14px !important;
     border-radius: 14px !important;
   }
+
   .dash-chart-wrap {
     height: 210px !important;
   }
+
   .dash-details-grid {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
+
   .dash-leaderboard-card,
   .dash-recent-card {
     padding: 12px 14px !important;
@@ -3048,10 +3189,12 @@ body {
     box-sizing: border-box !important;
     min-width: 0 !important;
   }
+
   .dash-insights-grid {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
+
   .dash-insight-card {
     padding: 12px 14px !important;
     border-radius: 14px !important;
@@ -3059,6 +3202,7 @@ body {
     box-sizing: border-box !important;
     min-width: 0 !important;
   }
+
   .dash-insight-card .insight-header {
     display: flex !important;
     flex-wrap: wrap !important;
@@ -3066,10 +3210,12 @@ body {
     align-items: flex-start !important;
     gap: 6px !important;
   }
+
   .dash-insight-card .insight-title {
     font-size: 13.5px !important;
     line-height: 1.25 !important;
   }
+
   .dash-insight-card .insight-badge {
     font-size: 10.5px !important;
     padding: 3px 8px !important;
@@ -3086,31 +3232,37 @@ body {
     align-items: stretch !important;
     gap: 10px !important;
   }
+
   .report-dates-group {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 8px !important;
     width: 100% !important;
   }
-  .report-dates-group > div {
+
+  .report-dates-group>div {
     display: flex !important;
     gap: 8px !important;
     width: 100% !important;
   }
+
   .report-dates-group input[type="date"] {
     flex: 1 !important;
     width: auto !important;
     min-width: 0 !important;
   }
+
   .report-dates-group .btn-primary {
     width: 100% !important;
     justify-content: center !important;
   }
+
   .report-actions-group {
     width: 100% !important;
     display: flex !important;
     gap: 8px !important;
   }
+
   .report-actions-group .btn {
     flex: 1 !important;
     text-align: center !important;
@@ -3118,6 +3270,7 @@ body {
     padding: 0 10px !important;
     font-size: 12px !important;
   }
+
   .dashboard-grid-stats {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
@@ -3126,6 +3279,7 @@ body {
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
+
   .dashboard-grid-stats .stat-card {
     padding: 12px 12px !important;
     border-radius: 14px !important;
@@ -3133,27 +3287,32 @@ body {
     overflow: hidden !important;
     box-sizing: border-box !important;
   }
+
   .dashboard-grid-stats .stat-info {
     min-width: 0 !important;
     overflow: hidden !important;
   }
+
   .dashboard-grid-stats .stat-label {
     font-size: 11px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
+
   .dashboard-grid-stats .stat-value {
     font-size: clamp(19px, 5vw, 24px) !important;
     white-space: normal !important;
     word-break: break-word !important;
     line-height: 1.2 !important;
   }
+
   .dashboard-grid-stats .stat-change {
     font-size: 10px !important;
     line-height: 1.2 !important;
     margin-top: 2px !important;
   }
+
   .dashboard-grid-stats .stat-icon-wrapper {
     width: 32px !important;
     height: 32px !important;
@@ -3161,6 +3320,7 @@ body {
     border-radius: 8px !important;
     flex-shrink: 0 !important;
   }
+
   .dashboard-charts-row,
   .dashboard-details-row {
     grid-template-columns: 1fr !important;
@@ -3170,8 +3330,9 @@ body {
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
-  .dashboard-charts-row > div,
-  .dashboard-details-row > div {
+
+  .dashboard-charts-row>div,
+  .dashboard-details-row>div {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -3188,6 +3349,7 @@ body {
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
+
   .counter-date-group {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -3196,24 +3358,29 @@ body {
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
+
   .counter-date-group input[type="date"] {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
+
   .counter-quick-days {
     width: 100% !important;
     display: flex !important;
     gap: 8px !important;
   }
+
   .counter-quick-days button {
     flex: 1 !important;
     justify-content: center !important;
   }
+
   .counter-control-bar .btn-primary {
     width: 100% !important;
     justify-content: center !important;
   }
+
   .counter-kpi-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
@@ -3221,6 +3388,7 @@ body {
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
+
   .counter-search-row {
     width: 100% !important;
     max-width: 100% !important;
@@ -3230,15 +3398,18 @@ body {
     flex-wrap: wrap !important;
     align-items: stretch !important;
   }
+
   #counter-payment-filter {
     flex: 0 0 105px !important;
     min-width: 100px !important;
   }
+
   .counter-search-box {
     flex: 1 1 160px !important;
     width: auto !important;
     min-width: 0 !important;
   }
+
   .table-container {
     border-radius: 14px !important;
     overflow-x: auto !important;
@@ -3248,6 +3419,7 @@ body {
     box-sizing: border-box !important;
     display: block !important;
   }
+
   .premium-table th,
   .premium-table td {
     padding: 10px 12px !important;
@@ -3262,12 +3434,14 @@ body {
     max-height: 90vh !important;
     border-radius: 18px !important;
   }
+
   .modal-body {
     padding: 12px !important;
     max-height: calc(90vh - 120px) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
   }
+
   #receipt-print-area {
     padding: 10px !important;
     font-size: 11.5px !important;
@@ -3276,37 +3450,46 @@ body {
 
 /* Small Smart Phones (<= 480px) */
 @media (max-width: 480px) {
+
   .dash-kpi-grid,
   .dashboard-grid-stats,
   .counter-kpi-grid {
     grid-template-columns: 1fr !important;
   }
+
   .dash-card-val,
   .dashboard-grid-stats .stat-value {
     font-size: 24px !important;
   }
+
   .view-viewport {
     padding: 10px 8px 105px 8px !important;
   }
+
   .counter-search-row {
     flex-direction: column !important;
   }
+
   #counter-payment-filter {
     width: 100% !important;
     flex: none !important;
   }
+
   .counter-search-box {
     width: 100% !important;
     flex: none !important;
   }
-  .report-dates-group > div {
+
+  .report-dates-group>div {
     flex-direction: column !important;
     align-items: stretch !important;
   }
-  .report-dates-group > div span {
+
+  .report-dates-group>div span {
     text-align: center !important;
     margin: 2px 0 !important;
   }
+
   .dash-leaderboard-card,
   .dash-recent-card {
     padding: 12px 10px !important;

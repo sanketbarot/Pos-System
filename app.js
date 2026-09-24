@@ -179,6 +179,14 @@ const app = {
     // Setup Cloud Sync status listeners
     this.setupCloudSyncUI();
 
+    // Hook Global Sound Alert pill in header
+    const headerSoundPill = document.getElementById("header-sound-toggle-pill");
+    if (headerSoundPill) {
+      headerSoundPill.onclick = () => {
+        if (window.soundAlerts) window.soundAlerts.toggleSound(true);
+      };
+    }
+
     // Setup global db-update listener
     window.addEventListener("db-update", (e) => {
       const detail = e.detail || {};
@@ -304,7 +312,7 @@ service cloud.firestore {
     // 1. Register Service Worker for PWA
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js?v=4.5")
+        navigator.serviceWorker.register("./sw.js?v=5.9")
           .then((reg) => {
             console.log("[PWA] Service Worker registered with scope:", reg.scope);
           })
@@ -394,6 +402,13 @@ service cloud.firestore {
     // 1. Orders updated in Cloud (from another terminal / device)
     if (key === "orders") {
       this.updateSidebarSummary();
+
+      // Check if a new order arrived from cloud
+      const currentOrders = window.db.get("orders") || [];
+      if (this.lastKnownOrderCount !== undefined && currentOrders.length > this.lastKnownOrderCount) {
+        if (window.soundAlerts) window.soundAlerts.playNewOrderSound();
+      }
+      this.lastKnownOrderCount = currentOrders.length;
 
       // If on KDS Kitchen view or Order History
       if (this.activeView === "orders" && window.views.orders) {
@@ -522,6 +537,10 @@ service cloud.firestore {
       // Update sidebar summary metrics
       this.updateSidebarSummary();
       window.updateSidebarSummary = () => this.updateSidebarSummary();
+
+      // Track known order count for new order sound alerts
+      this.lastKnownOrderCount = (window.db.get("orders") || []).length;
+      if (window.soundAlerts) window.soundAlerts.updateAllSoundUI();
     } else {
       this.showLogin();
     }
@@ -625,6 +644,11 @@ service cloud.firestore {
 
     // Trigger module initialization callback
     window.views[hash].init(viewport);
+
+    // Sync sound indicator state on the active view
+    if (window.soundAlerts) {
+      window.soundAlerts.updateAllSoundUI();
+    }
   },
 
 
