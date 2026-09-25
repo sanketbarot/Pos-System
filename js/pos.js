@@ -79,6 +79,29 @@ window.views.pos = {
   selectedPayment: "UPI",
   orderType: "Dine-in",
 
+  getTodayStats() {
+    const orders = window.db ? (window.db.get("orders") || []) : [];
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const todayOrders = orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === todayStr && o.status !== "Cancelled");
+    const nextToken = todayOrders.length + 1;
+    return { count: todayOrders.length, nextToken: nextToken };
+  },
+
+  getHeldOrders() {
+    try {
+      const data = localStorage.getItem("cc_pos_held_orders");
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveHeldOrders(list) {
+    try {
+      localStorage.setItem("cc_pos_held_orders", JSON.stringify(list));
+    } catch (e) {}
+  },
+
   init(container) {
     // Reset view variables
     this.cart = [];
@@ -88,61 +111,77 @@ window.views.pos = {
     this.orderType = "Dine-in";
     this.currentUser = window.db.getCurrentUser();
 
+    const stats = this.getTodayStats();
+    const tokenDisplay = String(stats.nextToken).padStart(2, '0');
+    const heldList = this.getHeldOrders();
+
     container.innerHTML = `
       <div class="pos-layout view-animate">
-        <!-- Top Custom Header -->
+        <!-- Top Custom Terminal Header -->
         <div class="pos-custom-header">
           <!-- Search Bar -->
-          <div style="position: relative; display: flex; align-items: center; width: 450px;">
+          <div style="position: relative; display: flex; align-items: center; width: 380px;">
             <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; color: var(--text-muted); pointer-events: none; z-index: 5;"></i>
-            <input type="text" id="pos-search" class="pos-search-input" value="${this.searchQuery}" placeholder="Search menu items... (e.g. Burger, Pizza, Fries)">
-            <button type="button" id="btn-clear-search" style="position: absolute; right: 90px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: ${this.searchQuery ? 'flex' : 'none'}; align-items: center; justify-content: center; outline: none; z-index: 5;">
+            <input type="text" id="pos-search" class="pos-search-input" value="${this.searchQuery}" placeholder="Search menu (e.g. Burger, Sandwich, Fries)..." autocomplete="off">
+            <button type="button" id="btn-clear-search" style="position: absolute; right: 80px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: ${this.searchQuery ? 'flex' : 'none'}; align-items: center; justify-content: center; outline: none; z-index: 5;" title="Clear search">
               <i class="fa-solid fa-circle-xmark" style="font-size: 14px;"></i>
             </button>
-            <span style="position: absolute; right: 12px; font-size: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; pointer-events: none; z-index: 5;">Ctrl + K</span>
+            <span style="position: absolute; right: 12px; font-size: 10px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border-color); color: #64748b; padding: 2px 6px; border-radius: 6px; pointer-events: none; z-index: 5;">Ctrl+K</span>
           </div>
 
-          <!-- Dine In / Takeaway / Delivery Toggle Buttons -->
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <button class="pos-header-btn ${this.orderType === 'Dine-in' ? 'active' : ''}" id="type-dinein">
-              <i class="fa-solid fa-utensils"></i> Dine In
-            </button>
-            <button class="pos-header-btn ${this.orderType === 'Takeaway' ? 'active' : ''}" id="type-takeaway">
-              <i class="fa-solid fa-bag-shopping"></i> Takeaway
-            </button>
-            <button class="pos-header-btn ${this.orderType === 'Delivery' ? 'active' : ''}" id="type-delivery">
-              <i class="fa-solid fa-motorcycle"></i> Delivery
-            </button>
-            <div id="header-table-box" style="display: ${this.orderType === 'Dine-in' ? 'flex' : 'none'}; align-items: center; gap: 4px; background: var(--bg-darkest); border: 1px solid rgba(255,255,255,0.7); box-shadow: var(--neu-shadow-inset); border-radius: 12px; padding: 4px 10px; height: 36px; box-sizing: border-box;">
-              <span style="font-size: 11px; font-weight: 700; color: var(--text-dark);"><i class="fa-solid fa-chair" style="color: #2563eb;"></i> Table:</span>
-              <input type="text" id="pos-table-input" placeholder="e.g. T-1" value="" style="border: none; outline: none; font-size: 11px; font-weight: 700; width: 55px; color: var(--text-dark); background: transparent;">
+          <!-- Dine In / Takeaway / Delivery Segmented Control -->
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div style="display: inline-flex; background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 16px; padding: 3px; gap: 3px;">
+              <button class="pos-header-btn ${this.orderType === 'Dine-in' ? 'active' : ''}" id="type-dinein" style="border: none; border-radius: 12px; padding: 6px 14px; font-size: 11.5px;">
+                <i class="fa-solid fa-utensils"></i> Dine In
+              </button>
+              <button class="pos-header-btn ${this.orderType === 'Takeaway' ? 'active' : ''}" id="type-takeaway" style="border: none; border-radius: 12px; padding: 6px 14px; font-size: 11.5px;">
+                <i class="fa-solid fa-bag-shopping"></i> Takeaway
+              </button>
+              <button class="pos-header-btn ${this.orderType === 'Delivery' ? 'active' : ''}" id="type-delivery" style="border: none; border-radius: 12px; padding: 6px 14px; font-size: 11.5px;">
+                <i class="fa-solid fa-motorcycle"></i> Delivery
+              </button>
+            </div>
+
+            <!-- Table Input & Quick Selector Chips -->
+            <div id="header-table-box" style="display: ${this.orderType === 'Dine-in' ? 'flex' : 'none'}; align-items: center; gap: 6px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 14px; padding: 4px 10px; height: 38px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-chair" style="color: #2563eb;"></i> Table:</span>
+              <input type="text" id="pos-table-input" placeholder="T-1" value="${this.orderType === 'Dine-in' ? 'T-1' : ''}" style="border: none; outline: none; font-size: 12px; font-weight: 800; width: 44px; color: #2563eb; background: transparent;">
+              <div class="pos-table-chips">
+                <span class="pos-table-chip ${this.orderType === 'Dine-in' ? 'active' : ''}" onclick="views.pos.setQuickTable('T-1')">T1</span>
+                <span class="pos-table-chip" onclick="views.pos.setQuickTable('T-2')">T2</span>
+                <span class="pos-table-chip" onclick="views.pos.setQuickTable('T-3')">T3</span>
+                <span class="pos-table-chip" onclick="views.pos.setQuickTable('T-4')">T4</span>
+                <span class="pos-table-chip" onclick="views.pos.setQuickTable('T-5')">T5</span>
+              </div>
             </div>
           </div>
 
-          <!-- Right side: Sync status, Notifications, User info -->
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <button id="pos-sound-toggle-pill" class="sound-toggle-pill active" onclick="window.soundAlerts && window.soundAlerts.toggleSound(true)" title="Kitchen Audio Alerts: Active everywhere (Click to toggle / test)" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e40af; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--neu-shadow-btn);">
+          <!-- Right side: Shift Stats, Sound, Cashier -->
+          <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+            <!-- Shift Live Stats Pill -->
+            <div class="pos-shift-stats" style="display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 14px; font-size: 11px; font-weight: 700;">
+              <span style="color: #2563eb; display: flex; align-items: center; gap: 4px;" title="Orders completed today">
+                <i class="fa-solid fa-clipboard-check"></i> <span id="pos-today-orders-count">${stats.count} Bills</span>
+              </span>
+              <span style="color: #cbd5e1;">|</span>
+              <span style="color: #d97706; display: flex; align-items: center; gap: 4px;" title="Next Order Token">
+                <i class="fa-solid fa-ticket"></i> <span>Tk #${tokenDisplay}</span>
+              </span>
+            </div>
+
+            <!-- Sound toggle button -->
+            <button id="pos-sound-toggle-pill" class="sound-toggle-pill active" onclick="window.soundAlerts && window.soundAlerts.toggleSound(true)" title="Kitchen Audio Alerts: Active everywhere (Click to toggle)" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e40af; cursor: pointer; transition: all 0.2s ease;">
               <i class="fa-solid fa-volume-high" id="pos-sound-icon" style="font-size: 10px; color: #2563eb;"></i>
               <span id="pos-sound-text">Sound: ON</span>
             </button>
-            <button id="pos-cloud-sync-pill" class="cloud-sync-pill" onclick="document.getElementById('cloud-sync-pill') && document.getElementById('cloud-sync-pill').click()" title="Click to view Cloud Sync details" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; transition: all 0.2s ease; box-shadow: var(--neu-shadow-btn); color: var(--text-dark);">
-              <i class="fa-solid fa-circle-notch fa-spin" id="pos-cloud-sync-icon" style="font-size: 8px; color: #f59e0b;"></i>
-              <span id="pos-cloud-sync-text">Syncing...</span>
-            </button>
-            <!-- Notifications bell with badge -->
-            <div class="alert-badge-container" style="position: relative; cursor: pointer; color: var(--text-dark); font-size: 18px;">
-              <i class="fa-solid fa-bell"></i>
-              <span style="position: absolute; top: -5px; right: -5px; background: #ff3b30; color: #fff; font-size: 9px; font-weight: 800; border-radius: 50%; width: 15px; height: 15px; display: flex; align-items: center; justify-content: center;">3</span>
-            </div>
 
             <!-- User profile info -->
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <div class="user-avatar" style="width: 32px; height: 32px; font-size: 13px; font-weight: 700; background: var(--primary-gradient); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">S</div>
+            <div style="display: flex; align-items: center; gap: 7px; background: #ffffff; border: 1px solid var(--border-color); padding: 4px 10px 4px 6px; border-radius: 14px;">
+              <div class="user-avatar" style="width: 26px; height: 26px; font-size: 11px; font-weight: 800; background: var(--primary-gradient); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">S</div>
               <div style="text-align: left;">
-                <div style="font-size: 12px; font-weight: 700; color: var(--text-dark); line-height: 1.2;">Sanket Barot</div>
-                <div style="font-size: 10px; color: var(--text-muted); text-transform: capitalize; line-height: 1.1;">Admin</div>
+                <div style="font-size: 11.5px; font-weight: 800; color: var(--text-dark); line-height: 1.1;">${this.currentUser ? this.currentUser.name.split(' ')[0] : 'Sanket'}</div>
               </div>
-              <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: var(--text-muted);"></i>
             </div>
           </div>
         </div>
@@ -167,28 +206,43 @@ window.views.pos = {
             <!-- Cart Header -->
             <div class="cart-header">
               <div class="cart-title">
-                <i class="fa-solid fa-cart-shopping" style="color: #2563eb; font-size: 13px;"></i> Current Order 
+                <i class="fa-solid fa-cart-shopping" style="color: #2563eb; font-size: 14px;"></i> Current Order 
                 <span class="cart-item-count-badge" id="cart-qty-badge">0 Items</span>
               </div>
-              <button class="btn-clear-cart" id="btn-clear-cart-trigger" title="Clear Cart (Alt+C)">
-                <i class="fa-solid fa-trash-can"></i> Clear
-              </button>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <!-- Held Orders Badge button (if any) -->
+                <div id="btn-held-badge-container" style="display: ${heldList.length > 0 ? 'inline-flex' : 'none'};">
+                  <button type="button" class="btn-held-badge" onclick="views.pos.showHeldOrdersModal()" title="View Parked Orders">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Held (${heldList.length})
+                  </button>
+                </div>
+                <!-- Hold Order trigger -->
+                <button type="button" class="btn-hold-cart" onclick="views.pos.holdCurrentCart()" title="Hold / Park Current Cart (F3)">
+                  <i class="fa-solid fa-pause"></i> Hold
+                </button>
+                <!-- Clear Cart trigger -->
+                <button class="btn-clear-cart" id="btn-clear-cart-trigger" title="Clear Cart (Alt+C)">
+                  <i class="fa-solid fa-trash-can"></i> Clear
+                </button>
+              </div>
             </div>
 
-            <!-- Customer Details Block -->
+            <!-- Customer Details Block with 1-Tap Walk-in Button -->
             <div class="pos-customer-card">
-              <!-- Row 1: Name -->
+              <!-- Row 1: Name + Walk-in quick button -->
               <div class="pos-cust-row">
                 <i class="fa-regular fa-user cust-icon"></i>
-                <input type="text" id="cust-name" class="customer-input" placeholder="Customer Name" list="customer-names-list" value="Walk-in Customer" autocomplete="off" style="border: none; outline: none; background: transparent; font-weight: 600; font-size: 12px; color: var(--text-dark); flex-grow: 1; padding: 0;">
+                <input type="text" id="cust-name" class="customer-input" placeholder="Customer Name" list="customer-names-list" value="Walk-in Customer" autocomplete="off" style="border: none; outline: none; background: transparent; font-weight: 700; font-size: 12px; color: var(--text-dark); flex-grow: 1; padding: 0;">
                 <datalist id="customer-names-list"></datalist>
-                <span id="btn-add-cust-shortcut" class="cust-add-btn"><i class="fa-solid fa-plus" style="font-size: 9px; margin-right: 2px;"></i> Add</span>
+                <button type="button" class="cust-add-btn" onclick="views.pos.setQuickCustomerWalkin()" title="1-Tap Set Walk-in Customer" style="cursor: pointer; border: none; background: #eff6ff; color: #2563eb; font-weight: 800; font-size: 10px; padding: 2px 7px; border-radius: 8px;">
+                  <i class="fa-solid fa-rotate-left"></i> Walk-in
+                </button>
               </div>
               <!-- Row 2: Phone -->
-              <div class="pos-cust-row">
+              <div class="pos-cust-row" style="margin-top: 4px;">
                 <i class="fa-solid fa-phone cust-icon"></i>
                 <span class="cust-prefix">+91</span>
-                <input type="tel" id="cust-phone" class="customer-input" placeholder="Phone number (10 digits)" list="customer-phones-list" autocomplete="off" style="border: none; outline: none; background: transparent; font-size: 12px; color: var(--text-dark); flex-grow: 1; padding: 0;">
+                <input type="tel" id="cust-phone" class="customer-input" placeholder="Phone (10 digits)" list="customer-phones-list" autocomplete="off" style="border: none; outline: none; background: transparent; font-size: 12px; color: var(--text-dark); flex-grow: 1; padding: 0;">
                 <datalist id="customer-phones-list"></datalist>
               </div>
             </div>
@@ -200,16 +254,28 @@ window.views.pos = {
                   <i class="fa-solid fa-basket-shopping"></i>
                 </div>
                 <div style="font-size: 13px; font-weight: 700; color: var(--text-dark); margin-bottom: 2px;">Cart is empty</div>
-                <div style="font-size: 11px; color: var(--text-muted); max-width: 180px;">Tap on menu items on the left to add to order</div>
+                <div style="font-size: 11px; color: var(--text-muted); max-width: 180px;">Tap on items on the left to add to order</div>
               </div>
             </div>
 
             <!-- Cart billing summary & checkout panel -->
             <div class="cart-billing-details" style="flex-shrink: 0; background: transparent; padding: 0; border: none;">
-              <!-- Special Cooking Note / Kitchen Instructions -->
-              <div class="pos-kitchen-note-box">
-                <i class="fa-solid fa-pencil note-icon"></i>
-                <input type="text" id="order-kitchen-note" placeholder="Kitchen instructions (e.g. Less Spicy, Jain)...">
+              <!-- Special Cooking Note & 1-Click Preset Chips -->
+              <div style="margin-bottom: 6px;">
+                <div class="pos-kitchen-note-box">
+                  <i class="fa-solid fa-pencil note-icon"></i>
+                  <input type="text" id="order-kitchen-note" placeholder="Kitchen instructions (e.g. Jain, Less Spicy)..." oninput="views.pos.updateKitchenNoteChips()">
+                </div>
+                <!-- 1-Click Preset Chips -->
+                <div class="pos-preset-notes">
+                  <span class="pos-preset-chip" data-text="Jain" onclick="views.pos.toggleKitchenNotePreset('Jain')">🌱 Jain</span>
+                  <span class="pos-preset-chip" data-text="Less Spicy" onclick="views.pos.toggleKitchenNotePreset('Less Spicy')">🌶️ Less Spicy</span>
+                  <span class="pos-preset-chip" data-text="Extra Spicy" onclick="views.pos.toggleKitchenNotePreset('Extra Spicy')">🔥 Extra Spicy</span>
+                  <span class="pos-preset-chip" data-text="No Onion/Garlic" onclick="views.pos.toggleKitchenNotePreset('No Onion/Garlic')">🧅 No Onion</span>
+                  <span class="pos-preset-chip" data-text="Extra Cheese" onclick="views.pos.toggleKitchenNotePreset('Extra Cheese')">🧀 Extra Cheese</span>
+                  <span class="pos-preset-chip" data-text="Parcel Pack" onclick="views.pos.toggleKitchenNotePreset('Parcel Pack')">📦 Parcel</span>
+                  <span class="pos-preset-chip" data-text="Urgent" onclick="views.pos.toggleKitchenNotePreset('Urgent')">⚡ Urgent</span>
+                </div>
               </div>
 
               <!-- Quick Discount Section & Coupon -->
@@ -237,8 +303,8 @@ window.views.pos = {
                   <span id="bill-subtotal" class="bill-val">₹0.00</span>
                 </div>
                 <div class="billing-line" id="bogo-discount-row" style="display: none;">
-                  <span style="color: #2563eb; font-weight: 700;">BOGO Savings</span>
-                  <span id="bill-bogo-discount" style="color: #2563eb; font-weight: 800;">-₹0.00</span>
+                  <span style="color: #10b981; font-weight: 700;"><i class="fa-solid fa-gift"></i> BOGO Savings</span>
+                  <span id="bill-bogo-discount" style="color: #10b981; font-weight: 800;">-₹0.00</span>
                 </div>
                 <div class="billing-line">
                   <span class="discount-text-line">Discount (<input type="number" id="bill-discount-input" value="0" min="0" max="100">%)</span>
@@ -246,13 +312,16 @@ window.views.pos = {
                 </div>
                 <div class="billing-line">
                   <span class="tax-text-line">
-                    Tax / GST (5%)
+                    GST (5%)
                     <input type="checkbox" id="tax-enable-checkbox" checked>
                   </span>
                   <span id="bill-tax" class="bill-val">₹0.00</span>
                 </div>
-                <div class="billing-line total">
-                  <span>TOTAL</span>
+                <div class="billing-line total" style="display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <span style="font-size: 13px; font-weight: 900; letter-spacing: 0.5px;">TOTAL AMOUNT</span>
+                    <span style="font-size: 10px; font-weight: 700; color: #2563eb; display: block;">Token #${tokenDisplay}</span>
+                  </div>
                   <span id="bill-total" class="bill-grand-total">₹0.00</span>
                 </div>
               </div>
@@ -267,8 +336,8 @@ window.views.pos = {
 
               <!-- Cash Tender Assistant (shown when Cash is active) -->
               <div id="cash-tender-drawer" class="cash-tender-box" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 10px; font-weight: 700; color: var(--text-muted);">Cash Tendered</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <span style="font-size: 10.5px; font-weight: 700; color: var(--text-muted);">Quick Cash:</span>
                   <div style="display: flex; gap: 4px;">
                     <button class="cash-chip" onclick="views.pos.setCashTender('exact')">Exact</button>
                     <button class="cash-chip" onclick="views.pos.setCashTender(100)">₹100</button>
@@ -278,10 +347,10 @@ window.views.pos = {
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="font-size: 11px; font-weight: 700;">₹</span>
-                    <input type="number" id="cash-received-input" placeholder="Amount" style="width: 70px; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; font-size: 11px; font-weight: 700; outline: none; background: #fff;" oninput="views.pos.calcChangeReturn()">
+                    <span style="font-size: 12px; font-weight: 800; color: #2563eb;">₹</span>
+                    <input type="number" id="cash-received-input" placeholder="Amount" style="width: 80px; border: 1.5px solid var(--border-color); border-radius: 6px; padding: 3px 6px; font-size: 12px; font-weight: 800; outline: none; background: #fff;" oninput="views.pos.calcChangeReturn()">
                   </div>
-                  <span id="cash-change-return" style="font-size: 11px; font-weight: 800; color: var(--text-muted);">Change: ₹0.00</span>
+                  <span id="cash-change-return" style="font-size: 12px; font-weight: 800; color: var(--text-muted);">Change: ₹0.00</span>
                 </div>
               </div>
 
@@ -303,21 +372,21 @@ window.views.pos = {
           </div>
         </div>
 
-        <!-- Footer Bar -->
+        <!-- Footer Shortcuts Bar -->
         <div class="pos-footer-bar">
-          <div style="display: flex; gap: 16px;">
-            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">F1</span> New Order</span>
-            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">F3</span> Hold Order</span>
-            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">F4</span> Orders</span>
+          <div style="display: flex; gap: 14px;">
+            <span><span style="color: #2563eb; font-weight:800; margin-right:4px;">Ctrl+K</span> Search</span>
+            <span><span style="color: #2563eb; font-weight:800; margin-right:4px;">F1</span> New Bill</span>
+            <span><span style="color: #d97706; font-weight:800; margin-right:4px;">F3</span> Hold Cart</span>
+            <span><span style="color: #d97706; font-weight:800; margin-right:4px;">F4</span> Held Orders</span>
           </div>
-          <div style="display: flex; gap: 16px;">
-            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">Ctrl + B</span> Bill Print</span>
-            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">Ctrl + D</span> Discount</span>
-            <span><span style="color: var(--text-muted); font-weight:700; margin-right:4px;">Ctrl + P</span> Payment</span>
+          <div style="display: flex; gap: 14px;">
+            <span><span style="color: #2563eb; font-weight:800; margin-right:4px;">Ctrl+B</span> Print Bill</span>
+            <span><span style="color: #ef4444; font-weight:800; margin-right:4px;">Alt+C</span> Clear Cart</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle" style="color: #00e676; font-size: 8px;"></i> Online</span>
-            <span id="pos-footer-clock" style="font-family: monospace;">Loading...</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle" style="color: #10b981; font-size: 8px;"></i> POS Terminal Ready</span>
+            <span id="pos-footer-clock" style="font-family: monospace; font-weight: 700;">Loading...</span>
           </div>
         </div>
       </div>
@@ -850,6 +919,12 @@ window.views.pos = {
       });
       if (tableBox) {
         tableBox.style.display = type === "Dine-in" ? "flex" : "none";
+        if (type === "Dine-in") {
+          const tInput = document.getElementById("pos-table-input");
+          if (tInput && !tInput.value.trim()) {
+            this.setQuickTable("T-1");
+          }
+        }
       }
     };
 
@@ -857,33 +932,55 @@ window.views.pos = {
     if (takeaway) takeaway.onclick = () => setOrderType("Takeaway");
     if (delivery) delivery.onclick = () => setOrderType("Delivery");
 
+    // Table input sync with chips
+    const tableInput = document.getElementById("pos-table-input");
+    if (tableInput) {
+      tableInput.oninput = (e) => {
+        const val = e.target.value.trim().toUpperCase().replace("-", "");
+        const chips = document.querySelectorAll(".pos-table-chip");
+        chips.forEach(chip => {
+          chip.classList.toggle("active", chip.textContent.trim().toUpperCase() === val);
+        });
+      };
+    }
+
     // 5c. Keydown keyboard hotkeys shortcuts listener
     this.handleKeydown = (e) => {
       const search = document.getElementById("pos-search");
       if (!search || !search.isConnected) return; // Exit if POS tab is inactive
 
-      // 1. Focus search with "/" key
-      if (e.key === "/" && document.activeElement !== search && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
+      // 1. Focus search with Ctrl+K or "/" key
+      if ((e.key === "/" || (e.ctrlKey && (e.key === "k" || e.key === "K"))) && document.activeElement !== search && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
         e.preventDefault();
         search.focus();
         search.select();
       }
-      // 2. F8 or Ctrl+B to instantly place order
-      if (e.key === "F8" || (e.ctrlKey && (e.key === "b" || e.key === "B"))) {
+      // 2. F1 for New Bill (clear cart)
+      if (e.key === "F1") {
         e.preventDefault();
-        this.processCheckout();
+        document.getElementById("btn-clear-cart-trigger")?.click();
       }
-      // 3. F3 to save order
+      // 3. F3 to hold cart
       if (e.key === "F3") {
         e.preventDefault();
-        this.processCheckout(true);
+        this.holdCurrentCart();
       }
-      // 4. Alt + C to instantly clear/reset cart
+      // 4. F4 to open held orders modal
+      if (e.key === "F4") {
+        e.preventDefault();
+        this.showHeldOrdersModal();
+      }
+      // 5. Ctrl+B or F8 to place order and print bill
+      if (e.key === "F8" || (e.ctrlKey && (e.key === "b" || e.key === "B"))) {
+        e.preventDefault();
+        this.processCheckout(false);
+      }
+      // 6. Alt + C to clear cart
       if (e.altKey && (e.key === "c" || e.key === "C")) {
         e.preventDefault();
-        document.getElementById("btn-clear-cart-trigger").click();
+        document.getElementById("btn-clear-cart-trigger")?.click();
       }
-      // 5. Escape to clear search query
+      // 7. Escape to clear search query
       if (e.key === "Escape" && document.activeElement === search) {
         search.value = "";
         this.searchQuery = "";
@@ -1733,6 +1830,236 @@ window.views.pos = {
       window.showToast("Please enter a coupon code.", "info");
     } else {
       window.showToast("Invalid coupon code! Try DISCOUNT10", "error");
+    }
+  },
+
+  setQuickTable(tableNo) {
+    const input = document.getElementById("pos-table-input");
+    if (input) {
+      input.value = tableNo;
+      input.focus();
+    }
+    const chips = document.querySelectorAll(".pos-table-chip");
+    chips.forEach(chip => {
+      chip.classList.toggle("active", chip.textContent.trim() === tableNo.replace("-", ""));
+    });
+  },
+
+  setQuickCustomerWalkin() {
+    const nameInput = document.getElementById("cust-name");
+    const phoneInput = document.getElementById("cust-phone");
+    if (nameInput) nameInput.value = "Walk-in Customer";
+    if (phoneInput) phoneInput.value = "";
+    window.showToast("Customer set to Walk-in", "info");
+  },
+
+  toggleKitchenNotePreset(noteText) {
+    const input = document.getElementById("order-kitchen-note");
+    if (!input) return;
+    let current = input.value.trim();
+    let parts = current ? current.split(",").map(s => s.trim()).filter(Boolean) : [];
+    
+    const existingIndex = parts.findIndex(p => p.toLowerCase() === noteText.toLowerCase());
+    if (existingIndex > -1) {
+      parts.splice(existingIndex, 1);
+    } else {
+      parts.push(noteText);
+    }
+    input.value = parts.join(", ");
+    this.updateKitchenNoteChips();
+  },
+
+  updateKitchenNoteChips() {
+    const input = document.getElementById("order-kitchen-note");
+    const current = (input ? input.value : "").toLowerCase();
+    const chips = document.querySelectorAll(".pos-preset-chip");
+    chips.forEach(chip => {
+      const text = (chip.getAttribute("data-text") || "").toLowerCase();
+      if (text && current.includes(text)) {
+        chip.classList.add("active");
+      } else {
+        chip.classList.remove("active");
+      }
+    });
+  },
+
+  holdCurrentCart() {
+    if (this.cart.length === 0) {
+      window.showToast("Cart is empty! Nothing to hold.", "error");
+      return;
+    }
+
+    const heldList = this.getHeldOrders();
+    const custName = (document.getElementById("cust-name") ? document.getElementById("cust-name").value.trim() : "") || "Walk-in";
+    const custPhone = (document.getElementById("cust-phone") ? document.getElementById("cust-phone").value.trim() : "");
+    const tableNo = (document.getElementById("pos-table-input") ? document.getElementById("pos-table-input").value.trim() : "");
+    const note = (document.getElementById("order-kitchen-note") ? document.getElementById("order-kitchen-note").value.trim() : "");
+    const discount = Number(document.getElementById("bill-discount-input") ? document.getElementById("bill-discount-input").value : 0) || 0;
+
+    let subtotal = 0;
+    this.cart.forEach(i => subtotal += (i.price * i.quantity));
+
+    const newHeld = {
+      id: "HELD-" + Date.now(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      cart: JSON.parse(JSON.stringify(this.cart)),
+      customerName: custName,
+      customerPhone: custPhone,
+      orderType: this.orderType,
+      tableNumber: tableNo,
+      notes: note,
+      discount: discount,
+      subtotal: subtotal,
+      itemCount: this.cart.reduce((s, i) => s + i.quantity, 0)
+    };
+
+    heldList.unshift(newHeld);
+    this.saveHeldOrders(heldList);
+
+    // Reset current cart
+    this.cart = [];
+    this.renderCart();
+
+    const noteInput = document.getElementById("order-kitchen-note");
+    if (noteInput) noteInput.value = "";
+    this.updateKitchenNoteChips();
+
+    this.updateHeldOrdersBadge();
+    window.showToast(`Order held for ${custName} (${newHeld.itemCount} items)`, "success");
+  },
+
+  updateHeldOrdersBadge() {
+    const heldList = this.getHeldOrders();
+    const container = document.getElementById("btn-held-badge-container");
+    if (!container) return;
+
+    if (heldList.length > 0) {
+      container.style.display = "inline-flex";
+      container.innerHTML = `
+        <button type="button" class="btn-held-badge" onclick="views.pos.showHeldOrdersModal()" title="View Held / Parked Orders (F4)">
+          <i class="fa-solid fa-clock-rotate-left"></i> Held (${heldList.length})
+        </button>
+      `;
+    } else {
+      container.style.display = "none";
+    }
+  },
+
+  showHeldOrdersModal() {
+    const heldList = this.getHeldOrders();
+    if (heldList.length === 0) {
+      window.showToast("No orders currently held/parked.", "info");
+      return;
+    }
+
+    const bodyHtml = `
+      <div style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding: 4px;">
+        ${heldList.map(h => `
+          <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <div style="flex-grow: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span style="font-weight: 800; font-size: 13px; color: #1e293b;">${h.customerName}</span>
+                <span style="font-size: 10px; font-weight: 700; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 6px;">${h.orderType} ${h.tableNumber ? `(${h.tableNumber})` : ''}</span>
+                <span style="font-size: 11px; color: #94a3b8; font-weight: 600;"><i class="fa-regular fa-clock"></i> ${h.time}</span>
+              </div>
+              <div style="font-size: 11.5px; color: #64748b; line-height: 1.3;">
+                ${h.cart.map(i => `${i.quantity}x ${i.name}`).join(", ")}
+              </div>
+              ${h.notes ? `<div style="font-size: 10.5px; color: #d97706; font-weight: 600; margin-top: 3px;"><i class="fa-solid fa-pencil"></i> ${h.notes}</div>` : ''}
+            </div>
+            <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+              <div style="font-size: 14px; font-weight: 800; color: #2563eb;">₹${h.subtotal.toFixed(2)}</div>
+              <div style="display: flex; gap: 6px;">
+                <button onclick="views.pos.resumeHeldOrder('${h.id}')" style="background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer;">
+                  <i class="fa-solid fa-arrow-rotate-right"></i> Resume
+                </button>
+                <button onclick="views.pos.discardHeldOrder('${h.id}')" style="background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; padding: 5px 8px; font-size: 11px; font-weight: 700; cursor: pointer;" title="Discard">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+
+    window.customModal.show({
+      title: `Held Orders (${heldList.length})`,
+      bodyHtml: bodyHtml,
+      confirmText: "Close",
+      cancelText: null,
+      onConfirm: () => {
+        window.customModal.hide();
+      }
+    });
+  },
+
+  resumeHeldOrder(heldId) {
+    const heldList = this.getHeldOrders();
+    const item = heldList.find(h => h.id === heldId);
+    if (!item) return;
+
+    if (this.cart.length > 0) {
+      if (!confirm("Your current cart is not empty. Replace with held order?")) {
+        return;
+      }
+    }
+
+    this.cart = item.cart || [];
+    this.orderType = item.orderType || "Dine-in";
+
+    // Set header buttons
+    const dinein = document.getElementById("type-dinein");
+    const takeaway = document.getElementById("type-takeaway");
+    const delivery = document.getElementById("type-delivery");
+    const tableBox = document.getElementById("header-table-box");
+    if (dinein && takeaway && delivery) {
+      [dinein, takeaway, delivery].forEach(b => {
+        b.classList.toggle("active", b.id === `type-${this.orderType.toLowerCase().replace(/[^a-z]/g, "")}`);
+      });
+    }
+    if (tableBox) {
+      tableBox.style.display = this.orderType === "Dine-in" ? "flex" : "none";
+    }
+
+    const tableInput = document.getElementById("pos-table-input");
+    if (tableInput) tableInput.value = item.tableNumber || "";
+
+    const custName = document.getElementById("cust-name");
+    if (custName) custName.value = item.customerName || "Walk-in Customer";
+
+    const custPhone = document.getElementById("cust-phone");
+    if (custPhone) custPhone.value = item.customerPhone || "";
+
+    const noteInput = document.getElementById("order-kitchen-note");
+    if (noteInput) {
+      noteInput.value = item.notes || "";
+      this.updateKitchenNoteChips();
+    }
+
+    const discInput = document.getElementById("bill-discount-input");
+    if (discInput) discInput.value = item.discount || 0;
+
+    // Remove from held list
+    const updated = heldList.filter(h => h.id !== heldId);
+    this.saveHeldOrders(updated);
+
+    this.renderCart();
+    this.updateHeldOrdersBadge();
+    window.customModal.hide();
+    window.showToast("Held order restored to active cart!", "success");
+  },
+
+  discardHeldOrder(heldId) {
+    const heldList = this.getHeldOrders();
+    const updated = heldList.filter(h => h.id !== heldId);
+    this.saveHeldOrders(updated);
+    this.updateHeldOrdersBadge();
+    if (updated.length > 0) {
+      this.showHeldOrdersModal();
+    } else {
+      window.customModal.hide();
+      window.showToast("All held orders cleared.", "info");
     }
   }
 };
