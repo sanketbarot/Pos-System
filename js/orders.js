@@ -35,8 +35,29 @@ window.soundAlerts = {
     return this.audioCtx;
   },
 
-  // 1. Gentle Warning Chime ("Sehaj Sound" - when 1 minute is left in Preparing)
-  playOneMinWarningSound() {
+  unlockAudio() {
+    try {
+      const ctx = this.getAudioContext();
+      if (ctx) {
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(() => this.updateAllSoundUI()).catch(() => {});
+        }
+        // Play silent 1-sample buffer to permanently unlock hardware audio pipeline
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+      }
+      this.updateAllSoundUI();
+    } catch (e) {
+      console.warn("Audio unlock error:", e);
+    }
+  },
+
+  // 1. Unmistakable 1-Minute Warning Kitchen Chime ("1 મિનિટ બાકી છે" Timer Bell)
+  // Crystal-clear resonant brass kitchen bell chime: "Ding... Dong! ... Ding... Dong!"
+  playOneMinWarningSound(order = null) {
     if (!this.soundEnabled) return;
     try {
       const ctx = this.getAudioContext();
@@ -44,28 +65,64 @@ window.soundAlerts = {
       if (ctx.state === 'suspended') ctx.resume();
 
       const now = ctx.currentTime;
-      // Gentle harmonic melodic ping: E5 (659.25Hz) -> B5 (987.77Hz)
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.connect(gain);
-      gain.connect(ctx.destination);
 
-      osc.frequency.setValueAtTime(659.25, now);
-      osc.frequency.setValueAtTime(987.77, now + 0.16);
+      // Resonant, crystal-clear brass kitchen bell chime (Double Ding-Dong)
+      // Notes: G5 (783.99Hz) -> C6 (1046.5Hz) | repeated for high kitchen audibility
+      const chimes = [
+        { time: 0.00, freq: 783.99, gain: 0.65, dur: 0.45 },
+        { time: 0.22, freq: 1046.50, gain: 0.70, dur: 0.60 },
+        { time: 0.65, freq: 783.99, gain: 0.60, dur: 0.45 },
+        { time: 0.87, freq: 1046.50, gain: 0.70, dur: 0.85 }
+      ];
 
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+      chimes.forEach(chime => {
+        const start = now + chime.time;
+        // Fundamental tone
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(chime.freq, start);
+        gainNode.gain.setValueAtTime(chime.gain, start);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, start + chime.dur);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + chime.dur);
 
-      osc.start(now);
-      osc.stop(now + 0.65);
+        // Overtone harmonic for realistic metallic kitchen timer bell resonance
+        const harmonic = ctx.createOscillator();
+        const harmGain = ctx.createGain();
+        harmonic.type = "triangle";
+        harmonic.frequency.setValueAtTime(chime.freq * 2, start);
+        harmGain.gain.setValueAtTime(chime.gain * 0.35, start);
+        harmGain.gain.exponentialRampToValueAtTime(0.0001, start + chime.dur * 0.75);
+        harmonic.connect(harmGain);
+        harmGain.connect(ctx.destination);
+        harmonic.start(start);
+        harmonic.stop(start + chime.dur * 0.75);
+      });
+
+      // Cancel any browser speech synthesis to ensure NO spoken words
+      if (window.speechSynthesis) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+
+      // Visual Alert Message (Toast)
+      if (window.showToast) {
+        if (order && order.orderNumber) {
+          window.showToast(`⏳ 1 MINUTE WARNING: Order #${order.orderNumber} (Tk: ${order.tokenNumber || 1}) - 1 minute remaining!`, "warning");
+        } else {
+          window.showToast(`⏳ 1 MINUTE WARNING: Kitchen Order has only 1 minute remaining!`, "warning");
+        }
+      }
     } catch (e) {
       console.warn("One-min warning audio error:", e);
     }
   },
 
-  // 2. Urgent Overtime Alert ("Bijo Sound" - when order exceeds target prep time)
-  playOverdueSound() {
+  // 2. Urgent Overtime Alert ("ઓવરટાઇમ થઈ ગયો" Alarm Siren / Buzzer)
+  // Piercing, rapid dual-burst emergency kitchen buzzer: "BEEP-BEEP! BEEP-BEEP! BEEP-BEEP!"
+  playOverdueSound(order = null) {
     if (!this.soundEnabled) return;
     try {
       const ctx = this.getAudioContext();
@@ -73,58 +130,61 @@ window.soundAlerts = {
       if (ctx.state === 'suspended') ctx.resume();
 
       const now = ctx.currentTime;
-      // 3-pulse urgent warning alert (alternating A5 880Hz / D5 587.33Hz triangle buzzer)
-      [0, 0.16, 0.32].forEach((offset, idx) => {
+
+      // Piercing, rapid dual-burst emergency kitchen buzzer
+      // Burst 1: A5 (880Hz) / F5 (698Hz) rapid alarm pulses
+      // Burst 2: B5 (988Hz) / G5 (784Hz) higher urgency pulses
+      const pulses = [
+        { time: 0.00, freq: 880, dur: 0.12, gain: 0.70 },
+        { time: 0.14, freq: 698.46, dur: 0.12, gain: 0.70 },
+        { time: 0.28, freq: 880, dur: 0.12, gain: 0.75 },
+        { time: 0.42, freq: 698.46, dur: 0.14, gain: 0.75 },
+        // Short pause between bursts
+        { time: 0.68, freq: 987.77, dur: 0.12, gain: 0.80 },
+        { time: 0.82, freq: 783.99, dur: 0.12, gain: 0.80 },
+        { time: 0.96, freq: 987.77, dur: 0.12, gain: 0.85 },
+        { time: 1.10, freq: 783.99, dur: 0.24, gain: 0.85 }
+      ];
+
+      pulses.forEach(p => {
+        const start = now + p.time;
+        // Layered sawtooth oscillator with low-pass filtering for maximum punch through kitchen noise
         const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "triangle";
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+        const filter = ctx.createBiquadFilter();
+        const gainNode = ctx.createGain();
 
-        const freq = idx % 2 === 0 ? 880 : 587.33;
-        osc.frequency.setValueAtTime(freq, now + offset);
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(p.freq, start);
 
-        gain.gain.setValueAtTime(0.35, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.13);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(2400, start);
 
-        osc.start(now + offset);
-        osc.stop(now + offset + 0.14);
+        gainNode.gain.setValueAtTime(p.gain, start);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, start + p.dur);
+
+        osc.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        osc.start(start);
+        osc.stop(start + p.dur);
       });
+
+      // Cancel any browser speech synthesis to ensure NO spoken words
+      if (window.speechSynthesis) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+
+      // Visual Alert Message (Toast)
+      if (window.showToast) {
+        if (order && order.orderNumber) {
+          window.showToast(`🚨 KITCHEN OVERTIME ALERT: Order #${order.orderNumber} (Tk: ${order.tokenNumber || 1}) is Overtime!`, "danger");
+        } else {
+          window.showToast(`🚨 KITCHEN OVERTIME ALERT: Order exceeded target prep time!`, "danger");
+        }
+      }
     } catch (e) {
       console.warn("Overdue alert audio error:", e);
-    }
-  },
-
-  // 3. New Order Chime (When a new order is received from POS or Cloud sync)
-  playNewOrderSound() {
-    if (!this.soundEnabled) return;
-    try {
-      const ctx = this.getAudioContext();
-      if (!ctx) return;
-      if (ctx.state === 'suspended') ctx.resume();
-
-      const now = ctx.currentTime;
-      // Bright cheerful 3-note order bell: C5 (523.25Hz) -> E5 (659.25Hz) -> G5 (783.99Hz)
-      [
-        { freq: 523.25, time: 0, dur: 0.14 },
-        { freq: 659.25, time: 0.13, dur: 0.14 },
-        { freq: 783.99, time: 0.26, dur: 0.42 }
-      ].forEach(note => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.frequency.setValueAtTime(note.freq, now + note.time);
-        gain.gain.setValueAtTime(0.3, now + note.time);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + note.time + note.dur);
-
-        osc.start(now + note.time);
-        osc.stop(now + note.time + note.dur);
-      });
-    } catch (e) {
-      console.warn("New order chime error:", e);
     }
   },
 
@@ -135,11 +195,12 @@ window.soundAlerts = {
   toggleSound(withPreview = true) {
     this.soundEnabled = !this.soundEnabled;
     if (this.soundEnabled) {
+      this.unlockAudio();
       if (withPreview) {
         this.playOneMinWarningSound();
-        setTimeout(() => this.playOverdueSound(), 700);
+        setTimeout(() => this.playOverdueSound(), 1400);
       }
-      window.showToast("Kitchen audio alerts enabled 🔔 (Sound active on ALL pages)", "success");
+      window.showToast("Kitchen audio alerts enabled 🔔 (1m Chime & Overtime Alarm Active)", "success");
     } else {
       window.showToast("Kitchen audio alerts muted 🔇", "info");
     }
@@ -149,16 +210,14 @@ window.soundAlerts = {
   init() {
     // Unlock browser audio policy on first user interaction anywhere
     const unlock = () => {
-      this.getAudioContext();
-      ['click', 'touchstart', 'keydown'].forEach(evt => {
-        document.removeEventListener(evt, unlock);
-      });
+      this.unlockAudio();
     };
-    ['click', 'touchstart', 'keydown'].forEach(evt => {
-      document.addEventListener(evt, unlock, { once: true, passive: true });
+    ['click', 'touchstart', 'keydown', 'mousedown'].forEach(evt => {
+      document.addEventListener(evt, unlock, { passive: true });
     });
 
     this.startGlobalMonitor();
+    this.updateAllSoundUI();
   },
 
   startGlobalMonitor() {
@@ -209,14 +268,22 @@ window.soundAlerts = {
           anyOverdue = true;
           if (!this.notifiedOverdueIds.has(order.id)) {
             this.notifiedOverdueIds.add(order.id);
-            this.playOverdueSound(); // Bijo Sound - Urgent overtime alert!
+            this.playOverdueSound(order); // Urgent overtime alert!
             needsKdsRerender = true;
           }
         } else if (remainingSeconds <= 60) {
           if (!this.notifiedOneMinIds.has(order.id)) {
             this.notifiedOneMinIds.add(order.id);
-            this.playOneMinWarningSound(); // Sehaj Sound - 1 minute chime!
+            this.playOneMinWarningSound(order); // 1 minute warning chime!
             needsKdsRerender = true;
+          }
+        } else {
+          // If remainingSeconds > 60 (for example if target time was changed), reset notification so it can alert again
+          if (this.notifiedOneMinIds.has(order.id)) {
+            this.notifiedOneMinIds.delete(order.id);
+          }
+          if (this.notifiedOverdueIds.has(order.id)) {
+            this.notifiedOverdueIds.delete(order.id);
           }
         }
       }
@@ -230,8 +297,8 @@ window.soundAlerts = {
       if (!activePrepIds.has(id)) this.notifiedOverdueIds.delete(id);
     }
 
-    // Overdue repeating buzzer every 60 seconds if any order remains overdue
-    if (anyOverdue && (nowTs - this.lastReminderTimestamp > 60000)) {
+    // Overdue repeating buzzer every 30 seconds if any order remains overdue
+    if (anyOverdue && (nowTs - this.lastReminderTimestamp > 30000)) {
       this.lastReminderTimestamp = nowTs;
       this.playOverdueSound();
     }
@@ -260,6 +327,7 @@ window.soundAlerts = {
       const createdTime = new Date(order.createdAt);
       const container = el.closest(".kds-timer-container");
       const label = container ? container.querySelector(".kds-timer-label") : null;
+      const card = el.closest(".kds-order-card");
 
       if (status === "Pending") {
         const elapsedSeconds = Math.floor((now - createdTime) / 1000);
@@ -296,6 +364,11 @@ window.soundAlerts = {
           if (label) {
             label.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="margin-right: 4px; color: #ef4444;"></i> Overtime:`;
           }
+          if (card) {
+            card.style.border = "2px solid #ef4444";
+            card.style.background = "#fff5f5";
+            card.style.boxShadow = "0 0 12px rgba(239, 68, 68, 0.25)";
+          }
         } else if (remainingSeconds <= 60) {
           const secs = remainingSeconds % 60;
           el.textContent = `00:${secs.toString().padStart(2, '0')}`;
@@ -306,6 +379,11 @@ window.soundAlerts = {
           }
           if (label) {
             label.innerHTML = `<i class="fa-solid fa-hourglass-end" style="margin-right: 4px; color: #d97706;"></i> 1 Min Left:`;
+          }
+          if (card) {
+            card.style.border = "2px solid #f59e0b";
+            card.style.background = "#fffdf5";
+            card.style.boxShadow = "0 0 10px rgba(245, 158, 11, 0.2)";
           }
         } else {
           const mins = Math.floor(remainingSeconds / 60);
@@ -319,6 +397,11 @@ window.soundAlerts = {
           if (label) {
             label.innerHTML = `<i class="fa-regular fa-clock" style="margin-right: 4px;"></i> Time Left:`;
           }
+          if (card) {
+            card.style.border = "";
+            card.style.background = "";
+            card.style.boxShadow = "";
+          }
         }
       }
     });
@@ -326,6 +409,8 @@ window.soundAlerts = {
 
   updateAllSoundUI() {
     const isEnabled = this.soundEnabled;
+    const isSuspended = this.audioCtx && this.audioCtx.state === 'suspended';
+
     // 1. KDS sound button
     const kdsBtn = document.getElementById("btn-kds-sound-toggle");
     if (kdsBtn) {
@@ -362,6 +447,11 @@ window.soundAlerts = {
         posText.textContent = `Sound: ${isEnabled ? 'ON' : 'MUTED'}`;
       }
     }
+    // 4. KDS Audio Unlock Banner
+    const unlockBanner = document.getElementById("kds-audio-unlock-banner");
+    if (unlockBanner) {
+      unlockBanner.style.display = isSuspended ? "flex" : "none";
+    }
   }
 };
 
@@ -397,11 +487,11 @@ window.views.orders = {
     if (window.soundAlerts) window.soundAlerts.lastReminderTimestamp = val;
   },
 
-  playOneMinWarningSound() {
-    if (window.soundAlerts) window.soundAlerts.playOneMinWarningSound();
+  playOneMinWarningSound(order = null) {
+    if (window.soundAlerts) window.soundAlerts.playOneMinWarningSound(order);
   },
-  playOverdueSound() {
-    if (window.soundAlerts) window.soundAlerts.playOverdueSound();
+  playOverdueSound(order = null) {
+    if (window.soundAlerts) window.soundAlerts.playOverdueSound(order);
   },
   playKitchenChime() {
     if (window.soundAlerts) window.soundAlerts.playKitchenChime();
@@ -528,6 +618,17 @@ window.views.orders = {
     const avgPrepSpeedText = todayPrepOrders.length > 0 ? `${avgM}m ${avgS}s` : "--m --s";
 
     mount.innerHTML = `
+      <!-- Unlocked audio banner if suspended -->
+      <div id="kds-audio-unlock-banner" style="display: ${window.soundAlerts && window.soundAlerts.audioCtx && window.soundAlerts.audioCtx.state === 'suspended' ? 'flex' : 'none'}; background: #eff6ff; border: 1.5px solid #93c5fd; padding: 10px 16px; border-radius: 14px; margin-bottom: 14px; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 2px 10px rgba(37,99,235,0.08);">
+        <span style="font-size: 13px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-volume-high" style="color: #2563eb; font-size: 15px;"></i>
+          <span><strong>Kitchen Audio Alert:</strong> Click "Activate Audio" so the browser allows the 1-minute warning chime & overtime alarm to ring continuously.</span>
+        </span>
+        <button id="btn-enable-kds-audio" class="btn btn-primary" style="padding: 6px 16px; font-size: 12px; font-weight: 800; border-radius: 10px; cursor: pointer; white-space: nowrap;">
+          <i class="fa-solid fa-bell"></i> Activate Audio
+        </button>
+      </div>
+
       <!-- Live Kitchen Speed & Order Delay Control Bar -->
       <div class="glass-card" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
         <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
@@ -559,10 +660,14 @@ window.views.orders = {
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <div style="display: flex; align-items: center; gap: 6px;">
             <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);">Target:</span>
-            <select id="kds-target-select" class="form-input" style="height: 32px; font-size: 11.5px; padding: 2px 8px; border-radius: 8px; font-weight: 700; width: 105px;">
+            <select id="kds-target-select" class="form-input" style="height: 32px; font-size: 11.5px; padding: 2px 8px; border-radius: 8px; font-weight: 700; width: 115px;">
+              <option value="1" ${targetMinutes === 1 ? 'selected' : ''}>1 Min (Test)</option>
+              <option value="2" ${targetMinutes === 2 ? 'selected' : ''}>2 Mins (Fast)</option>
+              <option value="3" ${targetMinutes === 3 ? 'selected' : ''}>3 Mins</option>
+              <option value="5" ${targetMinutes === 5 ? 'selected' : ''}>5 Mins</option>
               <option value="10" ${targetMinutes === 10 ? 'selected' : ''}>10 Mins</option>
               <option value="12" ${targetMinutes === 12 ? 'selected' : ''}>12 Mins</option>
               <option value="15" ${targetMinutes === 15 ? 'selected' : ''}>15 Mins (Std)</option>
@@ -570,8 +675,8 @@ window.views.orders = {
             </select>
           </div>
 
-          <button type="button" id="btn-kds-sound-toggle" title="Click to test / toggle Kitchen Audio Alert" style="background: ${this.soundAlertEnabled ? '#eff6ff' : '#f1f5f9'}; border: 1px solid ${this.soundAlertEnabled ? '#bfdbfe' : 'var(--border-color)'}; color: ${this.soundAlertEnabled ? '#2563eb' : 'var(--text-muted)'}; padding: 6px 12px; border-radius: 10px; font-size: 11.5px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-            <i class="fa-solid ${this.soundAlertEnabled ? 'fa-volume-high' : 'fa-volume-xmark'}"></i> Sound: ${this.soundAlertEnabled ? 'ON (1m Chime + Alarm)' : 'MUTED'}
+          <button type="button" id="btn-kds-sound-toggle" title="Click to toggle Kitchen Audio Alert" style="background: ${this.soundAlertEnabled ? '#eff6ff' : '#f1f5f9'}; border: 1px solid ${this.soundAlertEnabled ? '#bfdbfe' : 'var(--border-color)'}; color: ${this.soundAlertEnabled ? '#2563eb' : 'var(--text-muted)'}; padding: 6px 14px; border-radius: 10px; font-size: 11.5px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+            <i class="fa-solid ${this.soundAlertEnabled ? 'fa-volume-high' : 'fa-volume-xmark'}"></i> Sound: ${this.soundAlertEnabled ? 'ON (1m + Overtime)' : 'MUTED'}
           </button>
         </div>
       </div>
@@ -643,6 +748,19 @@ window.views.orders = {
       soundToggle.onclick = () => {
         if (window.soundAlerts) {
           window.soundAlerts.toggleSound(true);
+        }
+      };
+    }
+
+
+    // Hook Activate Audio Banner button
+    const enableAudioBtn = document.getElementById("btn-enable-kds-audio");
+    if (enableAudioBtn) {
+      enableAudioBtn.onclick = () => {
+        if (window.soundAlerts) {
+          window.soundAlerts.unlockAudio();
+          window.soundAlerts.playOneMinWarningSound();
+          window.showToast("🔊 Kitchen Audio Alerts Activated!", "success");
         }
       };
     }
