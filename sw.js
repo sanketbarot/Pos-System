@@ -1,18 +1,19 @@
 // Crust & Chilly - Service Worker for PWA Support
-const CACHE_NAME = "cc-pos-v5.9";
+const CACHE_NAME = "cc-pos-v7.0";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
-  "./style.css?v=5.9",
+  "./style.css?v=7.0",
   "./logo.jpg",
-  "./app.js?v=5.9",
-  "./js/db.js?v=5.9",
-  "./js/dashboard.js?v=5.9",
-  "./js/pos.js?v=5.9",
-  "./js/orders.js?v=5.9",
-  "./js/menu.js?v=5.9",
-  "./js/reports.js?v=5.9",
-  "./js/counter.js?v=5.9",
+  "./app.js?v=7.0",
+  "./js/db.js?v=7.0",
+  "./js/dashboard.js?v=7.0",
+  "./js/qrcode.min.js?v=7.0",
+  "./js/pos.js?v=7.0",
+  "./js/orders.js?v=7.0",
+  "./js/menu.js?v=7.0",
+  "./js/reports.js?v=7.0",
+  "./js/counter.js?v=7.0",
   "./manifest.json",
   "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
   "https://cdn.jsdelivr.net/npm/chart.js"
@@ -52,11 +53,13 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Always use network directly for Firebase, Firestore, and live cloud sync APIs
+  // Always use network directly for Firebase, Firestore, live cloud sync APIs, and local development
   if (
     url.hostname.includes("firestore.googleapis.com") ||
     url.hostname.includes("firebase") ||
     url.hostname.includes("gstatic.com") ||
+    url.hostname === "localhost" ||
+    url.hostname === "127.0.0.1" ||
     event.request.method !== "GET"
   ) {
     return;

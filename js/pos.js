@@ -960,7 +960,8 @@ window.views.pos = {
       // 2. F1 for New Bill (clear cart)
       if (e.key === "F1") {
         e.preventDefault();
-        document.getElementById("btn-clear-cart-trigger")?.click();
+        const clearBtn = document.getElementById("btn-clear-cart-trigger");
+        if (clearBtn) clearBtn.click();
       }
       // 3. F3 to hold cart
       if (e.key === "F3") {
@@ -980,7 +981,8 @@ window.views.pos = {
       // 6. Alt + C to clear cart
       if (e.altKey && (e.key === "c" || e.key === "C")) {
         e.preventDefault();
-        document.getElementById("btn-clear-cart-trigger")?.click();
+        const clearBtn = document.getElementById("btn-clear-cart-trigger");
+        if (clearBtn) clearBtn.click();
       }
       // 7. Escape to clear search query
       if (e.key === "Escape" && document.activeElement === search) {
@@ -1241,8 +1243,12 @@ window.views.pos = {
     }, bypassStockCheck);
 
     if (response.success) {
-      if (window.soundAlerts) {
-        window.soundAlerts.playNewOrderSound();
+      if (window.soundAlerts && typeof window.soundAlerts.playNewOrderSound === "function") {
+        try {
+          window.soundAlerts.playNewOrderSound();
+        } catch (e) {
+          console.warn("Sound play error:", e);
+        }
       }
       window.showToast(`Order #${response.order.orderNumber} successfully processed!`, "success");
 
@@ -1253,7 +1259,7 @@ window.views.pos = {
 
       // Trigger printable receipt billing modal
       if (!skipPrint) {
-        this.showReceiptModal(response.order);
+        this.showReceiptModal(response.order, true);
       }
 
       // Clear Cart state
@@ -1297,7 +1303,102 @@ window.views.pos = {
     }
   },
 
-  showReceiptModal(order) {
+  currentReceiptOrder: null,
+  currentReceiptTab: "bill",
+
+  switchReceiptTab(tab) {
+    this.currentReceiptTab = tab;
+    const billSec = document.getElementById("receipt-section-bill");
+    const kotSec = document.getElementById("receipt-section-kot");
+    const tearSec = document.getElementById("receipt-section-tear");
+    const btnBill = document.getElementById("btn-tab-bill");
+    const btnKot = document.getElementById("btn-tab-kot");
+    const btnBoth = document.getElementById("btn-tab-both");
+    const modalConfirmBtn = document.getElementById("modal-submit-btn");
+
+    if (!billSec || !kotSec) return;
+
+    [btnBill, btnKot, btnBoth].forEach(b => {
+      if (b) {
+        b.style.background = "#f1f5f9";
+        b.style.color = "#475569";
+        b.style.borderColor = "#cbd5e1";
+        b.style.fontWeight = "600";
+      }
+    });
+
+    if (tab === "bill") {
+      billSec.style.display = "block";
+      kotSec.style.display = "none";
+      if (tearSec) tearSec.style.display = "none";
+      if (btnBill) {
+        btnBill.style.background = "#2563eb";
+        btnBill.style.color = "#fff";
+        btnBill.style.borderColor = "#2563eb";
+        btnBill.style.fontWeight = "800";
+      }
+      if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-print"></i> Print Bill';
+    } else if (tab === "kot") {
+      billSec.style.display = "none";
+      kotSec.style.display = "block";
+      if (tearSec) tearSec.style.display = "none";
+      if (btnKot) {
+        btnKot.style.background = "#2563eb";
+        btnKot.style.color = "#fff";
+        btnKot.style.borderColor = "#2563eb";
+        btnKot.style.fontWeight = "800";
+      }
+      if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-fire-burner"></i> Print Kitchen KOT';
+    } else if (tab === "both") {
+      billSec.style.display = "block";
+      kotSec.style.display = "block";
+      if (tearSec) tearSec.style.display = "block";
+      if (btnBoth) {
+        btnBoth.style.background = "#2563eb";
+        btnBoth.style.color = "#fff";
+        btnBoth.style.borderColor = "#2563eb";
+        btnBoth.style.fontWeight = "800";
+      }
+      if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-file-invoice"></i> Print Both (Bill + KOT)';
+    }
+  },
+
+  shareReceiptWhatsApp(order) {
+    if (!order) order = this.currentReceiptOrder;
+    if (!order) return;
+    const settings = window.db.get("settings") || {};
+    const currency = settings.currencySymbol || "₹";
+    const shopName = settings.restaurantName || "Crust & Chilly";
+
+    let phone = (order.customerPhone || "").replace(/\D/g, "");
+    if (!phone || phone.length !== 10) {
+      phone = prompt("Enter customer WhatsApp Mobile Number (10 digits):", phone || "");
+      if (!phone) return;
+      phone = phone.replace(/\D/g, "");
+    }
+
+    if (phone.length === 10) phone = `91${phone}`;
+
+    const itemsText = (order.items || []).map(i => `• ${i.name} x${i.quantity} = ${currency}${(i.price * i.quantity)}`).join("%0A");
+
+    const message = `*${encodeURIComponent(shopName)}*%0A`
+      + `Order: *%23${order.orderNumber || order.id}* (Token *%23${order.tokenNumber || 1}*)%0A`
+      + `Date: ${new Date(order.createdAt).toLocaleDateString("en-IN")}%0A`
+      + `Customer: ${encodeURIComponent(order.customerName || "Valued Guest")}%0A`
+      + `--------------------------%0A`
+      + `${itemsText}%0A`
+      + `--------------------------%0A`
+      + `*Total Amount: ${currency}${Number(order.total).toFixed(2)}*%0A`
+      + `Paid via: ${order.paymentMethod || "Cash"}%0A%0A`
+      + `Thank you for visiting *${encodeURIComponent(shopName)}*! Enjoy your meal!`;
+
+    const waUrl = `https://wa.me/${phone}?text=${message}`;
+    window.open(waUrl, "_blank");
+  },
+
+  showReceiptModal(order, autoPrint = false) {
+    this.currentReceiptOrder = order;
+    this.currentReceiptTab = "bill";
     const settings = window.db.get("settings") || {};
 
     // Format Date & Time
@@ -1319,124 +1420,213 @@ window.views.pos = {
     const tokenNo = String(order.tokenNumber || 1).padStart(2, '0');
 
     // Total items quantity
-    const totalQty = order.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalQty = (order.items || []).reduce((sum, item) => sum + item.quantity, 0);
 
     // Dynamic UPI QR code payload
     const upiId = settings.upiId || "7487980840@okbizaxis";
-    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(settings.restaurantName || "Crust & Chilly")}&am=${order.total.toFixed(2)}&cu=INR&tn=Order${order.orderNumber}`;
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(settings.restaurantName || "Crust & Chilly")}&am=${Number(order.total || 0).toFixed(2)}&cu=INR&tn=Order${order.orderNumber}`;
 
-    const receiptHtml = `
-      <div class="receipt-wrapper">
-        <!-- Logo centered -->
-        <img src="logo.jpg" alt="Logo" class="receipt-logo">
-        
-        <div class="receipt-header">
-          <div class="receipt-title">${settings.restaurantName || "Crust & Chilly"}</div>
-          <div class="receipt-subtitle">${settings.address || "Shop No. 09, Shree Sanidhya Flora, Near Turquoise BLU Road, Shela, Ahmedabad - 380057, Gujarat"}</div>
-          <div class="receipt-subtitle">Phone: ${settings.phone || "+91 9664870840"}</div>
+    const modalHtml = `
+      <!-- Toolbar switcher (Screen only, hidden on print) -->
+      <div class="receipt-tabs-toolbar no-print" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap;">
+        <div style="display: flex; gap: 6px;">
+          <button id="btn-tab-bill" type="button" onclick="views.pos.switchReceiptTab('bill')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #2563eb; background: #2563eb; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s;">
+            <i class="fa-solid fa-receipt"></i> Customer Bill
+          </button>
+          <button id="btn-tab-kot" type="button" onclick="views.pos.switchReceiptTab('kot')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+            <i class="fa-solid fa-fire-burner"></i> Kitchen KOT
+          </button>
+          <button id="btn-tab-both" type="button" onclick="views.pos.switchReceiptTab('both')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;" title="Prints both customer bill and kitchen copy on single thermal slip">
+            <i class="fa-solid fa-file-invoice"></i> Both (Bill + KOT)
+          </button>
         </div>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <div class="receipt-meta">
-          <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
-          ${order.customerPhone ? `<div style="font-weight: bold; margin-bottom: 4px;">Phone: ${order.customerPhone}</div>` : ""}
-          <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
-          <div class="receipt-meta-row">
-            <span>Date: ${orderDate}</span>
-            <span style="font-weight: bold;">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
-          </div>
-          <div class="receipt-meta-row">
-            <span>Time: ${orderTime}</span>
-            <span></span>
-          </div>
-          <div class="receipt-meta-row">
-            <span>Cashier: ${cashierName}</span>
-            <span>Bill No.: ${order.orderNumber}</span>
-          </div>
-          <div class="receipt-token-no">Token No.: ${tokenNo}</div>
+        <div>
+          <button type="button" onclick="views.pos.shareReceiptWhatsApp()" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #16a34a; background: #dcfce7; color: #15803d; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-brands fa-whatsapp" style="font-size: 14px;"></i> WhatsApp
+          </button>
         </div>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <table class="receipt-table">
-          <thead>
-            <tr>
-              <th style="width: 50%;">Item</th>
-              <th style="text-align: center; width: 15%;">Qty</th>
-              <th style="text-align: right; width: 15%;">Price</th>
-              <th style="text-align: right; width: 20%;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${order.items.map(item => {
-      let bogoLabel = item.bogo ? "<br><span class='receipt-bogo-label'>(BOGO Eligible)</span>" : "";
-      return `
-                <tr>
-                  <td>
-                    <span class="receipt-item-name">${item.name}</span>
-                    ${bogoLabel}
-                  </td>
-                  <td style="text-align: center;">${item.quantity}</td>
-                  <td style="text-align: right;">${item.price.toFixed(2)}</td>
-                  <td style="text-align: right;">${item.lineTotal.toFixed(2)}</td>
-                </tr>
-              `;
-    }).join("")}
-          </tbody>
-        </table>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <div class="receipt-totals">
-          <div class="receipt-total-line">
-            <span>Total Qty: ${totalQty}</span>
-            <span>Sub Total: ₹${order.subtotal.toFixed(2)}</span>
+      </div>
+
+      <div class="receipt-wrapper" id="receipt-printable-content">
+        <!-- Customer Bill Section -->
+        <div id="receipt-section-bill">
+          <img src="logo.jpg" alt="Logo" class="receipt-logo" onerror="this.style.display='none'">
+          
+          <div class="receipt-header">
+            <div class="receipt-title">${settings.restaurantName || "Crust & Chilly"}</div>
+            <div class="receipt-subtitle">${settings.address || "Shop No. 09, Shree Sanidhya Flora, Near Turquoise BLU Road, Shela, Ahmedabad - 380057, Gujarat"}</div>
+            <div class="receipt-subtitle">Phone: ${settings.phone || "+91 9664870840"}</div>
           </div>
           
-          ${order.bogoDiscount > 0 || order.discount > 0 || order.tax > 0 ? `
+          <div class="receipt-dotted-line"></div>
+          
+          <div class="receipt-meta">
+            <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
+            ${order.customerPhone ? `<div style="font-weight: bold; margin-bottom: 4px;">Phone: ${order.customerPhone}</div>` : ""}
             <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
-          ` : ""}
-          
-          ${order.bogoDiscount > 0 ? `
-            <div class="receipt-total-line" style="font-weight: 600; color: #d62d20;">
-              <span>BOGO Discount:</span>
-              <span>-₹${order.bogoDiscount.toFixed(2)}</span>
+            <div class="receipt-meta-row">
+              <span>Date: ${orderDate}</span>
+              <span style="font-weight: bold;">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
             </div>
-          ` : ""}
+            <div class="receipt-meta-row">
+              <span>Time: ${orderTime}</span>
+              <span></span>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Cashier: ${cashierName}</span>
+              <span>Bill No.: ${order.orderNumber}</span>
+            </div>
+            <div class="receipt-token-no">Token No.: ${tokenNo}</div>
+          </div>
           
-          ${order.discount > 0 ? `
+          <div class="receipt-dotted-line"></div>
+          
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th style="width: 50%;">Item</th>
+                <th style="text-align: center; width: 15%;">Qty</th>
+                <th style="text-align: right; width: 15%;">Price</th>
+                <th style="text-align: right; width: 20%;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(order.items || []).map(item => {
+                let bogoLabel = item.bogo ? "<br><span class='receipt-bogo-label'>(BOGO Eligible)</span>" : "";
+                const linePrice = Number(item.price || 0).toFixed(2);
+                const lineAmt = Number(item.lineTotal || (item.price * item.quantity)).toFixed(2);
+                return `
+                  <tr>
+                    <td>
+                      <span class="receipt-item-name">${item.name}</span>
+                      ${bogoLabel}
+                    </td>
+                    <td style="text-align: center;">${item.quantity}</td>
+                    <td style="text-align: right;">${linePrice}</td>
+                    <td style="text-align: right;">${lineAmt}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+          
+          <div class="receipt-dotted-line"></div>
+          
+          <div class="receipt-totals">
             <div class="receipt-total-line">
-              <span>Cash Discount:</span>
-              <span>-₹${order.discount.toFixed(2)}</span>
+              <span>Total Qty: ${totalQty}</span>
+              <span>Sub Total: ₹${Number(order.subtotal || 0).toFixed(2)}</span>
             </div>
-          ` : ""}
-          
-          ${order.tax > 0 ? `
-            <div class="receipt-total-line">
-              <span>GST (5%):</span>
-              <span>₹${order.tax.toFixed(2)}</span>
+            
+            ${order.bogoDiscount > 0 || order.discount > 0 || order.tax > 0 ? `
+              <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
+            ` : ""}
+            
+            ${order.bogoDiscount > 0 ? `
+              <div class="receipt-total-line" style="font-weight: 600; color: #d62d20;">
+                <span>BOGO Discount:</span>
+                <span>-₹${Number(order.bogoDiscount).toFixed(2)}</span>
+              </div>
+            ` : ""}
+            
+            ${order.discount > 0 ? `
+              <div class="receipt-total-line">
+                <span>Cash Discount:</span>
+                <span>-₹${Number(order.discount).toFixed(2)}</span>
+              </div>
+            ` : ""}
+            
+            ${order.tax > 0 ? `
+              <div class="receipt-total-line">
+                <span>GST (5%):</span>
+                <span>₹${Number(order.tax).toFixed(2)}</span>
+              </div>
+            ` : ""}
+            
+            <div class="receipt-grand-total">
+              <span>Grand Total</span>
+              <span>₹${Number(order.total || 0).toFixed(2)}</span>
             </div>
-          ` : ""}
+          </div>
           
-          <div class="receipt-grand-total">
-            <span>Grand Total</span>
-            <span>₹${order.total.toFixed(2)}</span>
+          <div class="receipt-dotted-line"></div>
+          
+          <div class="receipt-footer">
+            <div style="font-weight: bold; margin-bottom: 6px;">For Order or More : ${settings.phone || "+91 9664870840"}</div>
+            
+            <div class="receipt-qr-wrapper" style="text-align: center; margin: 8px 0;">
+              <div id="receipt-qrcode-box" style="display: flex; justify-content: center; align-items: center; margin: 4px auto; width: 95px; height: 95px; overflow: hidden;"></div>
+              <div class="receipt-qr-text" style="font-size: 10px; font-weight: bold; margin-top: 4px;">Scan & Pay via UPI</div>
+            </div>
+            
+            <div class="receipt-dotted-line" style="margin: 10px 0 6px 0;"></div>
+            <div style="font-weight: bold; margin-top: 6px; text-transform: uppercase; font-size: 10px;">Thank you for dining with us!</div>
           </div>
         </div>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <div class="receipt-footer">
-          <div style="font-weight: bold; margin-bottom: 6px;">For Order or More : ${settings.phone || "+91 9664870840"}</div>
-          
-          <div class="receipt-qr-wrapper">
-            <img class="receipt-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUrl)}" alt="Scan to Pay">
-            <div class="receipt-qr-text">Pay via the QR code.</div>
+
+        <!-- Tear Line for Combined Bill + KOT Print -->
+        <div id="receipt-section-tear" style="display: none; text-align: center; margin: 14px 0; border-top: 2px dashed #000; padding-top: 8px; font-weight: 800; font-size: 11px; text-transform: uppercase;">
+          ✂️ - - - - TEAR HERE FOR KITCHEN (KOT) - - - - ✂️
+        </div>
+
+        <!-- Kitchen Order Ticket (KOT) Section -->
+        <div id="receipt-section-kot" style="display: none;">
+          <div class="receipt-header">
+            <div class="receipt-title" style="font-size: 16px; font-weight: 900; letter-spacing: 0.5px;">*** KITCHEN ORDER TICKET ***</div>
+            <div class="receipt-subtitle" style="font-weight: 800; font-size: 14px; margin-top: 4px; color: #000;">Token No.: ${tokenNo}</div>
           </div>
           
-          <div class="receipt-dotted-line" style="margin-top: 8px;"></div>
-          <div style="font-weight: bold; margin-top: 6px; text-transform: uppercase;">Thank you for dining with us!</div>
+          <div class="receipt-dotted-line"></div>
+          
+          <div class="receipt-meta">
+            <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
+            ${order.customerPhone ? `<div style="font-weight: bold; margin-bottom: 4px;">Phone: ${order.customerPhone}</div>` : ""}
+            <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
+            <div class="receipt-meta-row">
+              <span>Date: ${orderDate}</span>
+              <span style="font-weight: bold;">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Time: ${orderTime}</span>
+              <span>Bill No.: ${order.orderNumber}</span>
+            </div>
+          </div>
+          
+          <div class="receipt-dotted-line"></div>
+          
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th style="width: 75%; font-weight: 800;">Item</th>
+                <th style="text-align: right; width: 25%; font-weight: 800;">Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(order.items || []).map(item => {
+                let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ea580c;">* Note: ${item.note}</span>` : "";
+                return `
+                  <tr>
+                    <td>
+                      <span class="receipt-item-name" style="font-size: 13px; font-weight: bold;">${item.name}</span>
+                      ${noteLabel}
+                    </td>
+                    <td style="text-align: right; font-size: 14px; font-weight: 900;">${item.quantity}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+
+          ${order.notes ? `
+            <div style="margin-top: 8px; border: 1.5px dashed #000; padding: 6px; font-size: 11px; font-weight: bold;">
+              SPECIAL INSTRUCTION: ${order.notes}
+            </div>
+          ` : ""}
+          
+          <div class="receipt-dotted-line" style="margin-top: 10px;"></div>
+          <div class="receipt-footer" style="text-align: center; font-size: 11px; font-weight: bold; margin-top: 8px; text-transform: uppercase;">
+            Total Qty: ${totalQty} Items | Crust & Chilly Kitchen Copy
+          </div>
         </div>
       </div>
       
@@ -1444,7 +1634,7 @@ window.views.pos = {
       <style>
         @media print {
           @page {
-            margin: 0 !important; /* Remove browser default margins */
+            margin: 0 !important;
             size: auto;
           }
           body { 
@@ -1460,7 +1650,7 @@ window.views.pos = {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          #app-container, .toast-container, .modal-header, .modal-footer, .receipt-wa-btn { 
+          #app-container, .toast-container, .modal-header, .modal-footer, .no-print, .receipt-no-print { 
             display: none !important; 
           }
           #modal-container, .modal-overlay { 
@@ -1503,223 +1693,8 @@ window.views.pos = {
             background-color: transparent !important;
           }
           .receipt-wrapper { 
-            width: 70mm !important; /* Limit width to 70mm to prevent side text clipping */
-            max-width: 70mm !important;
-            margin: 0 auto !important; 
-            padding: 2mm 3mm !important; /* Internal safe side padding */
-            box-sizing: border-box !important;
-            box-shadow: none !important; 
-            border: none !important;
-            border-radius: 0 !important;
-          }
-          .receipt-table th, .receipt-table td {
-            font-size: 11px !important;
-          }
-          .receipt-qr-img {
-            width: 100px !important;
-            height: 100px !important;
-          }
-        }
-      </style>
-    `;
-
-    let proceededToKOT = false;
-    const proceedToKOT = (doPrint = false) => {
-      if (proceededToKOT) return;
-      proceededToKOT = true;
-      if (doPrint) {
-        window.print();
-      }
-      setTimeout(() => {
-        this.showKitchenReceiptModal(order);
-      }, 150);
-    };
-
-    window.customModal.show({
-      title: "Invoice Generated Successfully (Customer Copy)",
-      bodyHtml: receiptHtml,
-      confirmText: "Print Customer Copy",
-      cancelText: "Skip to Kitchen KOT",
-      onConfirm: () => {
-        proceedToKOT(true);
-      },
-      onCancel: () => {
-        proceedToKOT(false);
-      }
-    });
-
-    // Auto-trigger printing Customer Copy once all images (Logo, QR Code) are loaded
-    const modalBody = document.getElementById("modal-body");
-    if (modalBody) {
-      const images = modalBody.querySelectorAll("img");
-      let loadedCount = 0;
-      const totalImages = images.length;
-
-      const onImageLoad = () => {
-        loadedCount++;
-        if (loadedCount === totalImages) {
-          setTimeout(() => {
-            proceedToKOT(true);
-          }, 150);
-        }
-      };
-
-      if (totalImages > 0) {
-        images.forEach(img => {
-          if (img.complete) {
-            onImageLoad();
-          } else {
-            img.onload = onImageLoad;
-            img.onerror = onImageLoad; // Proceed even if an image fails to load
-          }
-        });
-      } else {
-        setTimeout(() => {
-          proceedToKOT(true);
-        }, 150);
-      }
-    } else {
-      setTimeout(() => {
-        proceedToKOT(true);
-      }, 150);
-    }
-  },
-
-  showKitchenReceiptModal(order) {
-    const settings = window.db.get("settings") || {};
-
-    // Format Date & Time
-    const dateObj = new Date(order.createdAt);
-    const dd = String(dateObj.getDate()).padStart(2, '0');
-    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const yy = String(dateObj.getFullYear()).slice(-2);
-    const orderDate = `${dd}/${mm}/${yy}`;
-
-    const hh = String(dateObj.getHours()).padStart(2, '0');
-    const min = String(dateObj.getMinutes()).padStart(2, '0');
-    const orderTime = `${hh}:${min}`;
-
-    // Token No.
-    const tokenNo = String(order.tokenNumber || 1).padStart(2, '0');
-
-    const kitchenHtml = `
-      <div class="receipt-wrapper kitchen-receipt-wrapper">
-        <div class="receipt-header">
-          <div class="receipt-title" style="font-size: 15px; font-weight: 800;">KITCHEN ORDER TICKET</div>
-          <div class="receipt-subtitle" style="font-weight: 800; font-size: 13px; margin-top: 4px; color: #000;">Token No.: ${tokenNo}</div>
-        </div>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <div class="receipt-meta">
-          <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
-          ${order.customerPhone ? `<div style="font-weight: bold; margin-bottom: 4px;">Phone: ${order.customerPhone}</div>` : ""}
-          <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
-          <div class="receipt-meta-row">
-            <span>Date: ${orderDate}</span>
-            <span style="font-weight: bold;">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
-          </div>
-          <div class="receipt-meta-row">
-            <span>Time: ${orderTime}</span>
-            <span>Bill No.: ${order.orderNumber}</span>
-          </div>
-        </div>
-        
-        <div class="receipt-dotted-line"></div>
-        
-        <table class="receipt-table">
-          <thead>
-            <tr>
-              <th style="width: 75%; font-weight: 800;">Item</th>
-              <th style="text-align: right; width: 25%; font-weight: 800;">Qty</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${order.items.map(item => {
-      let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ea580c;">* Note: ${item.note}</span>` : "";
-      return `
-                <tr>
-                  <td>
-                    <span class="receipt-item-name" style="font-size: 13px; font-weight: bold;">${item.name}</span>
-                    ${noteLabel}
-                  </td>
-                  <td style="text-align: right; font-size: 14px; font-weight: bold;">${item.quantity}</td>
-                </tr>
-              `;
-    }).join("")}
-          </tbody>
-        </table>
-        
-        <div class="receipt-dotted-line"></div>
-        <div class="receipt-footer" style="text-align: center; font-size: 10px; font-weight: bold; margin-top: 8px; text-transform: uppercase;">
-          Crust & Chilly - Kitchen Copy
-        </div>
-      </div>
-      
-      <style>
-        @media print {
-          @page {
-            margin: 0 !important;
-            size: auto;
-          }
-          body { 
-            background: #fff !important; 
-            color: #000 !important; 
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          * {
-            color: #000 !important;
-            text-shadow: none !important;
-            box-shadow: none !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          #app-container, .toast-container, .modal-header, .modal-footer, .receipt-wa-btn { 
-            display: none !important; 
-          }
-          #modal-container, .modal-overlay { 
-            position: absolute !important; 
-            left: 0 !important; 
-            top: 0 !important; 
-            width: 100% !important; 
-            height: auto !important; 
-            background: transparent !important; 
-            background-color: transparent !important;
-            backdrop-filter: none !important; 
-            box-shadow: none !important; 
-            display: block !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            padding: 0 !important; 
-            margin: 0 !important; 
-          }
-          #modal-container .modal-content, .modal-content { 
-            border: none !important; 
-            box-shadow: none !important; 
-            background: transparent !important; 
-            background-color: transparent !important;
-            width: 100% !important; 
-            max-width: 100% !important; 
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-            padding: 0 !important; 
-            margin: 0 !important; 
-            transform: none !important;
-          }
-          #modal-container .modal-body, .modal-body { 
-            padding: 0 !important; 
-            margin: 0 !important; 
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-            background: transparent !important;
-            background-color: transparent !important;
-          }
-          .receipt-wrapper { 
-            width: 70mm !important;
-            max-width: 70mm !important;
+            width: 72mm !important;
+            max-width: 72mm !important;
             margin: 0 auto !important; 
             padding: 2mm 3mm !important;
             box-sizing: border-box !important;
@@ -1730,39 +1705,83 @@ window.views.pos = {
           .receipt-table th, .receipt-table td {
             font-size: 11px !important;
           }
+          #receipt-qrcode-box canvas {
+            display: none !important;
+          }
+          #receipt-qrcode-box img,
+          .receipt-qr-img {
+            display: block !important;
+            margin: 0 auto !important;
+            width: 95px !important;
+            height: 95px !important;
+            max-width: 95px !important;
+          }
         }
       </style>
     `;
 
-    let KOTDone = false;
-    const doneKOT = (doPrint = false) => {
-      if (KOTDone) return;
-      KOTDone = true;
-      if (doPrint) {
-        window.print();
-      }
-      setTimeout(() => {
-        window.customModal.hide();
-      }, 150);
-    };
-
     window.customModal.show({
-      title: "Print Kitchen Copy (KOT)",
-      bodyHtml: kitchenHtml,
-      confirmText: "Print Kitchen KOT",
-      cancelText: "Close",
+      title: `Bill & Receipt #${order.orderNumber} (Token #${tokenNo})`,
+      bodyHtml: modalHtml,
+      confirmText: "🖨️ Print Bill",
+      cancelText: "Done / Close",
       onConfirm: () => {
-        doneKOT(true);
+        window.print();
+        return false; // KEEP MODAL OPEN SO USER CAN RE-PRINT OR VIEW
       },
       onCancel: () => {
-        doneKOT(false);
+        window.customModal.hide();
       }
     });
 
-    // Auto-trigger printing Kitchen KOT
-    setTimeout(() => {
-      doneKOT(true);
-    }, 150);
+    // Generate UPI QR Code locally (100% offline, instant & guaranteed on bill)
+    const qrContainer = document.getElementById("receipt-qrcode-box");
+    if (qrContainer) {
+      qrContainer.innerHTML = "";
+      try {
+        if (typeof QRCode !== "undefined") {
+          new QRCode(qrContainer, {
+            text: upiUrl,
+            width: 95,
+            height: 95,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+
+          // qrcodejs creates both canvas and img; make sure only img is displayed so it never doubles up
+          const cvs = qrContainer.querySelector("canvas");
+          if (cvs) cvs.style.display = "none";
+          const img = qrContainer.querySelector("img");
+          if (img) {
+            img.style.display = "block";
+            img.style.margin = "0 auto";
+          }
+        } else {
+          // Fallback online QR if library missing
+          qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=95x95&data=${encodeURIComponent(upiUrl)}" style="width:95px;height:95px;margin:0 auto;display:block;" alt="Scan to Pay">`;
+        }
+      } catch (err) {
+        console.warn("QR code render error:", err);
+      }
+    }
+
+    // If autoPrint requested (e.g. from Place Order & Print Bill), trigger window.print() after QR paint
+    if (autoPrint) {
+      setTimeout(() => {
+        try {
+          window.print();
+        } catch (err) {
+          console.error("Print dialog error:", err);
+        }
+      }, 80);
+    }
+  },
+
+  showKitchenReceiptModal(order) {
+    if (!order) return;
+    this.showReceiptModal(order, false);
+    this.switchReceiptTab("kot");
   },
 
 
