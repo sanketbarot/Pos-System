@@ -1305,6 +1305,72 @@ window.views.pos = {
 
   currentReceiptOrder: null,
   currentReceiptTab: "bill",
+  isPrintingSequence: false,
+
+  printSeparately() {
+    if (this.isPrintingSequence) return;
+    this.isPrintingSequence = true;
+
+    // Safety timeout in case print dialog hangs or is aborted
+    const safetyTimer = setTimeout(() => {
+      this.isPrintingSequence = false;
+    }, 20000);
+
+    // 1. Switch to Customer Bill for first print job
+    this.switchReceiptTab("bill");
+
+    let firstPrintCompleted = false;
+
+    const handleFirstPrintCompleted = () => {
+      window.removeEventListener("afterprint", handleFirstPrintCompleted);
+      if (firstPrintCompleted) return;
+      firstPrintCompleted = true;
+
+      // Small pause to allow thermal printer to finish cutting the Customer Bill
+      setTimeout(() => {
+        // 2. Switch to Kitchen KOT for second print job
+        this.switchReceiptTab("kot");
+
+        setTimeout(() => {
+          let secondPrintCompleted = false;
+          const handleSecondPrintCompleted = () => {
+            window.removeEventListener("afterprint", handleSecondPrintCompleted);
+            if (secondPrintCompleted) return;
+            secondPrintCompleted = true;
+            clearTimeout(safetyTimer);
+            this.isPrintingSequence = false;
+            // Return tab to bill view for clean display
+            setTimeout(() => {
+              this.switchReceiptTab("bill");
+            }, 300);
+          };
+
+          window.addEventListener("afterprint", handleSecondPrintCompleted);
+
+          try {
+            window.print();
+          } catch (e2) {
+            console.error("KOT print error:", e2);
+            clearTimeout(safetyTimer);
+            this.isPrintingSequence = false;
+          }
+        }, 180);
+      }, 450);
+    };
+
+    window.addEventListener("afterprint", handleFirstPrintCompleted);
+
+    // Trigger first print (Customer Bill)
+    setTimeout(() => {
+      try {
+        window.print();
+      } catch (e1) {
+        console.error("Customer Bill print error:", e1);
+        clearTimeout(safetyTimer);
+        this.isPrintingSequence = false;
+      }
+    }, 120);
+  },
 
   switchReceiptTab(tab) {
     this.currentReceiptTab = tab;
@@ -1359,7 +1425,7 @@ window.views.pos = {
         btnBoth.style.borderColor = "#2563eb";
         btnBoth.style.fontWeight = "800";
       }
-      if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-file-invoice"></i> Print Both (Bill + KOT)';
+      if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-copy"></i> Print Both (Separate Prints)';
     }
   },
 
@@ -1436,8 +1502,8 @@ window.views.pos = {
           <button id="btn-tab-kot" type="button" onclick="views.pos.switchReceiptTab('kot')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'kot' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'kot' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'kot' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'kot' ? '800' : '600'}; cursor: pointer; transition: all 0.2s;">
             <i class="fa-solid fa-fire-burner"></i> Kitchen KOT
           </button>
-          <button id="btn-tab-both" type="button" onclick="views.pos.switchReceiptTab('both')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'both' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'both' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'both' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'both' ? '800' : '600'}; cursor: pointer; transition: all 0.2s;" title="Prints both customer bill and kitchen copy on single thermal slip">
-            <i class="fa-solid fa-file-invoice"></i> Both (Bill + KOT)
+          <button id="btn-tab-both" type="button" onclick="views.pos.switchReceiptTab('both')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'both' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'both' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'both' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'both' ? '800' : '600'}; cursor: pointer; transition: all 0.2s;" title="Prints Customer Bill first, then Kitchen KOT as separate prints">
+            <i class="fa-solid fa-copy"></i> Both (Separate Prints)
           </button>
         </div>
         <div>
@@ -1723,10 +1789,14 @@ window.views.pos = {
     window.customModal.show({
       title: `Bill & Receipt #${order.orderNumber} (Token #${tokenNo})`,
       bodyHtml: modalHtml,
-      confirmText: defaultTab === "both" ? '<i class="fa-solid fa-file-invoice"></i> Print Both (Bill + KOT)' : (defaultTab === "kot" ? '<i class="fa-solid fa-fire-burner"></i> Print Kitchen KOT' : '<i class="fa-solid fa-print"></i> Print Bill'),
+      confirmText: defaultTab === "both" ? '<i class="fa-solid fa-copy"></i> Print Both (Separate Prints)' : (defaultTab === "kot" ? '<i class="fa-solid fa-fire-burner"></i> Print Kitchen KOT' : '<i class="fa-solid fa-print"></i> Print Bill'),
       cancelText: "Done / Close",
       onConfirm: () => {
-        window.print();
+        if (this.currentReceiptTab === "both") {
+          this.printSeparately();
+        } else {
+          window.print();
+        }
         return false; // KEEP MODAL OPEN SO USER CAN RE-PRINT OR VIEW
       },
       onCancel: () => {
@@ -1766,15 +1836,19 @@ window.views.pos = {
       }
     }
 
-    // If autoPrint requested (e.g. from Place Order & Print Bill), trigger window.print() after QR paint
+    // If autoPrint requested (e.g. from Place Order & Print Bill), trigger sequential separate prints
     if (autoPrint) {
       setTimeout(() => {
         try {
-          window.print();
+          if (defaultTab === "both") {
+            this.printSeparately();
+          } else {
+            window.print();
+          }
         } catch (err) {
           console.error("Print dialog error:", err);
         }
-      }, 80);
+      }, 150);
     }
   },
 
