@@ -1396,9 +1396,9 @@ window.views.pos = {
     window.open(waUrl, "_blank");
   },
 
-  showReceiptModal(order, autoPrint = false) {
+  showReceiptModal(order, autoPrint = false, defaultTab = "both") {
     this.currentReceiptOrder = order;
-    this.currentReceiptTab = "bill";
+    this.currentReceiptTab = defaultTab;
     const settings = window.db.get("settings") || {};
 
     // Format Date & Time
@@ -1430,13 +1430,13 @@ window.views.pos = {
       <!-- Toolbar switcher (Screen only, hidden on print) -->
       <div class="receipt-tabs-toolbar no-print" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap;">
         <div style="display: flex; gap: 6px;">
-          <button id="btn-tab-bill" type="button" onclick="views.pos.switchReceiptTab('bill')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #2563eb; background: #2563eb; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s;">
+          <button id="btn-tab-bill" type="button" onclick="views.pos.switchReceiptTab('bill')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'bill' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'bill' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'bill' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'bill' ? '800' : '600'}; cursor: pointer; transition: all 0.2s;">
             <i class="fa-solid fa-receipt"></i> Customer Bill
           </button>
-          <button id="btn-tab-kot" type="button" onclick="views.pos.switchReceiptTab('kot')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+          <button id="btn-tab-kot" type="button" onclick="views.pos.switchReceiptTab('kot')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'kot' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'kot' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'kot' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'kot' ? '800' : '600'}; cursor: pointer; transition: all 0.2s;">
             <i class="fa-solid fa-fire-burner"></i> Kitchen KOT
           </button>
-          <button id="btn-tab-both" type="button" onclick="views.pos.switchReceiptTab('both')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;" title="Prints both customer bill and kitchen copy on single thermal slip">
+          <button id="btn-tab-both" type="button" onclick="views.pos.switchReceiptTab('both')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'both' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'both' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'both' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'both' ? '800' : '600'}; cursor: pointer; transition: all 0.2s;" title="Prints both customer bill and kitchen copy on single thermal slip">
             <i class="fa-solid fa-file-invoice"></i> Both (Bill + KOT)
           </button>
         </div>
@@ -1449,7 +1449,7 @@ window.views.pos = {
 
       <div class="receipt-wrapper" id="receipt-printable-content">
         <!-- Customer Bill Section -->
-        <div id="receipt-section-bill">
+        <div id="receipt-section-bill" style="display: ${defaultTab === 'kot' ? 'none' : 'block'};">
           <img src="logo.jpg" alt="Logo" class="receipt-logo" onerror="this.style.display='none'">
           
           <div class="receipt-header">
@@ -1565,12 +1565,12 @@ window.views.pos = {
         </div>
 
         <!-- Tear Line for Combined Bill + KOT Print -->
-        <div id="receipt-section-tear" style="display: none; text-align: center; margin: 14px 0; border-top: 2px dashed #000; padding-top: 8px; font-weight: 800; font-size: 11px; text-transform: uppercase;">
+        <div id="receipt-section-tear" style="display: ${defaultTab === 'both' ? 'block' : 'none'}; text-align: center; margin: 16px 0 14px 0; border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 6px 0; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
           ✂️ - - - - TEAR HERE FOR KITCHEN (KOT) - - - - ✂️
         </div>
 
         <!-- Kitchen Order Ticket (KOT) Section -->
-        <div id="receipt-section-kot" style="display: none;">
+        <div id="receipt-section-kot" style="display: ${defaultTab === 'bill' ? 'none' : 'block'};">
           <div class="receipt-header">
             <div class="receipt-title" style="font-size: 16px; font-weight: 900; letter-spacing: 0.5px;">*** KITCHEN ORDER TICKET ***</div>
             <div class="receipt-subtitle" style="font-weight: 800; font-size: 14px; margin-top: 4px; color: #000;">Token No.: ${tokenNo}</div>
@@ -1723,7 +1723,7 @@ window.views.pos = {
     window.customModal.show({
       title: `Bill & Receipt #${order.orderNumber} (Token #${tokenNo})`,
       bodyHtml: modalHtml,
-      confirmText: "🖨️ Print Bill",
+      confirmText: defaultTab === "both" ? '<i class="fa-solid fa-file-invoice"></i> Print Both (Bill + KOT)' : (defaultTab === "kot" ? '<i class="fa-solid fa-fire-burner"></i> Print Kitchen KOT' : '<i class="fa-solid fa-print"></i> Print Bill'),
       cancelText: "Done / Close",
       onConfirm: () => {
         window.print();
@@ -1780,8 +1780,7 @@ window.views.pos = {
 
   showKitchenReceiptModal(order) {
     if (!order) return;
-    this.showReceiptModal(order, false);
-    this.switchReceiptTab("kot");
+    this.showReceiptModal(order, false, "kot");
   },
 
 

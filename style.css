@@ -1608,17 +1608,21 @@ body {
   box-shadow: 8px 8px 24px rgba(0, 0, 0, 0.15), -4px -4px 16px #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.9);
   width: 90%;
-  max-width: 480px;
+  max-width: 490px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   animation: flipIn3D 0.25s ease;
 }
 
 .modal-header {
-  padding: 16px 20px;
+  padding: 14px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(202, 213, 226, 0.6);
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -1642,16 +1646,20 @@ body {
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .modal-footer {
-  padding: 14px 20px;
+  padding: 12px 20px;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   border-top: 1px solid rgba(202, 213, 226, 0.6);
   background: var(--bg-darkest);
+  flex-shrink: 0;
 }
 
 /* KDS Kanban Board Styles - Neumorphic Columns */
@@ -2463,12 +2471,14 @@ body {
   left: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: rgba(15, 23, 42, 0.45) !important;
+  background: rgba(15, 23, 42, 0.5) !important;
   backdrop-filter: blur(4px) !important;
   display: none !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 9999 !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
 }
 
 #modal-container.active,
@@ -2477,22 +2487,28 @@ body {
 }
 
 .modal-content {
-  background: var(--bg-darkest);
-  border-radius: 20px;
-  box-shadow: 8px 8px 24px rgba(0, 0, 0, 0.15), -4px -4px 16px #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  width: 90%;
-  max-width: 480px;
-  overflow: hidden;
-  animation: fadeIn 0.25s ease;
+  background: var(--bg-darkest) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25), -4px -4px 16px #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  width: 100% !important;
+  max-width: 490px !important;
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  animation: fadeIn 0.25s ease !important;
 }
 
 .modal-header {
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(202, 213, 226, 0.6);
+  padding: 14px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  border-bottom: 1px solid rgba(202, 213, 226, 0.6) !important;
+  flex-shrink: 0 !important;
+  background: var(--bg-darkest) !important;
 }
 
 .modal-header h3 {
@@ -2516,16 +2532,42 @@ body {
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 16px 20px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important; /* CRITICAL: Enables scrolling in flex column */
+  max-height: calc(90vh - 120px) !important;
+  -webkit-overflow-scrolling: touch !important;
+  box-sizing: border-box !important;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 7px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .modal-footer {
-  padding: 14px 20px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  border-top: 1px solid rgba(202, 213, 226, 0.6);
-  background: var(--bg-darkest);
+  padding: 12px 20px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  border-top: 1px solid rgba(202, 213, 226, 0.6) !important;
+  background: var(--bg-darkest) !important;
+  flex-shrink: 0 !important;
 }
 
 .modal-footer .btn {

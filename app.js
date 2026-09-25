@@ -74,8 +74,8 @@ window.customModal = {
     this.onConfirmCallback = onConfirm;
     this.onCancelCallback = onCancel;
 
-    this.confirmBtn.textContent = confirmText;
-    this.cancelBtn.textContent = cancelText;
+    this.confirmBtn.innerHTML = confirmText;
+    this.cancelBtn.innerHTML = cancelText;
 
     const footer = document.getElementById("modal-footer");
     if (hideFooter) {
