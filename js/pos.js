@@ -120,17 +120,19 @@ window.views.pos = {
         <!-- Top Custom Terminal Header -->
         <div class="pos-custom-header">
           <!-- Search Bar -->
-          <div style="position: relative; display: flex; align-items: center; width: 380px;">
-            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; color: var(--text-muted); pointer-events: none; z-index: 5;"></i>
-            <input type="text" id="pos-search" class="pos-search-input" value="${this.searchQuery}" placeholder="Search menu (e.g. Burger, Sandwich, Fries)..." autocomplete="off">
-            <button type="button" id="btn-clear-search" style="position: absolute; right: 80px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: ${this.searchQuery ? 'flex' : 'none'}; align-items: center; justify-content: center; outline: none; z-index: 5;" title="Clear search">
-              <i class="fa-solid fa-circle-xmark" style="font-size: 14px;"></i>
-            </button>
-            <span style="position: absolute; right: 12px; font-size: 10px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border-color); color: #64748b; padding: 2px 6px; border-radius: 6px; pointer-events: none; z-index: 5;">Ctrl+K</span>
+          <div class="pos-header-search-area">
+            <div class="pos-search-wrapper">
+              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; color: var(--text-muted); pointer-events: none; z-index: 5;"></i>
+              <input type="text" id="pos-search" class="pos-search-input" value="${this.searchQuery}" placeholder="Search menu (e.g. Burger, Sandwich, Fries)..." autocomplete="off">
+              <button type="button" id="btn-clear-search" style="position: absolute; right: 80px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: ${this.searchQuery ? 'flex' : 'none'}; align-items: center; justify-content: center; outline: none; z-index: 5;" title="Clear search">
+                <i class="fa-solid fa-circle-xmark" style="font-size: 14px;"></i>
+              </button>
+              <span class="pos-search-shortcut" style="position: absolute; right: 12px; font-size: 10px; font-weight: 700; background: #f1f5f9; border: 1px solid var(--border-color); color: #64748b; padding: 2px 6px; border-radius: 6px; pointer-events: none; z-index: 5;">Ctrl+K</span>
+            </div>
           </div>
 
           <!-- Dine In / Takeaway / Delivery Segmented Control -->
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <div class="pos-header-type-area">
             <div style="display: inline-flex; background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 16px; padding: 3px; gap: 3px;">
               <button class="pos-header-btn ${this.orderType === 'Dine-in' ? 'active' : ''}" id="type-dinein" style="border: none; border-radius: 12px; padding: 6px 14px; font-size: 11.5px;">
                 <i class="fa-solid fa-utensils"></i> Dine In
@@ -158,7 +160,7 @@ window.views.pos = {
           </div>
 
           <!-- Right side: Shift Stats, Sound, Cashier -->
-          <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+          <div class="pos-header-actions-area">
             <!-- Shift Live Stats Pill -->
             <div class="pos-shift-stats" style="display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 14px; font-size: 11px; font-weight: 700;">
               <span style="color: #2563eb; display: flex; align-items: center; gap: 4px;" title="Orders completed today">

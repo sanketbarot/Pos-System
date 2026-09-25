@@ -145,7 +145,7 @@ window.views.menu = {
 
     // Build Category Filter Pills HTML
     const catPillsHtml = `
-      <div style="display: flex; gap: 6px; overflow-x: auto; padding: 2px 0; -webkit-overflow-scrolling: touch; flex-wrap: wrap;">
+      <div class="menu-cat-pills-bar" style="display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px; -webkit-overflow-scrolling: touch; flex-wrap: nowrap;">
         <button type="button" class="menu-cat-pill ${this.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">
           All Items (${products.length})
         </button>
@@ -280,7 +280,7 @@ window.views.menu = {
         <!-- Filter & Search Toolbar Card -->
         <div class="glass-card" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <div style="position: relative; width: 260px;">
+            <div class="menu-search-wrapper" style="position: relative; width: 260px;">
               <input type="text" id="menu-search-input" class="form-input" placeholder="Search menu item or category..." value="${this.searchQuery}" style="padding: 6px 12px 6px 30px; font-size: 12.5px; height: 36px; border-radius: 10px; width: 100%;">
               <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; color: var(--text-muted); font-size: 12px; pointer-events: none;"></i>
             </div>
