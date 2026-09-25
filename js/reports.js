@@ -1,4 +1,4 @@
-// Crust & Chilly POS - Reports & Business Intelligence Module
+// Crust & Chilly POS - Sales & Revenue Analytics Module
 // Provides granular sales metrics, payment breakouts, item velocity analysis, shift peak hours, customer loyalty, and data exports.
 
 window.views = window.views || {};
@@ -17,7 +17,6 @@ window.views.reports = {
   },
 
   init(container) {
-    // Default date range: Last 7 days in local time
     const today = new Date();
     const lastWeek = new Date();
     lastWeek.setDate(today.getDate() - 7);
@@ -26,12 +25,14 @@ window.views.reports = {
     this.endDate = this.getLocalDateStr(today);
 
     container.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 20px; max-width: 100%; width: 100%; overflow-x: hidden;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 18px; max-width: 100%; width: 100%; overflow-x: hidden;">
         
         <!-- Date Filters Control Panel Bar -->
-        <div class="glass-card report-filter-bar" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div class="glass-card report-filter-bar" style="padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div class="report-dates-group" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <span style="font-size: 13px; font-weight: 800; color: var(--text-dark); white-space: nowrap;"><i class="fa-solid fa-calendar-days" style="color: #2563eb; margin-right: 6px;"></i> Analytics Period:</span>
+            <span style="font-size: 13.5px; font-weight: 800; color: var(--text-dark); white-space: nowrap; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Analytics Period:
+            </span>
             
             <!-- Quick Preset Pills -->
             <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="rep-preset-group">
@@ -42,83 +43,113 @@ window.views.reports = {
             </div>
 
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: 2px;">
-              <input type="date" id="report-start-date" class="form-input" style="height: 36px; font-size: 12px; padding: 4px 10px; border-radius: 10px;" value="${this.startDate}">
+              <input type="date" id="report-start-date" class="form-input" style="height: 35px; font-size: 12px; padding: 4px 10px; border-radius: 10px; width: 135px;" value="${this.startDate}">
               <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">to</span>
-              <input type="date" id="report-end-date" class="form-input" style="height: 36px; font-size: 12px; padding: 4px 10px; border-radius: 10px;" value="${this.endDate}">
+              <input type="date" id="report-end-date" class="form-input" style="height: 35px; font-size: 12px; padding: 4px 10px; border-radius: 10px; width: 135px;" value="${this.endDate}">
             </div>
-            <button class="btn btn-primary" id="btn-reports-apply-filter" style="padding: 0 16px; height: 36px; font-size: 12px; border-radius: 10px; font-weight: 700;">
-              Apply
+            <button class="btn btn-primary" id="btn-reports-apply-filter" style="padding: 0 16px; height: 35px; font-size: 12px; border-radius: 10px; font-weight: 700;">
+              Apply Filter
             </button>
           </div>
-          <div class="report-actions-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button class="btn btn-secondary" id="btn-report-export-csv" style="padding: 0 16px; height: 36px; font-size: 12px; border-radius: 10px; font-weight: 700;">
-              <i class="fa-solid fa-file-csv" style="color: #2563eb; font-size: 14px;"></i> Export CSV
+
+          <!-- Utility Operations Toolbar -->
+          <div class="report-actions-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" id="btn-report-export-csv" style="padding: 0 14px; height: 35px; font-size: 12px; border-radius: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-file-csv" style="color: #2563eb;"></i> Export CSV
             </button>
-            <button class="btn btn-secondary" id="btn-report-print-summary" style="padding: 0 16px; height: 36px; font-size: 12px; border-radius: 10px; font-weight: 700;">
-              <i class="fa-solid fa-print" style="color: #2563eb;"></i> Print Summary
+            <button class="btn btn-secondary" id="btn-report-print-summary" style="padding: 0 14px; height: 35px; font-size: 12px; border-radius: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-print" style="color: #4b5563;"></i> Print Summary
             </button>
           </div>
         </div>
 
-        <!-- 4 Stats Cards Row -->
-        <div class="dashboard-grid-stats" style="margin-bottom: 0;">
-          <div class="glass-card stat-card" style="border-left: 4px solid #2563eb;">
+        <!-- 4 Top Executive Scorecard Cards -->
+        <div class="dashboard-grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 0;">
+          
+          <!-- Gross Revenue -->
+          <div class="glass-card stat-card" style="border-left: 4px solid #2563eb; padding: 14px 16px;">
             <div class="stat-info">
-              <span class="stat-label">Gross Revenue</span>
+              <span class="stat-label">Gross Sales</span>
               <span class="stat-value" id="rep-total-sales" style="color: #2563eb; font-size: 26px; font-weight: 900;">₹0</span>
-              <span class="stat-change" style="color: var(--text-muted); font-weight: 600;">Sum of all orders in period</span>
+              <span class="stat-change" id="rep-total-orders-sub" style="color: var(--text-muted); font-weight: 700; font-size: 11.5px;">0 orders placed</span>
             </div>
             <div class="stat-icon-wrapper" style="background: #eff6ff; border-color: #bfdbfe; color: #2563eb;">
               <i class="fa-solid fa-calculator"></i>
             </div>
           </div>
-          <div class="glass-card stat-card" style="border-left: 4px solid #10b981;">
+
+          <!-- Net Revenue -->
+          <div class="glass-card stat-card" style="border-left: 4px solid #10b981; padding: 14px 16px;">
             <div class="stat-info">
               <span class="stat-label">Net Revenue</span>
               <span class="stat-value" id="rep-net-sales" style="color: #10b981; font-size: 26px; font-weight: 900;">₹0</span>
-              <span class="stat-change" style="color: var(--text-muted); font-weight: 600;">Revenue minus discounts</span>
+              <span class="stat-change" id="rep-net-sales-sub" style="color: var(--text-muted); font-weight: 600; font-size: 11.5px;">Realized order collection</span>
             </div>
             <div class="stat-icon-wrapper" style="background: #ecfdf5; border-color: #a7f3d0; color: #059669;">
               <i class="fa-solid fa-wallet"></i>
             </div>
           </div>
-          <div class="glass-card stat-card" style="border-left: 4px solid #2563eb;">
+
+          <!-- Average Order Value (AOV) -->
+          <div class="glass-card stat-card" style="border-left: 4px solid #06b6d4; padding: 14px 16px;">
             <div class="stat-info">
               <span class="stat-label">Average Order (AOV)</span>
-              <span class="stat-value" id="rep-aov" style="color: var(--text-dark); font-size: 26px; font-weight: 900;">₹0</span>
-              <span class="stat-change" style="color: var(--text-muted); font-weight: 600;">Average billing amount</span>
+              <span class="stat-value" id="rep-aov" style="color: #0891b2; font-size: 26px; font-weight: 900;">₹0</span>
+              <span class="stat-change" id="rep-aov-sub" style="color: var(--text-muted); font-weight: 600; font-size: 11.5px;">Average spend per ticket</span>
             </div>
-            <div class="stat-icon-wrapper" style="background: #eff6ff; border-color: #bfdbfe; color: #2563eb;">
+            <div class="stat-icon-wrapper" style="background: #ecfeff; border-color: #a5f3fc; color: #0891b2;">
               <i class="fa-solid fa-chart-simple"></i>
             </div>
           </div>
-          <div class="glass-card stat-card" style="border-left: 4px solid #10b981;">
+
+          <!-- Total Discounts -->
+          <div class="glass-card stat-card" style="border-left: 4px solid #f59e0b; padding: 14px 16px;">
             <div class="stat-info">
               <span class="stat-label">Discounts Given</span>
-              <span class="stat-value" id="rep-total-discounts" style="color: #10b981; font-size: 26px; font-weight: 900;">₹0</span>
-              <span class="stat-change" id="rep-total-discounts-sub" style="color: var(--text-muted); font-weight: 600;">BOGO + Cash discounts</span>
+              <span class="stat-value" id="rep-total-discounts" style="color: #f59e0b; font-size: 26px; font-weight: 900;">₹0</span>
+              <span class="stat-change" id="rep-total-discounts-sub" style="color: var(--text-muted); font-weight: 600; font-size: 11.5px;">BOGO + Offers</span>
             </div>
-            <div class="stat-icon-wrapper" style="background: #ecfdf5; border-color: #a7f3d0; color: #059669;">
+            <div class="stat-icon-wrapper" style="background: #fffbeb; border-color: #fde68a; color: #d97706;">
               <i class="fa-solid fa-tags"></i>
             </div>
           </div>
+
         </div>
 
-        <!-- Charts Segment 1: Sales Trend Line + Category Pie -->
+        <!-- Charts Segment 1: Sales Trend Line + Category Breakdown -->
         <div class="dashboard-charts-row" style="margin-bottom: 0;">
+          
+          <!-- Sales Trend Line Chart -->
           <div class="glass-card chart-card">
-            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-              <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;"><i class="fa-solid fa-chart-line" style="color: #2563eb; margin-right: 6px;"></i> Revenue Analytics Trend Curve</h3>
-              <span style="font-size: 11px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px; font-weight: 800; text-transform: uppercase;">Sales Curve</span>
+            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div>
+                <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;">
+                  <i class="fa-solid fa-chart-line" style="color: #2563eb; margin-right: 6px;"></i> Revenue Analytics Trend Curve
+                </h3>
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                  Daily sales revenue trajectory for selected period
+                </div>
+              </div>
+              <span style="font-size: 11px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px; font-weight: 800; text-transform: uppercase;">
+                Sales Curve
+              </span>
             </div>
             <div class="chart-container">
               <canvas id="repSalesCurveCanvas"></canvas>
             </div>
           </div>
 
+          <!-- Category Breakdown Pie -->
           <div class="glass-card chart-card">
-            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-              <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;"><i class="fa-solid fa-pizza-slice" style="color: #2563eb; margin-right: 6px;"></i> Top Categories Breakdown</h3>
+            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div>
+                <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;">
+                  <i class="fa-solid fa-pizza-slice" style="color: #2563eb; margin-right: 6px;"></i> Category Revenue Share
+                </h3>
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                  Sales contribution across food categories
+                </div>
+              </div>
               <span style="font-size: 11px; color: #10b981; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 10px; font-weight: 800; text-transform: uppercase;">Category Velocity</span>
             </div>
             <div class="chart-container">
@@ -127,7 +158,7 @@ window.views.reports = {
           </div>
         </div>
 
-        <!-- NEW Charts Segment 2: Hourly Rush Curve (2 PM – 12 AM) + Day of Week Matrix -->
+        <!-- Charts Segment 2: Hourly Rush Curve (2 PM – 12 AM) + Day of Week Matrix -->
         <div class="dashboard-charts-row" style="margin-bottom: 0;">
           
           <!-- Hourly Rush Chart -->
@@ -189,21 +220,21 @@ window.views.reports = {
             </div>
           </div>
 
-          <!-- Insight Card 2: Daily/Period Cash Drawer & Reconciliation -->
+          <!-- Insight Card 2: Cash & Payment Collection Reconciliation -->
           <div class="dash-insight-card">
             <div class="insight-header">
               <div class="insight-title">
-                <i class="fa-solid fa-cash-register" style="color: #059669;"></i> Cash Drawer Reconciliation
+                <i class="fa-solid fa-cash-register" style="color: #059669;"></i> Cash & Payment Reconciliation
               </div>
-              <span class="insight-badge" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">Period Drawer</span>
+              <span class="insight-badge" id="rep-payment-summary-badge" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">Period Total</span>
             </div>
             
-            <div style="display: flex; flex-direction: column; gap: 10px;" id="rep-cash-reconcile-container">
+            <div style="display: flex; flex-direction: column; gap: 8px;" id="rep-cash-reconcile-container">
               <!-- Injected dynamically -->
             </div>
           </div>
 
-          <!-- Insight Card 3: Shift Rush & Peak Hours (2-5, 5-7, 7-10, 10-12) -->
+          <!-- Insight Card 3: Shift Rush & Peak Hours -->
           <div class="dash-insight-card">
             <div class="insight-header">
               <div>
@@ -243,11 +274,18 @@ window.views.reports = {
           
           <!-- Item velocity stats -->
           <div class="glass-card" style="display: flex; flex-direction: column;">
-            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-              <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;"><i class="fa-solid fa-list-ol" style="color: #2563eb; margin-right: 6px;"></i> Itemized Sales Velocity</h3>
+            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div>
+                <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;">
+                  <i class="fa-solid fa-list-ol" style="color: #2563eb; margin-right: 6px;"></i> Menu Item Sales Velocity
+                </h3>
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                  Item description, price, volume sold, and total revenue generated
+                </div>
+              </div>
               <span class="badge badge-ready">Top Sellers First</span>
             </div>
-            <div class="table-container" style="max-height: 320px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; flex-grow: 1;">
+            <div class="table-container" style="max-height: 340px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; flex-grow: 1;">
               <table class="premium-table" style="font-size: 13px;">
                 <thead>
                   <tr>
@@ -264,11 +302,18 @@ window.views.reports = {
             </div>
           </div>
 
-          <!-- Payment collection stats -->
+          <!-- Payment collection stats & Cashless Index -->
           <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
             <div>
-              <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;"><i class="fa-solid fa-credit-card" style="color: #2563eb; margin-right: 6px;"></i> Payment Collection Split</h3>
+              <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <div>
+                  <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;">
+                    <i class="fa-solid fa-credit-card" style="color: #2563eb; margin-right: 6px;"></i> Payment Collection Split
+                  </h3>
+                  <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                    Cash vs UPI QR vs Card adoption
+                  </div>
+                </div>
                 <span class="badge badge-completed" id="rep-total-orders-badge">0 Transactions</span>
               </div>
               <div class="table-container" style="overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
@@ -286,8 +331,8 @@ window.views.reports = {
                 </table>
               </div>
             </div>
-            <div style="font-size: 12px; color: var(--text-muted); text-align: center; border-top: 1px solid rgba(202, 213, 226, 0.6); padding-top: 12px; font-weight: 600;">
-              Data includes completed dine-in, takeaway, and delivery orders.
+            <div id="rep-cashless-summary" style="font-size: 12px; color: var(--text-muted); text-align: center; border-top: 1px solid rgba(202, 213, 226, 0.6); padding-top: 12px; font-weight: 700;">
+              Cashless digital collection: 0%
             </div>
           </div>
         </div>
@@ -338,7 +383,7 @@ window.views.reports = {
               </div>
               <span class="badge" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;" id="rep-slow-items-badge">0 Unsold Items</span>
             </div>
-            <div class="table-container" style="max-height: 340px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; flex-grow: 1;">
+            <div class="table-container" style="max-height: 280px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; flex-grow: 1;">
               <table class="premium-table" style="font-size: 13px;">
                 <thead>
                   <tr>
@@ -414,64 +459,56 @@ window.views.reports = {
 
         highlightPreset(btn);
         this.processDataAndRender();
-        window.showToast(`Showing data: ${this.startDate} to ${this.endDate}`, "info");
+        window.showToast(`Showing analytics: ${this.startDate} to ${this.endDate}`, "info");
       });
     });
 
-    btnApply.onclick = () => {
-      this.startDate = document.getElementById("report-start-date").value;
-      this.endDate = document.getElementById("report-end-date").value;
+    if (btnApply) {
+      btnApply.onclick = () => {
+        this.startDate = document.getElementById("report-start-date").value;
+        this.endDate = document.getElementById("report-end-date").value;
 
-      if (!this.startDate || !this.endDate) {
-        window.showToast("Please choose valid start and end dates.", "error");
-        return;
-      }
-      if (this.startDate > this.endDate) {
-        window.showToast("Start date cannot be after end date.", "error");
-        return;
-      }
+        if (!this.startDate || !this.endDate) {
+          window.showToast("Please choose valid start and end dates.", "error");
+          return;
+        }
+        if (this.startDate > this.endDate) {
+          window.showToast("Start date cannot be after end date.", "error");
+          return;
+        }
 
-      highlightPreset(null);
-      this.processDataAndRender();
-      window.showToast("Analytics updated for selected range.", "success");
-    };
+        highlightPreset(null);
+        this.processDataAndRender();
+        window.showToast("Analytics updated for selected range.", "success");
+      };
+    }
 
-    btnExport.onclick = () => {
-      this.exportReportToCSV();
-    };
+    if (btnExport) {
+      btnExport.onclick = () => this.exportReportToCSV();
+    }
 
-    btnPrint.onclick = () => {
-      window.print();
-    };
+    if (btnPrint) {
+      btnPrint.onclick = () => this.showPrintSummaryModal();
+    }
   },
 
   processDataAndRender() {
     const orders = window.db.get("orders") || [];
     const products = window.db.get("products") || [];
     const categories = window.db.get("categories") || [];
-    const expenses = window.db.get("expenses") || [];
     const settings = window.db.get("settings") || {};
     const currency = settings.currencySymbol || "₹";
 
     const startStr = this.startDate;
     const endStr = this.endDate;
 
-    // Filter non-cancelled orders inside the date range using local calendar date
+    // Filter non-cancelled orders inside the date range
     const filteredValidOrders = orders.filter(o => {
       if (!o.createdAt || o.status === "Cancelled") return false;
       const orderDate = new Date(o.createdAt);
       const d = !isNaN(orderDate.getTime()) ? this.getLocalDateStr(orderDate) : o.createdAt.substring(0, 10);
       return d >= startStr && d <= endStr;
     });
-
-    // Filter expenses in this period
-    const filteredExpenses = expenses.filter(e => {
-      const expDate = e.date || (e.createdAt && !isNaN(new Date(e.createdAt).getTime())
-        ? this.getLocalDateStr(new Date(e.createdAt))
-        : (e.createdAt ? e.createdAt.substring(0, 10) : ""));
-      return expDate >= startStr && expDate <= endStr;
-    });
-    const periodExpenses = filteredExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
     // 1. Gross Revenue & Payment Breakdowns
     let cashTotal = 0;
@@ -482,32 +519,45 @@ window.views.reports = {
     filteredValidOrders.forEach(o => {
       const amt = Number(o.total) || 0;
       grossRevenue += amt;
-      if (o.paymentMethod === "Cash") cashTotal += amt;
-      else if (o.paymentMethod === "Card") cardTotal += amt;
+      const pm = (o.paymentMethod || "UPI").toLowerCase();
+      if (pm === "cash") cashTotal += amt;
+      else if (pm === "card") cardTotal += amt;
       else upiTotal += amt;
     });
-
-    document.getElementById("rep-total-sales").textContent = `${currency}${Math.round(grossRevenue).toLocaleString("en-IN")}`;
 
     // 2. Total Discounts given
     const totalDiscounts = filteredValidOrders.reduce((sum, o) => sum + (Number(o.discount) || 0) + (Number(o.bogoDiscount) || 0), 0);
     const bogoDiscounts = filteredValidOrders.reduce((sum, o) => sum + (Number(o.bogoDiscount) || 0), 0);
     const cashDiscounts = filteredValidOrders.reduce((sum, o) => sum + (Number(o.discount) || 0), 0);
-    document.getElementById("rep-total-discounts").textContent = `${currency}${Math.round(totalDiscounts).toLocaleString("en-IN")}`;
-    document.getElementById("rep-total-discounts-sub").textContent = `BOGO: ${currency}${Math.round(bogoDiscounts).toLocaleString("en-IN")} | Cash: ${currency}${Math.round(cashDiscounts).toLocaleString("en-IN")}`;
 
-    // 3. Net Revenue
-    const netRevenue = grossRevenue; // In schema total is already discounted subtotal
-    document.getElementById("rep-net-sales").textContent = `${currency}${Math.round(netRevenue).toLocaleString("en-IN")}`;
-
-    // 4. AOV (Average Order Value)
+    // 3. Net Revenue & AOV
+    const netRevenue = grossRevenue;
     const aov = filteredValidOrders.length > 0 ? (grossRevenue / filteredValidOrders.length) : 0;
-    document.getElementById("rep-aov").textContent = `${currency}${Math.round(aov).toLocaleString("en-IN")}`;
 
-    // 5. Total Transactions badge in table header
-    document.getElementById("rep-total-orders-badge").textContent = `${filteredValidOrders.length} Transactions`;
+    // Update Top 4 Scorecard Elements
+    const totalSalesEl = document.getElementById("rep-total-sales");
+    const totalOrdersSubEl = document.getElementById("rep-total-orders-sub");
+    const netSalesEl = document.getElementById("rep-net-sales");
+    const netSalesSubEl = document.getElementById("rep-net-sales-sub");
+    const aovEl = document.getElementById("rep-aov");
+    const aovSubEl = document.getElementById("rep-aov-sub");
+    const totalDiscountsEl = document.getElementById("rep-total-discounts");
+    const totalDiscountsSubEl = document.getElementById("rep-total-discounts-sub");
 
-    // 6. Itemized Sales Velocity Calculations
+    if (totalSalesEl) totalSalesEl.textContent = `${currency}${Math.round(grossRevenue).toLocaleString("en-IN")}`;
+    if (totalOrdersSubEl) totalOrdersSubEl.textContent = `${filteredValidOrders.length} valid orders placed`;
+    if (netSalesEl) netSalesEl.textContent = `${currency}${Math.round(netRevenue).toLocaleString("en-IN")}`;
+    if (netSalesSubEl) netSalesSubEl.textContent = `${filteredValidOrders.length} completed transactions`;
+    if (aovEl) aovEl.textContent = `${currency}${Math.round(aov).toLocaleString("en-IN")}`;
+    if (aovSubEl) aovSubEl.textContent = `Avg: ${currency}${Math.round(aov)} / bill`;
+    if (totalDiscountsEl) totalDiscountsEl.textContent = `${currency}${Math.round(totalDiscounts).toLocaleString("en-IN")}`;
+    if (totalDiscountsSubEl) totalDiscountsSubEl.textContent = `BOGO: ${currency}${Math.round(bogoDiscounts).toLocaleString("en-IN")} | Off: ${currency}${Math.round(cashDiscounts).toLocaleString("en-IN")}`;
+
+    // Total Transactions badge
+    const badgeOrders = document.getElementById("rep-total-orders-badge");
+    if (badgeOrders) badgeOrders.textContent = `${filteredValidOrders.length} Transactions`;
+
+    // 4. Itemized Sales Velocity
     const itemSoldMap = {};
     filteredValidOrders.forEach(o => {
       if (Array.isArray(o.items)) {
@@ -529,68 +579,132 @@ window.views.reports = {
     const itemSortedList = Object.values(itemSoldMap).sort((a, b) => b.gross - a.gross);
     const itemTableBody = document.getElementById("rep-item-sales-tbody");
 
-    if (itemSortedList.length === 0) {
-      itemTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-muted); font-weight:600;">No item sales in this period.</td></tr>`;
-    } else {
-      itemTableBody.innerHTML = itemSortedList.map(i => `
-        <tr>
-          <td style="font-weight: 700; color: var(--text-dark);">${i.name}</td>
-          <td style="color: var(--text-muted); font-weight: 600;">${currency}${Number(i.price || 0).toFixed(0)}</td>
-          <td><span style="font-weight: 800; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px;">${i.quantity} sold</span></td>
-          <td style="text-align: right; font-weight: 800; color: #d97706;">${currency}${Number(i.gross || 0).toFixed(2)}</td>
-        </tr>
-      `).join("");
+    if (itemTableBody) {
+      if (itemSortedList.length === 0) {
+        itemTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-muted); font-weight:600;">No item sales in this period.</td></tr>`;
+      } else {
+        itemTableBody.innerHTML = itemSortedList.map(i => `
+          <tr>
+            <td style="font-weight: 700; color: var(--text-dark);">${i.name}</td>
+            <td style="color: var(--text-muted); font-weight: 600;">${currency}${Number(i.price || 0).toFixed(0)}</td>
+            <td><span style="font-weight: 800; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px;">${i.quantity} sold</span></td>
+            <td style="text-align: right; font-weight: 800; color: #d97706;">${currency}${Number(i.gross || 0).toFixed(2)}</td>
+          </tr>
+        `).join("");
+      }
     }
 
-    // 7. Payment collection split
+    // 5. Payment Collection Split
     const paySplitCounts = { UPI: 0, Cash: 0, Card: 0 };
     const paySplitAmounts = { UPI: 0, Cash: 0, Card: 0 };
 
     filteredValidOrders.forEach(o => {
-      const mode = o.paymentMethod || "UPI";
-      if (paySplitCounts[mode] !== undefined) {
-        paySplitCounts[mode]++;
-        paySplitAmounts[mode] += (Number(o.total) || 0);
-      } else {
-        paySplitCounts.UPI++;
-        paySplitAmounts.UPI += (Number(o.total) || 0);
-      }
+      const pm = (o.paymentMethod || "UPI").toLowerCase();
+      let mode = "UPI";
+      if (pm === "cash") mode = "Cash";
+      else if (pm === "card") mode = "Card";
+
+      paySplitCounts[mode]++;
+      paySplitAmounts[mode] += (Number(o.total) || 0);
     });
 
     const payTableBody = document.getElementById("rep-payment-split-tbody");
-    payTableBody.innerHTML = ["UPI", "Cash", "Card"].map(mode => `
-      <tr>
-        <td style="font-weight: 700; padding: 12px 18px; color: var(--text-dark);"><i class="fa-solid fa-circle" style="color: ${mode === 'UPI' ? '#2563eb' : mode==='Cash' ? '#10b981' : '#6366f1'}; font-size: 8px; margin-right: 8px;"></i> ${mode}</td>
-        <td style="padding: 12px 18px; color: var(--text-muted); font-weight: 600;">${paySplitCounts[mode]} transactions</td>
-        <td style="text-align: right; font-weight: 800; color: #2563eb; padding: 12px 18px;">${currency}${paySplitAmounts[mode].toFixed(2)}</td>
-      </tr>
-    `).join("");
+    if (payTableBody) {
+      payTableBody.innerHTML = ["UPI", "Cash", "Card"].map(mode => `
+        <tr>
+          <td style="font-weight: 700; padding: 10px 14px; color: var(--text-dark);"><i class="fa-solid fa-circle" style="color: ${mode === 'UPI' ? '#2563eb' : mode==='Cash' ? '#10b981' : '#6366f1'}; font-size: 8px; margin-right: 8px;"></i> ${mode}</td>
+          <td style="padding: 10px 14px; color: var(--text-muted); font-weight: 600;">${paySplitCounts[mode]} transactions</td>
+          <td style="text-align: right; font-weight: 800; color: #2563eb; padding: 10px 14px;">${currency}${paySplitAmounts[mode].toFixed(2)}</td>
+        </tr>
+      `).join("");
+    }
 
-    // 8. Render Comprehensive Business Intelligence Suite (4 Insight Cards)
+    const cashlessSummaryEl = document.getElementById("rep-cashless-summary");
+    if (cashlessSummaryEl) {
+      const cashlessAmt = paySplitAmounts.UPI + paySplitAmounts.Card;
+      const cashlessPercent = grossRevenue > 0 ? Math.round((cashlessAmt / grossRevenue) * 100) : 0;
+      cashlessSummaryEl.textContent = `Cashless digital adoption: ${cashlessPercent}% (${currency}${Math.round(cashlessAmt).toLocaleString("en-IN")})`;
+    }
+
+    // 6. Render Cash & Payment Reconciliation (replacing expense card)
+    this.renderCashReconciliation(cashTotal, upiTotal, cardTotal, grossRevenue, currency);
+
+    // 7. Render Fulfillment Channels & Shifts
     this.renderOrderChannels(filteredValidOrders, grossRevenue, currency);
-    this.renderCashReconciliation(cashTotal, upiTotal, periodExpenses, currency);
     this.renderShiftsAndPeak(filteredValidOrders, currency);
     this.renderDiscountsImpact(filteredValidOrders, grossRevenue, currency);
 
-    // 9. Render Customer Loyalty & Low Velocity Menu Watchlist
+    // 8. Customer Loyalty & Low Velocity
     this.renderCustomerLoyalty(filteredValidOrders, currency);
     this.renderLowVelocityMenu(products, categories, itemSoldMap, currency);
 
-    // 10. Render Day of Week Performance Matrix
+    // 9. Day of Week Performance
     this.renderDayOfWeekPerformance(filteredValidOrders, currency);
 
-    // 11. Render Charts (Trend, Categories, and Hourly Rush Pattern)
+    // 10. Charts (Trend, Categories, Hourly Rush)
     this.renderReportsCharts(filteredValidOrders, categories, products);
   },
 
-  // 1. Order Fulfillment Channels
+  renderCashReconciliation(cashTotal, upiTotal, cardTotal, grossRevenue, currencySymbol) {
+    const container = document.getElementById("rep-cash-reconcile-container");
+    const badge = document.getElementById("rep-payment-summary-badge");
+    if (badge) badge.textContent = `${currencySymbol}${Math.round(grossRevenue).toLocaleString("en-IN")} Total`;
+    if (!container) return;
+
+    const cashPct = grossRevenue > 0 ? Math.round((cashTotal / grossRevenue) * 100) : 0;
+    const upiPct = grossRevenue > 0 ? Math.round((upiTotal / grossRevenue) * 100) : 0;
+    const cardPct = grossRevenue > 0 ? Math.round((cardTotal / grossRevenue) * 100) : 0;
+
+    container.innerHTML = `
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 12px; font-weight: 700; color: #059669; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-money-bill-wave"></i> Cash Collected (Till):
+          </span>
+          <span style="font-size: 13.5px; font-weight: 900; color: #059669;">${currencySymbol}${Math.round(cashTotal).toLocaleString("en-IN")}</span>
+        </div>
+        <div style="height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+          <div style="width: ${cashPct}%; height: 100%; background: #10b981; border-radius: 3px;"></div>
+        </div>
+        <div style="font-size: 10.5px; color: var(--text-muted); text-align: right; margin-top: 2px;">${cashPct}% of total sales</div>
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 12px; font-weight: 700; color: #2563eb; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-qrcode"></i> UPI Online Received:
+          </span>
+          <span style="font-size: 13.5px; font-weight: 900; color: #2563eb;">${currencySymbol}${Math.round(upiTotal).toLocaleString("en-IN")}</span>
+        </div>
+        <div style="height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+          <div style="width: ${upiPct}%; height: 100%; background: #2563eb; border-radius: 3px;"></div>
+        </div>
+        <div style="font-size: 10.5px; color: var(--text-muted); text-align: right; margin-top: 2px;">${upiPct}% of total sales</div>
+      </div>
+
+      ${cardTotal > 0 ? `
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-size: 12px; font-weight: 700; color: #7c3aed; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-credit-card"></i> Card Swiped:
+            </span>
+            <span style="font-size: 13.5px; font-weight: 900; color: #7c3aed;">${currencySymbol}${Math.round(cardTotal).toLocaleString("en-IN")}</span>
+          </div>
+          <div style="height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+            <div style="width: ${cardPct}%; height: 100%; background: #7c3aed; border-radius: 3px;"></div>
+          </div>
+          <div style="font-size: 10.5px; color: var(--text-muted); text-align: right; margin-top: 2px;">${cardPct}% of total sales</div>
+        </div>
+      ` : ''}
+    `;
+  },
+
   renderOrderChannels(orders, grossSales, currencySymbol) {
     const container = document.getElementById("rep-order-types-container");
     if (!container) return;
 
     let dineCount = 0, dineSales = 0;
     let takeCount = 0, takeSales = 0;
-    let delCount = 0, delSales = 0;
 
     orders.forEach(o => {
       const type = (o.type || "Dine-in").toLowerCase();
@@ -598,295 +712,112 @@ window.views.reports = {
       if (type.includes("takeaway") || type.includes("parcel")) {
         takeCount++;
         takeSales += amt;
-      } else if (type.includes("delivery")) {
-        delCount++;
-        delSales += amt;
       } else {
         dineCount++;
         dineSales += amt;
       }
     });
 
-    const totalBills = orders.length;
-    const badgeEl = document.getElementById("rep-orders-channel-badge");
-    if (badgeEl) badgeEl.textContent = `${totalBills} Bills in Period`;
+    const badge = document.getElementById("rep-orders-channel-badge");
+    if (badge) badge.textContent = `${orders.length} Bills Total`;
 
     const dinePct = grossSales > 0 ? Math.round((dineSales / grossSales) * 100) : 0;
     const takePct = grossSales > 0 ? Math.round((takeSales / grossSales) * 100) : 0;
-    const delPct = grossSales > 0 ? Math.round((delSales / grossSales) * 100) : 0;
 
     container.innerHTML = `
-      <!-- Dine In -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-chair" style="color: #2563eb;"></i> Dine-in (Tables)
-          </span>
-          <span style="font-size: 12.5px; font-weight: 900; color: #2563eb;">${currencySymbol}${Math.round(dineSales).toLocaleString("en-IN")} (${dinePct}%)</span>
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 700; margin-bottom: 3px;">
+          <span style="color: var(--text-dark);"><i class="fa-solid fa-chair" style="color: #2563eb;"></i> Dine-in (${dineCount} bills)</span>
+          <span style="color: #2563eb;">${currencySymbol}${Math.round(dineSales).toLocaleString("en-IN")} (${dinePct}%)</span>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600;">
-          <span>${dineCount} orders</span>
-          <span>Avg: ${currencySymbol}${dineCount > 0 ? Math.round(dineSales / dineCount) : 0}/table</span>
-        </div>
-        <div class="leaderboard-progress-bg" style="margin-top: 5px;">
-          <div class="leaderboard-progress-bar" style="width: ${dinePct}%; background: #2563eb;"></div>
+        <div style="height: 6px; background: #eff6ff; border-radius: 4px; overflow: hidden;">
+          <div style="width: ${dinePct}%; height: 100%; background: #2563eb; border-radius: 4px;"></div>
         </div>
       </div>
 
-      <!-- Takeaway / Parcel -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-bag-shopping" style="color: #10b981;"></i> Takeaway (Parcel)
-          </span>
-          <span style="font-size: 12.5px; font-weight: 900; color: #059669;">${currencySymbol}${Math.round(takeSales).toLocaleString("en-IN")} (${takePct}%)</span>
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 700; margin-bottom: 3px;">
+          <span style="color: var(--text-dark);"><i class="fa-solid fa-bag-shopping" style="color: #f59e0b;"></i> Takeaway & Parcel (${takeCount} bills)</span>
+          <span style="color: #d97706;">${currencySymbol}${Math.round(takeSales).toLocaleString("en-IN")} (${takePct}%)</span>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600;">
-          <span>${takeCount} orders</span>
-          <span>Avg: ${currencySymbol}${takeCount > 0 ? Math.round(takeSales / takeCount) : 0}/parcel</span>
+        <div style="height: 6px; background: #fffbeb; border-radius: 4px; overflow: hidden;">
+          <div style="width: ${takePct}%; height: 100%; background: #f59e0b; border-radius: 4px;"></div>
         </div>
-        <div class="leaderboard-progress-bg" style="margin-top: 5px;">
-          <div class="leaderboard-progress-bar" style="width: ${takePct}%; background: #10b981;"></div>
-        </div>
-      </div>
-
-      ${delCount > 0 ? `
-      <!-- Delivery -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-motorcycle" style="color: #f59e0b;"></i> Direct Delivery
-          </span>
-          <span style="font-size: 12.5px; font-weight: 900; color: #d97706;">${currencySymbol}${Math.round(delSales).toLocaleString("en-IN")} (${delPct}%)</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600;">
-          <span>${delCount} orders</span>
-          <span>Avg: ${currencySymbol}${delCount > 0 ? Math.round(delSales / delCount) : 0}/delivery</span>
-        </div>
-        <div class="leaderboard-progress-bg" style="margin-top: 5px;">
-          <div class="leaderboard-progress-bar" style="width: ${delPct}%; background: #f59e0b;"></div>
-        </div>
-      </div>
-      ` : ""}
-    `;
-  },
-
-  // 2. Cash Drawer Reconciliation (Closing Register in Period)
-  renderCashReconciliation(cashTotal, upiTotal, periodExpenses, currencySymbol) {
-    const container = document.getElementById("rep-cash-reconcile-container");
-    if (!container) return;
-
-    const expectedCashInDrawer = Math.max(0, cashTotal - periodExpenses);
-
-    container.innerHTML = `
-      <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <div style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">Expected Cash in Drawer</div>
-          <div style="font-size: 22px; font-weight: 900; color: #15803d; margin-top: 2px;">${currencySymbol}${Math.round(expectedCashInDrawer).toLocaleString("en-IN")}</div>
-        </div>
-        <div style="background: #ffffff; padding: 6px 12px; border-radius: 10px; border: 1px solid #bbf7d0; font-size: 11.5px; font-weight: 800; color: #166534;">
-          <i class="fa-solid fa-lock"></i> Period Cash
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px;">
-          <span style="color: var(--text-muted); font-size: 11px;">Cash Sales (+)</span>
-          <div style="font-weight: 800; color: #059669; font-size: 13.5px;">${currencySymbol}${Math.round(cashTotal).toLocaleString("en-IN")}</div>
-        </div>
-        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px;">
-          <span style="color: var(--text-muted); font-size: 11px;">Cash Expenses (-)</span>
-          <div style="font-weight: 800; color: #dc2626; font-size: 13.5px;">${currencySymbol}${Math.round(periodExpenses).toLocaleString("en-IN")}</div>
-        </div>
-      </div>
-
-      <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-        <span style="font-weight: 700; color: #1e40af;"><i class="fa-solid fa-building-columns"></i> Bank / UPI Received:</span>
-        <span style="font-weight: 900; color: #2563eb; font-size: 13.5px;">${currencySymbol}${Math.round(upiTotal).toLocaleString("en-IN")}</span>
       </div>
     `;
   },
 
-  // 3. Shift Rush & Peak Hours (Store Operational Hours: 2:00 PM – 12:00 AM Midnight)
-  // Shifts: 2 to 5 PM, 5 to 7 PM, 7 to 10 PM, 10 to 12 AM
   renderShiftsAndPeak(orders, currencySymbol) {
     const container = document.getElementById("rep-shifts-container");
     if (!container) return;
 
     const shifts = [
-      {
-        name: "2 PM – 5 PM",
-        label: "Afternoon",
-        icon: "fa-sun",
-        iconColor: "#f59e0b",
-        color: "#d97706",
-        orders: 0,
-        sales: 0,
-        match: (h) => h >= 14 && h < 17
-      },
-      {
-        name: "5 PM – 7 PM",
-        label: "Evening",
-        icon: "fa-mug-hot",
-        iconColor: "#ea580c",
-        color: "#ea580c",
-        orders: 0,
-        sales: 0,
-        match: (h) => h >= 17 && h < 19
-      },
-      {
-        name: "7 PM – 10 PM",
-        label: "Dinner Rush",
-        icon: "fa-utensils",
-        iconColor: "#7c3aed",
-        color: "#7c3aed",
-        orders: 0,
-        sales: 0,
-        match: (h) => h >= 19 && h < 22
-      },
-      {
-        name: "10 PM – 12 AM",
-        label: "Late Night",
-        icon: "fa-moon",
-        iconColor: "#4f46e5",
-        color: "#4f46e5",
-        orders: 0,
-        sales: 0,
-        match: (h) => (h >= 22 && h <= 23) || h === 0
-      }
+      { name: "Afternoon Shift (2 PM - 5 PM)", hours: [14, 15, 16], color: "#f59e0b", sales: 0, count: 0 },
+      { name: "Evening Shift (5 PM - 7 PM)", hours: [17, 18], color: "#ea580c", sales: 0, count: 0 },
+      { name: "Dinner Rush (7 PM - 10 PM)", hours: [19, 20, 21], color: "#7c3aed", sales: 0, count: 0 },
+      { name: "Late Night (10 PM - 12 AM)", hours: [22, 23], color: "#4f46e5", sales: 0, count: 0 }
     ];
 
-    let otherOrders = 0, otherSales = 0;
-    const hourFrequency = {};
-
     orders.forEach(o => {
-      const d = new Date(o.createdAt);
-      if (isNaN(d.getTime())) return;
-      const hour = d.getHours();
+      if (!o.createdAt) return;
+      const h = new Date(o.createdAt).getHours();
       const amt = Number(o.total) || 0;
-
-      hourFrequency[hour] = (hourFrequency[hour] || 0) + 1;
-
-      let matched = false;
-      for (const shift of shifts) {
-        if (shift.match(hour)) {
-          shift.orders++;
-          shift.sales += amt;
-          matched = true;
-          break;
+      shifts.forEach(s => {
+        if (s.hours.includes(h)) {
+          s.sales += amt;
+          s.count++;
         }
-      }
-
-      if (!matched) {
-        otherOrders++;
-        otherSales += amt;
-      }
+      });
     });
 
-    let peakHour = null;
-    let maxOrdersInHour = 0;
-    Object.keys(hourFrequency).forEach(h => {
-      if (hourFrequency[h] > maxOrdersInHour) {
-        maxOrdersInHour = hourFrequency[h];
-        peakHour = Number(h);
-      }
+    let peakShift = shifts[0];
+    shifts.forEach(s => {
+      if (s.sales > peakShift.sales) peakShift = s;
     });
 
-    const formatHourWindow = (h) => {
-      const ampm1 = h >= 12 ? 'PM' : 'AM';
-      const h1 = h % 12 || 12;
-      const nextH = (h + 1) % 24;
-      const ampm2 = nextH >= 12 ? 'PM' : 'AM';
-      const h2 = nextH % 12 || 12;
-      return `${h1} ${ampm1} - ${h2} ${ampm2}`;
-    };
-
-    const peakBadgeEl = document.getElementById("rep-peak-hour-badge");
-    const peakChipEl = document.getElementById("rep-peak-hour-chip");
-    if (peakHour !== null && maxOrdersInHour > 0) {
-      const peakTxt = `Peak: ${formatHourWindow(peakHour)} (${maxOrdersInHour} bills)`;
-      if (peakBadgeEl) peakBadgeEl.textContent = peakTxt;
-      if (peakChipEl) peakChipEl.textContent = peakTxt;
-    } else {
-      if (peakBadgeEl) peakBadgeEl.textContent = "Open 2 PM - 12 AM";
-      if (peakChipEl) peakChipEl.textContent = "No Rush Logged";
-    }
-
-    let otherHtml = '';
-    if (otherOrders > 0) {
-      otherHtml = `
-        <div style="background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 10px; padding: 7px 12px; margin-top: 2px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-clock-rotate-left"></i> Pre-Opening / Off-Hours (< 2 PM)
-            </span>
-            <span style="font-weight: 800; color: var(--text-dark); font-size: 12px;">${currencySymbol}${Math.round(otherSales).toLocaleString("en-IN")}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">
-            <span>${otherOrders} orders placed</span>
-            <span>Avg: ${currencySymbol}${Math.round(otherSales / otherOrders)}/bill</span>
-          </div>
-        </div>
-      `;
+    const badge = document.getElementById("rep-peak-hour-badge");
+    if (badge) {
+      badge.textContent = peakShift.sales > 0 ? `Peak: ${peakShift.name.split('(')[0].trim()}` : "No Rush";
     }
 
     container.innerHTML = shifts.map(s => `
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 12px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid ${s.icon}" style="color: ${s.iconColor};"></i> ${s.name} <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted);">(${s.label})</span>
-          </span>
-          <span style="font-weight: 900; color: ${s.color}; font-size: 13px;">${currencySymbol}${Math.round(s.sales).toLocaleString("en-IN")}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); font-weight: 600; margin-top: 3px;">
-          <span>${s.orders} orders placed</span>
-          <span>Avg: ${currencySymbol}${s.orders > 0 ? Math.round(s.sales / s.orders) : 0}/bill</span>
-        </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--border-color); font-size: 11.5px;">
+        <span style="font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-circle" style="color: ${s.color}; font-size: 7px;"></i> ${s.name}
+        </span>
+        <span style="font-weight: 800; color: ${s.color};">${currencySymbol}${Math.round(s.sales).toLocaleString("en-IN")} (${s.count} bills)</span>
       </div>
-    `).join('') + otherHtml;
+    `).join("");
   },
 
-  // 4. Discounts & Promotional Impact
   renderDiscountsImpact(orders, grossSales, currencySymbol) {
     const container = document.getElementById("rep-discounts-container");
     if (!container) return;
 
-    let bogoDiscount = 0;
-    let flatDiscount = 0;
-    let grossOriginal = 0;
+    const bogoDiscounts = orders.reduce((sum, o) => sum + (Number(o.bogoDiscount) || 0), 0);
+    const flatDiscounts = orders.reduce((sum, o) => sum + (Number(o.discount) || 0), 0);
+    const totalDiscounts = bogoDiscounts + flatDiscounts;
+    const rate = grossSales > 0 ? ((totalDiscounts / (grossSales + totalDiscounts)) * 100).toFixed(1) : 0;
 
-    orders.forEach(o => {
-      bogoDiscount += (Number(o.bogoDiscount) || 0);
-      flatDiscount += (Number(o.discount) || 0);
-      grossOriginal += (Number(o.subtotal) || Number(o.total) || 0);
-    });
-
-    const totalDiscounts = bogoDiscount + flatDiscount;
-    const discountRate = grossOriginal > 0 ? Math.round((totalDiscounts / grossOriginal) * 100) : 0;
-    const rateBadge = document.getElementById("rep-discount-rate-badge");
-    if (rateBadge) rateBadge.textContent = `${discountRate}% Disc Rate`;
+    const badge = document.getElementById("rep-discount-rate-badge");
+    if (badge) badge.textContent = `${rate}% Discount Rate`;
 
     container.innerHTML = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div style="background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 12px; padding: 8px 10px;">
-          <span style="font-size: 11px; font-weight: 700; color: #9d174d;"><i class="fa-solid fa-gift"></i> BOGO Savings</span>
-          <div style="font-size: 16px; font-weight: 900; color: #be185d; margin-top: 2px;">${currencySymbol}${Math.round(bogoDiscount).toLocaleString("en-IN")}</div>
-        </div>
-
-        <div style="background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 12px; padding: 8px 10px;">
-          <span style="font-size: 11px; font-weight: 700; color: #9d174d;"><i class="fa-solid fa-percent"></i> Flat Discounts</span>
-          <div style="font-size: 16px; font-weight: 900; color: #be185d; margin-top: 2px;">${currencySymbol}${Math.round(flatDiscount).toLocaleString("en-IN")}</div>
-        </div>
+      <div style="display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 8px; background: #f8fafc; font-size: 11.5px;">
+        <span style="font-weight: 700; color: var(--text-dark);">BOGO Special Offer Discounts:</span>
+        <span style="font-weight: 800; color: #16a34a;">${currencySymbol}${Math.round(bogoDiscounts).toLocaleString("en-IN")}</span>
       </div>
-
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-        <span style="font-weight: 600; color: var(--text-muted);">Total Promotional Savings Given:</span>
-        <span style="font-weight: 900; color: #be185d; font-size: 13.5px;">-${currencySymbol}${Math.round(totalDiscounts).toLocaleString("en-IN")}</span>
+      <div style="display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 8px; background: #f8fafc; font-size: 11.5px;">
+        <span style="font-weight: 700; color: var(--text-dark);">Flat Off / Coupon Deductions:</span>
+        <span style="font-weight: 800; color: #2563eb;">${currencySymbol}${Math.round(flatDiscounts).toLocaleString("en-IN")}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 8px; background: #fff1f2; border: 1px solid #fecdd3; font-size: 12px; font-weight: 800;">
+        <span style="color: #9f1239;">Total Customer Savings:</span>
+        <span style="color: #be123c;">${currencySymbol}${Math.round(totalDiscounts).toLocaleString("en-IN")}</span>
       </div>
     `;
   },
 
-  // 5. Customer Loyalty & Regulars Leaderboard
   renderCustomerLoyalty(orders, currencySymbol) {
     const tbody = document.getElementById("rep-loyalty-tbody");
     if (!tbody) return;
@@ -896,7 +827,6 @@ window.views.reports = {
       const rawName = (o.customerName || "").trim();
       const rawPhone = (o.customerPhone || "").trim();
       
-      // Filter out generic guest placeholders
       const lowerName = rawName.toLowerCase();
       if (!rawName || lowerName === "walk-in" || lowerName === "walk in" || lowerName === "walk-in guest" || lowerName === "guest") {
         if (!rawPhone) return;
@@ -942,88 +872,47 @@ window.views.reports = {
     }
   },
 
-  // 6. Low Velocity / Menu Watchlist (All items that did not sell)
   renderLowVelocityMenu(products, categories, itemSoldMap, currencySymbol) {
     const tbody = document.getElementById("rep-slow-items-tbody");
     if (!tbody) return;
 
     const activeProducts = products.filter(p => p.status !== "Inactive");
-    const itemVelocityList = activeProducts.map(p => {
-      const soldInfo = itemSoldMap[p.name];
-      const categoryObj = categories.find(c => c.id === p.category);
-      return {
-        name: p.name,
-        category: categoryObj ? categoryObj.name : "General",
-        price: Number(p.price) || 0,
-        quantitySold: soldInfo ? soldInfo.quantity : 0
-      };
-    });
+    const unsoldItems = activeProducts.filter(p => !itemSoldMap[p.name]);
 
-    // Filter ALL items that did not sell (0 sales)
-    const unsoldItems = itemVelocityList
-      .filter(item => item.quantitySold === 0)
-      .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+    const badge = document.getElementById("rep-slow-items-badge");
+    if (badge) badge.textContent = `${unsoldItems.length} Unsold Items`;
 
-    const badgeEl = document.getElementById("rep-slow-items-badge");
-    const subtextEl = document.getElementById("rep-slow-items-subtext");
-
-    if (unsoldItems.length > 0) {
-      if (badgeEl) {
-        badgeEl.textContent = `${unsoldItems.length} Unsold Items`;
-        badgeEl.style.background = "#fef2f2";
-        badgeEl.style.color = "#dc2626";
-        badgeEl.style.borderColor = "#fecaca";
-      }
-      if (subtextEl) {
-        subtextEl.textContent = `All ${unsoldItems.length} active menu items with 0 sales in selected period`;
-      }
-
-      tbody.innerHTML = unsoldItems.map(item => `
-        <tr>
-          <td style="font-weight: 700; color: var(--text-dark);">${item.name}</td>
-          <td style="color: var(--text-muted); font-size: 12px;">${item.category}</td>
-          <td style="color: var(--text-muted); font-weight: 600;">${currencySymbol}${item.price.toFixed(0)}</td>
-          <td style="text-align: right;">
-            <span style="font-weight: 800; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 2px 8px; border-radius: 10px; font-size: 11px;">
-              0 sold (Unsold)
-            </span>
-          </td>
-        </tr>
-      `).join("");
+    if (unsoldItems.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:25px; color:#059669; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Great job! All active menu items have recorded sales!</td></tr>`;
     } else {
-      if (badgeEl) {
-        badgeEl.textContent = "100% Sold 🎉";
-        badgeEl.style.background = "#ecfdf5";
-        badgeEl.style.color = "#059669";
-        badgeEl.style.borderColor = "#a7f3d0";
-      }
-      if (subtextEl) {
-        subtextEl.textContent = "Every active menu item recorded sales in this period!";
-      }
-
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:25px; color:#059669; font-size:12px; font-weight:700;"><i class="fa-solid fa-circle-check" style="margin-right:6px;"></i> Excellent! All active menu items were sold in this period.</td></tr>`;
+      tbody.innerHTML = unsoldItems.slice(0, 6).map(p => {
+        const cat = categories.find(c => c.id === p.category);
+        return `
+          <tr>
+            <td style="font-weight: 700; color: var(--text-dark);">${p.name}</td>
+            <td style="color: var(--text-muted); font-size: 11.5px;">${cat ? cat.name : '--'}</td>
+            <td style="font-weight: 700; color: var(--text-dark);">${currencySymbol}${p.price}</td>
+            <td style="text-align: right;"><span style="font-size: 10.5px; font-weight: 800; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 2px 7px; border-radius: 6px;">0 Sold</span></td>
+          </tr>
+        `;
+      }).join("");
     }
   },
 
-  // 7. Day of Week Performance Matrix
   renderDayOfWeekPerformance(orders, currencySymbol) {
     const container = document.getElementById("rep-day-of-week-container");
     if (!container) return;
 
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const dayStats = dayNames.map((name, idx) => ({
-      name,
-      dayIdx: idx,
-      sales: 0,
-      orders: 0
-    }));
+    const dayStats = dayNames.map((name, idx) => ({ name, dayIdx: idx, sales: 0, orders: 0 }));
 
     orders.forEach(o => {
+      if (!o.createdAt) return;
       const d = new Date(o.createdAt);
       if (isNaN(d.getTime())) return;
       const dayIdx = d.getDay();
-      dayStats[dayIdx].orders++;
       dayStats[dayIdx].sales += (Number(o.total) || 0);
+      dayStats[dayIdx].orders++;
     });
 
     let bestDayIdx = 0;
@@ -1035,16 +924,9 @@ window.views.reports = {
       }
     });
 
-    const bestDayBadge = document.getElementById("rep-best-day-badge");
-    if (bestDayBadge) {
-      if (maxDaySales > 0) {
-        bestDayBadge.textContent = `👑 Peak Day: ${dayNames[bestDayIdx]}`;
-        bestDayBadge.style.color = "#b45309";
-        bestDayBadge.style.background = "#fffbeb";
-        bestDayBadge.style.borderColor = "#fde68a";
-      } else {
-        bestDayBadge.textContent = "Weekly Velocity";
-      }
+    const badge = document.getElementById("rep-best-day-badge");
+    if (badge && maxDaySales > 0) {
+      badge.textContent = `Best: ${dayNames[bestDayIdx]} (${currencySymbol}${Math.round(maxDaySales).toLocaleString("en-IN")})`;
     }
 
     container.innerHTML = dayStats.map(ds => {
@@ -1070,9 +952,10 @@ window.views.reports = {
     const bgDarker = '#edf1f7';
     const borderColor = 'rgba(202, 213, 226, 0.6)';
 
-    // 1. Line Trend Chart
+    // 1. Single Clean Sales Trend Line Chart with Smooth Blue Gradient
     const datesLabel = [];
     const salesDataPoints = [];
+    const orderCountPoints = [];
 
     const [sY, sM, sD] = this.startDate.split('-').map(Number);
     const [eY, eM, eD] = this.endDate.split('-').map(Number);
@@ -1083,15 +966,16 @@ window.views.reports = {
       const dateStr = this.getLocalDateStr(d);
       datesLabel.push(d.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
 
-      const daySales = orders
-        .filter(o => {
-          if (!o.createdAt) return false;
-          const orderDate = new Date(o.createdAt);
-          const dStr = !isNaN(orderDate.getTime()) ? this.getLocalDateStr(orderDate) : o.createdAt.substring(0, 10);
-          return dStr === dateStr;
-        })
-        .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      const matchingOrders = orders.filter(o => {
+        if (!o.createdAt) return false;
+        const orderDate = new Date(o.createdAt);
+        const dStr = !isNaN(orderDate.getTime()) ? this.getLocalDateStr(orderDate) : o.createdAt.substring(0, 10);
+        return dStr === dateStr;
+      });
+
+      const daySales = matchingOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
       salesDataPoints.push(Math.round(daySales));
+      orderCountPoints.push(matchingOrders.length);
     }
 
     const curveCanvas = document.getElementById("repSalesCurveCanvas");
@@ -1102,8 +986,8 @@ window.views.reports = {
       }
 
       const fillGradient = curveCtx.createLinearGradient(0, 0, 0, 260);
-      fillGradient.addColorStop(0, 'rgba(37, 99, 235, 0.20)');
-      fillGradient.addColorStop(1, 'rgba(37, 99, 235, 0.00)');
+      fillGradient.addColorStop(0, 'rgba(37, 99, 235, 0.22)');
+      fillGradient.addColorStop(1, 'rgba(37, 99, 235, 0.01)');
 
       this.salesTrendChart = new Chart(curveCtx, {
         type: "line",
@@ -1116,8 +1000,8 @@ window.views.reports = {
               borderColor: "#2563eb",
               backgroundColor: fillGradient,
               borderWidth: 3,
-              fill: true,
               tension: 0.25,
+              fill: true,
               pointBackgroundColor: "#2563eb",
               pointBorderColor: "#ffffff",
               pointHoverBackgroundColor: "#1d4ed8",
@@ -1137,7 +1021,16 @@ window.views.reports = {
               titleFont: { family: "Outfit", size: 13, weight: "bold" },
               bodyFont: { family: "Outfit", size: 12 },
               padding: 10,
-              cornerRadius: 8
+              cornerRadius: 8,
+              callbacks: {
+                label: function(ctx) {
+                  const idx = ctx.dataIndex;
+                  return [
+                    ` Revenue: ₹${ctx.raw.toLocaleString("en-IN")}`,
+                    ` Orders: ${orderCountPoints[idx]} bills`
+                  ];
+                }
+              }
             }
           },
           scales: {
@@ -1156,9 +1049,7 @@ window.views.reports = {
 
     // 2. Category Velocity Pie
     const catSalesSums = {};
-    categories.forEach(c => {
-      catSalesSums[c.name] = 0;
-    });
+    categories.forEach(c => { catSalesSums[c.name] = 0; });
 
     orders.forEach(o => {
       if (Array.isArray(o.items)) {
@@ -1205,12 +1096,12 @@ window.views.reports = {
           plugins: {
             legend: {
               position: "right",
-              labels: { color: textMuted, font: { family: "Outfit", size: 12, weight: "bold" }, padding: 12 }
+              labels: { color: textMuted, font: { family: "Outfit", size: 11.5, weight: "bold" }, padding: 10 }
             },
             tooltip: {
               backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              titleFont: { family: "Outfit", size: 13, weight: "bold" },
-              bodyFont: { family: "Outfit", size: 12 },
+              titleFont: { family: "Outfit", size: 12, weight: "bold" },
+              bodyFont: { family: "Outfit", size: 11.5 },
               padding: 10,
               cornerRadius: 8,
               callbacks: {
@@ -1226,7 +1117,7 @@ window.views.reports = {
       });
     }
 
-    // 3. NEW: Hourly Rush Pattern Bar Chart (2 PM – 12 AM)
+    // 3. Hourly Rush Pattern
     const rushCanvas = document.getElementById("repHourlyRushCanvas");
     if (rushCanvas) {
       const rushCtx = rushCanvas.getContext("2d");
@@ -1234,18 +1125,16 @@ window.views.reports = {
         this.hourlyRushChart.destroy();
       }
 
-      // Operational Hours: 14 to 23 (2 PM to 11 PM, covering up to midnight closing)
       const opHours = [14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
       const rushLabels = ["2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM", "10 PM", "11 PM"];
       const rushSales = opHours.map(() => 0);
       const rushBills = opHours.map(() => 0);
 
-      // Colors matching the 4 shifts
       const barColors = opHours.map(h => {
-        if (h >= 14 && h < 17) return "#f59e0b"; // Afternoon (2-5)
-        if (h >= 17 && h < 19) return "#ea580c"; // Evening (5-7)
-        if (h >= 19 && h < 22) return "#7c3aed"; // Dinner Rush (7-10)
-        return "#4f46e5"; // Late Night (10-12)
+        if (h >= 14 && h < 17) return "#f59e0b";
+        if (h >= 17 && h < 19) return "#ea580c";
+        if (h >= 19 && h < 22) return "#7c3aed";
+        return "#4f46e5";
       });
 
       orders.forEach(o => {
@@ -1281,20 +1170,11 @@ window.views.reports = {
             legend: { display: false },
             tooltip: {
               backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              titleFont: { family: "Outfit", size: 13, weight: "bold" },
-              bodyFont: { family: "Outfit", size: 12 },
+              titleFont: { family: "Outfit", size: 12, weight: "bold" },
+              bodyFont: { family: "Outfit", size: 11.5 },
               padding: 10,
               cornerRadius: 8,
               callbacks: {
-                title: function(items) {
-                  const idx = items[0].dataIndex;
-                  const h = opHours[idx];
-                  let shiftName = "Late Night (10-12)";
-                  if (h >= 14 && h < 17) shiftName = "Afternoon Shift (2-5)";
-                  else if (h >= 17 && h < 19) shiftName = "Evening Shift (5-7)";
-                  else if (h >= 19 && h < 22) shiftName = "Dinner Rush (7-10)";
-                  return `${rushLabels[idx]} (${shiftName})`;
-                },
                 label: function(context) {
                   const idx = context.dataIndex;
                   return [
@@ -1320,10 +1200,111 @@ window.views.reports = {
     }
   },
 
+  showPrintSummaryModal() {
+    const orders = window.db.get("orders") || [];
+    const settings = window.db.get("settings") || {};
+    const currency = settings.currencySymbol || "₹";
+
+    const startStr = this.startDate;
+    const endStr = this.endDate;
+
+    const filteredValidOrders = orders.filter(o => {
+      if (!o.createdAt || o.status === "Cancelled") return false;
+      const orderDate = new Date(o.createdAt);
+      const d = !isNaN(orderDate.getTime()) ? this.getLocalDateStr(orderDate) : o.createdAt.substring(0, 10);
+      return d >= startStr && d <= endStr;
+    });
+
+    const grossRevenue = filteredValidOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const totalDiscounts = filteredValidOrders.reduce((sum, o) => sum + (Number(o.discount) || 0) + (Number(o.bogoDiscount) || 0), 0);
+    const aov = filteredValidOrders.length > 0 ? (grossRevenue / filteredValidOrders.length) : 0;
+
+    let cashTotal = 0, upiTotal = 0, cardTotal = 0;
+    filteredValidOrders.forEach(o => {
+      const pm = (o.paymentMethod || "UPI").toLowerCase();
+      const amt = Number(o.total) || 0;
+      if (pm === "cash") cashTotal += amt;
+      else if (pm === "card") cardTotal += amt;
+      else upiTotal += amt;
+    });
+
+    const summaryHtml = `
+      <div id="reports-pl-printable-area" style="font-family: 'Courier New', monospace; font-size: 13px; color: #000; background: #fff; padding: 16px; line-height: 1.45;">
+        <div style="text-align: center; margin-bottom: 12px;">
+          <h2 style="font-size: 18px; font-weight: 900; margin: 0; text-transform: uppercase;">${settings.restaurantName || "Crust & Chilly"}</h2>
+          <p style="font-size: 11px; margin: 2px 0;">SALES & REVENUE PERFORMANCE REPORT</p>
+          <p style="font-size: 11px; margin: 0;">Period: ${startStr} to ${endStr}</p>
+        </div>
+
+        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>Completed Orders:</span>
+            <strong>${filteredValidOrders.length} orders</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+            <span>Gross Sales:</span>
+            <strong>${currency}${(grossRevenue + totalDiscounts).toFixed(2)}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+            <span>(-) Discounts Given:</span>
+            <span>-${currency}${totalDiscounts.toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; border-top: 1px solid #000; margin-top: 4px; padding-top: 4px;">
+            <span>NET REVENUE:</span>
+            <span>${currency}${grossRevenue.toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 2px;">
+            <span>Average Order Value (AOV):</span>
+            <strong>${currency}${Math.round(aov)}</strong>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px; font-size: 12px;">
+          <strong style="text-decoration: underline;">PAYMENT COLLECTION BREAKDOWN:</strong>
+          <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+            <span>Cash In Till:</span>
+            <span>${currency}${cashTotal.toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+            <span>UPI Online Received:</span>
+            <span>${currency}${upiTotal.toFixed(2)}</span>
+          </div>
+          ${cardTotal > 0 ? `
+            <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+              <span>Card Swiped:</span>
+              <span>${currency}${cardTotal.toFixed(2)}</span>
+            </div>
+          ` : ''}
+        </div>
+
+        <div style="text-align: center; margin-top: 20px; font-size: 11px; border-top: 1px dashed #000; padding-top: 8px;">
+          Manager Signature: _____________________<br><br>
+          Generated on: ${new Date().toLocaleString("en-IN")}
+        </div>
+      </div>
+    `;
+
+    window.customModal.show({
+      title: "Sales & Revenue Performance Report",
+      bodyHtml: summaryHtml,
+      confirmText: "Print Summary",
+      cancelText: "Close",
+      onConfirm: () => {
+        document.body.classList.add("printing-reports-pl");
+        window.print();
+        setTimeout(() => {
+          document.body.classList.remove("printing-reports-pl");
+        }, 1000);
+        return true;
+      }
+    });
+  },
+
   exportReportToCSV() {
     const orders = window.db.get("orders") || [];
     const startStr = this.startDate;
     const endStr = this.endDate;
+
     const filtered = orders.filter(o => {
       if (!o.createdAt) return false;
       const orderDate = new Date(o.createdAt);

@@ -1,10 +1,12 @@
 // Crust & Chilly POS - Executive Dashboard & Business Intelligence Module
-// Real-time operations metrics, cash reconciliation, order type breakouts, shift rush analysis, and charts.
+// Real-time operations metrics, cash reconciliation, order channel breakouts, shift rush analysis, 
+// raw materials inventory watch, category sales contribution, customer retention insights, and thermal Z-Report.
 
 window.views = window.views || {};
 window.views.dashboard = {
   salesChart: null,
   paymentChart: null,
+  selectedTimeframe: "today", // 'today' | 'yesterday' | 'week' | 'month'
 
   getLocalDateStr(d = new Date()) {
     const offset = d.getTimezoneOffset() * 60000;
@@ -17,6 +19,31 @@ window.views.dashboard = {
     return isNaN(d.getTime()) ? "--:--" : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   },
 
+  getTimeframeDates() {
+    const today = new Date();
+    const todayStr = this.getLocalDateStr(today);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayStr = this.getLocalDateStr(yesterday);
+
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - 6);
+    const weekStartStr = this.getLocalDateStr(weekStart);
+
+    const monthStartStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+
+    return { todayStr, yesterdayStr, weekStartStr, monthStartStr };
+  },
+
+  setTimeframe(period) {
+    this.selectedTimeframe = period;
+    document.querySelectorAll(".dash-period-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-period") === period);
+    });
+    this.calculateAndRenderMetrics();
+  },
+
   init(container) {
     const today = new Date();
     const formattedDate = today.toLocaleDateString("en-IN", {
@@ -27,18 +54,28 @@ window.views.dashboard = {
     });
 
     container.innerHTML = `
-      <div class="dash-container view-animate" style="max-width: 100%; width: 100%; overflow-x: hidden;">
+      <div class="dash-container view-animate" style="max-width: 100%; width: 100%; overflow-x: hidden; display: flex; flex-direction: column; gap: 16px;">
         
-        <!-- Welcome Executive Banner -->
+        <!-- Welcome Executive Banner with Timeframe Toggle -->
         <div class="dash-banner">
           <div>
             <h1>Crust & Chilly Business Overview 🍕</h1>
-            <p><i class="fa-regular fa-calendar" style="color: #2563eb; margin-right: 5px;"></i> ${formattedDate} • Live Business Analytics</p>
+            <p><i class="fa-regular fa-calendar" style="color: #2563eb; margin-right: 5px;"></i> ${formattedDate} • Live Operations & Intelligence</p>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <!-- Period Selector Pills -->
+            <div class="dash-period-pills" id="dash-period-selector">
+              <button class="dash-period-btn ${this.selectedTimeframe === 'today' ? 'active' : ''}" data-period="today" onclick="views.dashboard.setTimeframe('today')">Today</button>
+              <button class="dash-period-btn ${this.selectedTimeframe === 'yesterday' ? 'active' : ''}" data-period="yesterday" onclick="views.dashboard.setTimeframe('yesterday')">Yesterday</button>
+              <button class="dash-period-btn ${this.selectedTimeframe === 'week' ? 'active' : ''}" data-period="week" onclick="views.dashboard.setTimeframe('week')">7 Days</button>
+              <button class="dash-period-btn ${this.selectedTimeframe === 'month' ? 'active' : ''}" data-period="month" onclick="views.dashboard.setTimeframe('month')">This Month</button>
+            </div>
+
             <div class="dash-status-pill" style="height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 12px; font-size: 11px; font-weight: 700; box-sizing: border-box; line-height: 1;">
               <i class="fa-solid fa-circle" style="font-size: 7px; animation: pulse 1.5s infinite alternate;"></i> Live Cloud Connected
             </div>
+            
             <button class="btn btn-secondary" id="dash-btn-refresh" style="height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 12px; font-size: 11.5px; font-weight: 700; box-sizing: border-box; line-height: 1;">
               <i class="fa-solid fa-rotate-right"></i> Refresh
             </button>
@@ -50,13 +87,13 @@ window.views.dashboard = {
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 13px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-bullseye" style="color: #2563eb;"></i> Daily Revenue Goal
+                <i class="fa-solid fa-bullseye" style="color: #2563eb;"></i> <span id="dash-target-title">Daily Revenue Goal</span>
               </span>
               <span id="dash-target-badge" style="font-size: 11px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px;">0% Achieved</span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
               <span id="dash-target-amounts" style="font-size: 12.5px; font-weight: 800; color: var(--text-dark);">₹0 / ₹15,000</span>
-              <button id="dash-btn-set-target" title="Set Today's Target" style="background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 10px; cursor: pointer; color: var(--text-dark); font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+              <button id="dash-btn-set-target" title="Set Revenue Target" style="background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 10px; cursor: pointer; color: var(--text-dark); font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
                 <i class="fa-solid fa-pen-to-square" style="color: #2563eb;"></i> Set Target
               </button>
             </div>
@@ -77,12 +114,15 @@ window.views.dashboard = {
           <div class="dash-card accent-blue">
             <div>
               <div class="dash-card-header">
-                <span class="dash-card-label">Today's Gross Sales</span>
+                <span class="dash-card-label" id="dash-sales-label">Gross Revenue</span>
                 <div class="dash-card-icon icon-blue">
                   <i class="fa-solid fa-indian-rupee-sign"></i>
                 </div>
               </div>
-              <div class="dash-card-val" id="dash-sales-val">₹0</div>
+              <div style="display: flex; align-items: baseline; gap: 8px;">
+                <div class="dash-card-val" id="dash-sales-val">₹0</div>
+                <div id="dash-growth-indicator"></div>
+              </div>
             </div>
             <div class="dash-breakdown-tags" id="dash-sales-breakdown">
               <span class="dash-sub-pill pill-cash"><i class="fa-solid fa-money-bill-wave"></i> Cash: ₹0</span>
@@ -111,7 +151,7 @@ window.views.dashboard = {
           <div class="dash-card accent-amber">
             <div>
               <div class="dash-card-header">
-                <span class="dash-card-label">Orders & Avg Ticket</span>
+                <span class="dash-card-label">Bills & Avg Ticket</span>
                 <div class="dash-card-icon icon-amber">
                   <i class="fa-solid fa-receipt"></i>
                 </div>
@@ -168,7 +208,7 @@ window.views.dashboard = {
                 <i class="fa-solid fa-wallet" style="color: #10b981;"></i> Payment Mode Distribution
               </div>
               <span style="font-size: 11px; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
-                Today's Collection
+                Collection Split
               </span>
             </div>
             <div class="dash-chart-wrap">
@@ -178,7 +218,51 @@ window.views.dashboard = {
 
         </div>
 
-        <!-- NEW: Comprehensive Business Intelligence Suite (4 Key Insights Cards) -->
+        <!-- NEW: Operations & Deep Intelligence Suite (3 Cards Grid) -->
+        <div class="dash-extra-grid">
+          
+          <!-- Card 1: Raw Material Inventory Health & Low Stock Watch -->
+          <div class="dash-extra-card">
+            <div class="extra-header">
+              <div class="extra-title">
+                <i class="fa-solid fa-boxes-stacked" style="color: #dc2626;"></i> Raw Material Stock Watch
+              </div>
+              <span id="dash-inventory-badge" class="insight-badge">Checking...</span>
+            </div>
+            <div id="dash-inventory-watch-list" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+
+          <!-- Card 2: Category Revenue Contribution -->
+          <div class="dash-extra-card">
+            <div class="extra-header">
+              <div class="extra-title">
+                <i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Category Sales Share
+              </div>
+              <span class="insight-badge" id="dash-category-badge">Categories</span>
+            </div>
+            <div id="dash-category-breakdown-list" style="display: flex; flex-direction: column; gap: 7px;">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+
+          <!-- Card 3: Customer Retention & Top Regulars -->
+          <div class="dash-extra-card">
+            <div class="extra-header">
+              <div class="extra-title">
+                <i class="fa-solid fa-users" style="color: #059669;"></i> Customer Retention
+              </div>
+              <span class="insight-badge" id="dash-cust-badge">0 Customers</span>
+            </div>
+            <div id="dash-customer-insights-list" style="display: flex; flex-direction: column; gap: 7px;">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Comprehensive Business Intelligence Suite (4 Key Insights Cards) -->
         <div class="dash-insights-grid">
           
           <!-- Insight Card 1: Order Types (Dine-in vs Takeaway vs Delivery) -->
@@ -190,7 +274,7 @@ window.views.dashboard = {
               <span class="insight-badge" id="dash-orders-total-badge">0 Total Bills</span>
             </div>
             
-            <div style="display: flex; flex-direction: column; gap: 12px;" id="dash-order-types-container">
+            <div style="display: flex; flex-direction: column; gap: 10px;" id="dash-order-types-container">
               <!-- Injected dynamically -->
             </div>
           </div>
@@ -247,7 +331,7 @@ window.views.dashboard = {
         <!-- 2 Details Row: Top Selling Leaderboard & Today's Recent Bills -->
         <div class="dash-details-grid">
           
-          <!-- Best Selling Products Leaderboard -->
+          <!-- Best Selling Menu Items Leaderboard -->
           <div class="dash-leaderboard-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
@@ -256,12 +340,12 @@ window.views.dashboard = {
               <span style="font-size: 11px; background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 3px 10px; border-radius: 12px; font-weight: 800;">Top Velocity</span>
             </div>
             
-            <div id="dash-best-sellers-list" style="display: flex; flex-direction: column; gap: 12px;">
+            <div id="dash-best-sellers-list" style="display: flex; flex-direction: column; gap: 10px;">
               <!-- Injected dynamically -->
             </div>
           </div>
 
-          <!-- Today's Recent Bills Activity Stream -->
+          <!-- Recent Bills Activity Stream -->
           <div class="dash-recent-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
@@ -272,7 +356,7 @@ window.views.dashboard = {
               </a>
             </div>
 
-            <div id="dash-recent-orders-list" style="display: flex; flex-direction: column; gap: 10px;">
+            <div id="dash-recent-orders-list" style="display: flex; flex-direction: column; gap: 9px;">
               <!-- Injected dynamically -->
             </div>
           </div>
@@ -292,7 +376,7 @@ window.views.dashboard = {
       btnSetTarget.addEventListener("click", () => {
         const curSettings = window.db.get("settings") || {};
         const curTarget = Number(curSettings.dailySalesTarget) || 15000;
-        const newTarget = prompt("Enter Today's Daily Revenue Target (₹):", curTarget);
+        const newTarget = prompt("Enter Daily Revenue Target (₹):", curTarget);
         if (newTarget !== null && !isNaN(Number(newTarget)) && Number(newTarget) > 0) {
           curSettings.dailySalesTarget = Number(newTarget);
           window.db.set("settings", curSettings);
@@ -313,36 +397,93 @@ window.views.dashboard = {
     const settings = window.db.get("settings") || {};
 
     const currencySymbol = settings.currencySymbol || "₹";
-    const todayStr = this.getLocalDateStr();
+    const { todayStr, yesterdayStr, weekStartStr, monthStartStr } = this.getTimeframeDates();
 
-    // 1. Filter Today's orders using local date string
-    const todayOrders = orders.filter(o => {
-      if (!o.createdAt) return false;
-      const orderDateStr = o.createdAt.substring(0, 10);
-      return orderDateStr === todayStr;
-    });
+    // Filter orders based on selected timeframe
+    let filteredOrders = [];
+    let periodLabel = "Today";
 
-    const todayValidOrders = todayOrders.filter(o => o.status !== "Cancelled");
+    if (this.selectedTimeframe === "yesterday") {
+      filteredOrders = orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === yesterdayStr);
+      periodLabel = "Yesterday's";
+    } else if (this.selectedTimeframe === "week") {
+      filteredOrders = orders.filter(o => {
+        if (!o.createdAt) return false;
+        const dStr = o.createdAt.substring(0, 10);
+        return dStr >= weekStartStr && dStr <= todayStr;
+      });
+      periodLabel = "7-Day";
+    } else if (this.selectedTimeframe === "month") {
+      filteredOrders = orders.filter(o => {
+        if (!o.createdAt) return false;
+        const dStr = o.createdAt.substring(0, 10);
+        return dStr >= monthStartStr && dStr <= todayStr;
+      });
+      periodLabel = "This Month's";
+    } else {
+      // Default: today
+      filteredOrders = orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === todayStr);
+      periodLabel = "Today's";
+    }
+
+    const validOrders = filteredOrders.filter(o => o.status !== "Cancelled");
     
-    // 2. Gross Sales & Payment Breakdowns
+    // Label updates
+    const salesLabelEl = document.getElementById("dash-sales-label");
+    if (salesLabelEl) salesLabelEl.textContent = `${periodLabel} Gross Sales`;
+
+    // Gross Sales & Payment Breakdowns
     let cashTotal = 0;
     let upiTotal = 0;
     let cardTotal = 0;
     let grossSales = 0;
 
-    todayValidOrders.forEach(o => {
+    validOrders.forEach(o => {
       const amt = Number(o.total) || 0;
       grossSales += amt;
       if (o.paymentMethod === "Cash") cashTotal += amt;
       else if (o.paymentMethod === "Card") cardTotal += amt;
-      else upiTotal += amt; // Default to UPI
+      else upiTotal += amt;
     });
 
     document.getElementById("dash-sales-val").textContent = `${currencySymbol}${Math.round(grossSales).toLocaleString("en-IN")}`;
     
-    // Render Daily Sales Goal Tracker
-    const targetGoal = Number(settings.dailySalesTarget) || 15000;
+    // Calculate Day-over-Day growth indicator if "today" is selected
+    const growthEl = document.getElementById("dash-growth-indicator");
+    if (growthEl) {
+      if (this.selectedTimeframe === "today") {
+        const ydayOrders = orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === yesterdayStr && o.status !== "Cancelled");
+        const ydaySales = ydayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+        if (ydaySales > 0) {
+          const diffPct = Math.round(((grossSales - ydaySales) / ydaySales) * 100);
+          const isUp = diffPct >= 0;
+          growthEl.innerHTML = `
+            <span style="font-size: 11px; font-weight: 800; color: ${isUp ? '#10b981' : '#f59e0b'}; background: ${isUp ? '#ecfdf5' : '#fffbeb'}; border: 1px solid ${isUp ? '#a7f3d0' : '#fde68a'}; padding: 2px 7px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;">
+              <i class="fa-solid ${isUp ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> ${isUp ? '+' : ''}${diffPct}% vs yday
+            </span>
+          `;
+        } else {
+          growthEl.innerHTML = "";
+        }
+      } else {
+        growthEl.innerHTML = "";
+      }
+    }
+
+    // Render Sales Goal Tracker
+    let multiplier = 1;
+    if (this.selectedTimeframe === "week") multiplier = 7;
+    if (this.selectedTimeframe === "month") multiplier = 30;
+
+    const baseTarget = Number(settings.dailySalesTarget) || 15000;
+    const targetGoal = baseTarget * multiplier;
     const targetPct = targetGoal > 0 ? Math.min(100, Math.round((grossSales / targetGoal) * 100)) : 0;
+    
+    const targetTitleEl = document.getElementById("dash-target-title");
+    if (targetTitleEl) {
+      targetTitleEl.textContent = this.selectedTimeframe === "week" ? "Weekly Revenue Goal" : (this.selectedTimeframe === "month" ? "Monthly Revenue Goal" : "Daily Revenue Goal");
+    }
+
     const targetBadgeEl = document.getElementById("dash-target-badge");
     const targetAmountsEl = document.getElementById("dash-target-amounts");
     const targetBarEl = document.getElementById("dash-target-bar");
@@ -354,9 +495,9 @@ window.views.dashboard = {
     if (targetBarEl) targetBarEl.style.width = `${targetPct}%`;
     if (targetRemEl) {
       if (grossSales >= targetGoal) {
-        targetRemEl.innerHTML = `<span style="color: #059669; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> Great job! Today's revenue target exceeded!</span>`;
+        targetRemEl.innerHTML = `<span style="color: #059669; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> Great job! Revenue target achieved!</span>`;
       } else {
-        targetRemEl.textContent = `${currencySymbol}${Math.round(targetGoal - grossSales).toLocaleString("en-IN")} remaining to hit today's target`;
+        targetRemEl.textContent = `${currencySymbol}${Math.round(targetGoal - grossSales).toLocaleString("en-IN")} remaining to hit target`;
       }
     }
     if (targetStatusEl) {
@@ -378,43 +519,46 @@ window.views.dashboard = {
     }
     document.getElementById("dash-sales-breakdown").innerHTML = breakdownHtml;
 
-    // 3. Estimated Net Profit & Margins
-    const todayExpenses = expenses
-      .filter(e => e.date === todayStr || (e.createdAt && e.createdAt.substring(0, 10) === todayStr))
-      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    // Filter expenses by timeframe
+    const periodExpenses = expenses.filter(e => {
+      const dStr = e.date || (e.createdAt ? e.createdAt.substring(0, 10) : "");
+      if (this.selectedTimeframe === "yesterday") return dStr === yesterdayStr;
+      if (this.selectedTimeframe === "week") return dStr >= weekStartStr && dStr <= todayStr;
+      if (this.selectedTimeframe === "month") return dStr >= monthStartStr && dStr <= todayStr;
+      return dStr === todayStr;
+    });
 
+    const totalPeriodExpense = periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     const estimatedCOGS = grossSales * 0.32;
-    const netProfit = Math.max(0, grossSales - estimatedCOGS - todayExpenses);
+    const netProfit = Math.max(0, grossSales - estimatedCOGS - totalPeriodExpense);
     const profitMargin = grossSales > 0 ? Math.round((netProfit / grossSales) * 100) : 0;
 
     document.getElementById("dash-profit-val").textContent = `${currencySymbol}${Math.round(netProfit).toLocaleString("en-IN")}`;
     document.getElementById("dash-margin-pill").innerHTML = `<i class="fa-solid fa-percent"></i> ${profitMargin}% Est. Margin`;
-    document.getElementById("dash-expense-pill").innerHTML = `<i class="fa-solid fa-receipt"></i> Expenses: ${currencySymbol}${Math.round(todayExpenses).toLocaleString("en-IN")}`;
+    document.getElementById("dash-expense-pill").innerHTML = `<i class="fa-solid fa-receipt"></i> Expenses: ${currencySymbol}${Math.round(totalPeriodExpense).toLocaleString("en-IN")}`;
 
-    // 4. Today's Orders & Average Order Value
-    const totalOrdersCount = todayOrders.length;
-    const completedCount = todayValidOrders.filter(o => o.status === "Completed").length;
-    const aov = todayValidOrders.length > 0 ? Math.round(grossSales / todayValidOrders.length) : 0;
+    // Orders & AOV
+    const totalOrdersCount = filteredOrders.length;
+    const completedCount = validOrders.filter(o => o.status === "Completed").length;
+    const aov = validOrders.length > 0 ? Math.round(grossSales / validOrders.length) : 0;
 
     document.getElementById("dash-orders-val").textContent = totalOrdersCount;
     document.getElementById("dash-aov-pill").innerHTML = `<i class="fa-solid fa-calculator"></i> Avg: ${currencySymbol}${aov}/bill`;
     document.getElementById("dash-completed-pill").textContent = `${completedCount} Completed`;
 
-    // 5. Active Kitchen Queue & Live Delay Alert Monitoring
+    // Active Kitchen Queue
     const activeQueueCount = orders.filter(o => o.status === "Pending" || o.status === "Preparing").length;
     document.getElementById("dash-active-val").textContent = activeQueueCount;
 
-    // Calculate today's avg prep duration
-    const todayPrepOrders = todayOrders.filter(o => (o.status === "Ready" || o.status === "Completed") && (o.prepDurationSeconds || (o.readyAt && o.createdAt)));
+    const prepOrders = filteredOrders.filter(o => (o.status === "Ready" || o.status === "Completed") && (o.prepDurationSeconds || (o.readyAt && o.createdAt)));
     let totalPrepSecs = 0;
-    todayPrepOrders.forEach(o => {
+    prepOrders.forEach(o => {
       const dur = o.prepDurationSeconds || Math.round((new Date(o.readyAt || o.completedAt) - new Date(o.preparingStartedAt || o.createdAt)) / 1000);
       totalPrepSecs += Math.max(0, dur);
     });
-    const avgPrepSecs = todayPrepOrders.length > 0 ? Math.round(totalPrepSecs / todayPrepOrders.length) : 0;
+    const avgPrepSecs = prepOrders.length > 0 ? Math.round(totalPrepSecs / prepOrders.length) : 0;
     const avgPrepMins = Math.floor(avgPrepSecs / 60);
 
-    // Check overdue orders in kitchen right now
     const targetPrepMinutes = Number(settings.targetPrepMinutes) || 15;
     const targetPrepSecs = targetPrepMinutes * 60;
     const nowTs = new Date();
@@ -426,7 +570,7 @@ window.views.dashboard = {
 
     const queueStatusEl = document.getElementById("dash-queue-status");
     if (queueStatusEl) {
-      queueStatusEl.innerHTML = `<i class="fa-solid fa-stopwatch"></i> Avg: ${avgPrepMins > 0 ? `${avgPrepMins}m` : (todayPrepOrders.length > 0 ? `${avgPrepSecs}s` : '--m')}`;
+      queueStatusEl.innerHTML = `<i class="fa-solid fa-stopwatch"></i> Avg: ${avgPrepMins > 0 ? `${avgPrepMins}m` : (prepOrders.length > 0 ? `${avgPrepSecs}s` : '--m')}`;
     }
 
     const delayPillEl = document.getElementById("dash-delay-pill");
@@ -437,31 +581,214 @@ window.views.dashboard = {
         delayPillEl.style.color = "#dc2626";
         delayPillEl.style.borderColor = "#fca5a5";
         delayPillEl.style.fontWeight = "800";
-        delayPillEl.style.animation = "warning-pulse 1.2s infinite alternate";
       } else {
         delayPillEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> On-Time`;
         delayPillEl.style.background = "#ecfdf5";
         delayPillEl.style.color = "#059669";
         delayPillEl.style.borderColor = "#a7f3d0";
         delayPillEl.style.fontWeight = "600";
-        delayPillEl.style.animation = "none";
       }
     }
 
-    // 6. Render Business Intelligence Suite Cards
-    this.renderOrderChannels(todayValidOrders, grossSales, currencySymbol);
-    this.renderCashReconciliation(cashTotal, upiTotal, todayExpenses, currencySymbol);
-    this.renderShiftsAndPeak(todayValidOrders, currencySymbol);
-    this.renderDiscountsImpact(todayValidOrders, grossSales, currencySymbol);
+    // Render Deep Insights Suite
+    this.renderInventoryWatch();
+    this.renderCategoryBreakdown(validOrders, currencySymbol);
+    this.renderCustomerInsights(validOrders, currencySymbol);
 
-    // 7. Best Selling Menu Items Leaderboard
-    this.renderBestSellers(orders, products, categories, currencySymbol);
+    // Render Business Intelligence Suite Cards
+    this.renderOrderChannels(validOrders, grossSales, currencySymbol);
+    this.renderCashReconciliation(cashTotal, upiTotal, totalPeriodExpense, currencySymbol);
+    this.renderShiftsAndPeak(validOrders, currencySymbol);
+    this.renderDiscountsImpact(validOrders, grossSales, currencySymbol);
 
-    // 8. Today's Recent Bills Activity Stream
-    this.renderRecentBills(todayOrders, currencySymbol);
+    // Leaderboard & Recent Stream
+    this.renderBestSellers(filteredOrders, products, categories, currencySymbol);
+    this.renderRecentBills(filteredOrders, currencySymbol);
 
-    // 9. Visual Charts (7-day trend + Payment Split)
+    // Visual Charts
     this.renderTrendCharts(orders, todayStr);
+  },
+
+  // NEW 1: Raw Material Inventory Health Watch
+  renderInventoryWatch() {
+    const container = document.getElementById("dash-inventory-watch-list");
+    if (!container) return;
+
+    const ingredients = window.db.get("ingredients") || [];
+    if (ingredients.length === 0) {
+      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 16px; font-size: 11.5px;">No inventory materials tracked.</div>`;
+      return;
+    }
+
+    const lowItems = ingredients.filter(i => {
+      const min = Number(i.minStock) || 5;
+      return Number(i.stock) <= min;
+    }).sort((a, b) => (Number(a.stock) - Number(b.stock)));
+
+    const badgeEl = document.getElementById("dash-inventory-badge");
+    if (badgeEl) {
+      if (lowItems.length > 0) {
+        badgeEl.className = "insight-badge";
+        badgeEl.style.background = "#fee2e2";
+        badgeEl.style.color = "#dc2626";
+        badgeEl.style.borderColor = "#fca5a5";
+        badgeEl.textContent = `${lowItems.length} Low Items`;
+      } else {
+        badgeEl.className = "insight-badge";
+        badgeEl.style.background = "#ecfdf5";
+        badgeEl.style.color = "#059669";
+        badgeEl.style.borderColor = "#a7f3d0";
+        badgeEl.textContent = "All Healthy 🟢";
+      }
+    }
+
+    if (lowItems.length === 0) {
+      container.innerHTML = `
+        <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 14px; text-align: center;">
+          <i class="fa-solid fa-circle-check" style="font-size: 20px; color: #16a34a; margin-bottom: 4px; display: block;"></i>
+          <div style="font-weight: 800; font-size: 12.5px; color: #166534;">All ${ingredients.length} Raw Materials In Stock</div>
+          <div style="font-size: 11px; color: #15803d; margin-top: 2px;">Kitchen has sufficient inventory for all rush orders.</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = lowItems.slice(0, 4).map(item => `
+      <div class="dash-stock-item">
+        <div style="min-width: 0; flex: 1;">
+          <div style="font-weight: 800; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
+          <div style="font-size: 10px; color: var(--text-muted);">Reorder Min: ${item.minStock || 5} ${item.unit || 'units'}</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+          <span class="dash-stock-badge-low">${item.stock} ${item.unit || ''}</span>
+          <button type="button" onclick="views.dashboard.openQuickRestockModal('${item.id}', '${item.name}')" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; border-radius: 8px; padding: 3px 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">
+            + Stock
+          </button>
+        </div>
+      </div>
+    `).join("");
+  },
+
+  // NEW 2: Category Revenue Breakdown
+  renderCategoryBreakdown(filteredOrders, currencySymbol) {
+    const container = document.getElementById("dash-category-breakdown-list");
+    if (!container) return;
+
+    const products = window.db.get("products") || [];
+    const categories = window.db.get("categories") || [];
+
+    const catMap = {};
+    categories.forEach(c => {
+      catMap[c.id] = { name: c.name, revenue: 0, itemsCount: 0 };
+    });
+    catMap["other"] = { name: "Other Items", revenue: 0, itemsCount: 0 };
+
+    let totalCatRevenue = 0;
+    filteredOrders.forEach(o => {
+      if (o.status === "Cancelled" || !Array.isArray(o.items)) return;
+      o.items.forEach(i => {
+        const prod = products.find(p => p.name === i.name);
+        const catId = (prod && prod.category) ? prod.category : "other";
+        if (!catMap[catId]) {
+          catMap[catId] = { name: catId, revenue: 0, itemsCount: 0 };
+        }
+        const lineTotal = (i.price || 0) * (i.quantity || 1);
+        catMap[catId].revenue += lineTotal;
+        catMap[catId].itemsCount += (i.quantity || 1);
+        totalCatRevenue += lineTotal;
+      });
+    });
+
+    const sortedCats = Object.values(catMap)
+      .filter(c => c.revenue > 0)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 4);
+
+    const badgeEl = document.getElementById("dash-category-badge");
+    if (badgeEl) badgeEl.textContent = `${sortedCats.length} Categories`;
+
+    if (sortedCats.length === 0) {
+      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 16px; font-size: 11.5px;">No sales by category in this period.</div>`;
+      return;
+    }
+
+    container.innerHTML = sortedCats.map(c => {
+      const pct = totalCatRevenue > 0 ? Math.round((c.revenue / totalCatRevenue) * 100) : 0;
+      return `
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+            <span style="font-weight: 800; color: var(--text-dark);">${c.name}</span>
+            <span style="font-weight: 800; color: #2563eb;">${currencySymbol}${Math.round(c.revenue).toLocaleString("en-IN")} <span style="font-size: 10.5px; color: var(--text-muted);">(${pct}%)</span></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">
+            <span>${c.itemsCount} items sold</span>
+          </div>
+          <div class="leaderboard-progress-bg" style="margin-top: 4px; height: 5px;">
+            <div class="leaderboard-progress-bar" style="width: ${pct}%; background: #2563eb;"></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  },
+
+  // NEW 3: Customer Retention & Regulars
+  renderCustomerInsights(filteredOrders, currencySymbol) {
+    const container = document.getElementById("dash-customer-insights-list");
+    if (!container) return;
+
+    const custFreq = {};
+    filteredOrders.forEach(o => {
+      if (o.status === "Cancelled") return;
+      const phone = (o.customerPhone || "").trim();
+      const name = (o.customerName || "").trim() || "Walk-in";
+      const key = phone ? phone : name;
+      if (!custFreq[key]) {
+        custFreq[key] = { name: name, phone: phone, count: 0, spent: 0 };
+      }
+      custFreq[key].count++;
+      custFreq[key].spent += (Number(o.total) || 0);
+    });
+
+    const allCusts = Object.values(custFreq);
+    const totalCustCount = allCusts.length;
+    const repeatCount = allCusts.filter(c => c.count > 1).length;
+    const repeatRate = totalCustCount > 0 ? Math.round((repeatCount / totalCustCount) * 100) : 0;
+
+    const topCusts = allCusts
+      .filter(c => c.name !== "Walk-in" || c.phone)
+      .sort((a, b) => b.spent - a.spent)
+      .slice(0, 3);
+
+    const badgeEl = document.getElementById("dash-cust-badge");
+    if (badgeEl) badgeEl.textContent = `${totalCustCount} Customers`;
+
+    container.innerHTML = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px; text-align: center;">
+          <span style="font-size: 10.5px; color: var(--text-muted); font-weight: 700;">Repeat Visitors</span>
+          <div style="font-size: 16px; font-weight: 900; color: #10b981; margin-top: 1px;">${repeatRate}%</div>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 7px 10px; text-align: center;">
+          <span style="font-size: 10.5px; color: var(--text-muted); font-weight: 700;">Total Served</span>
+          <div style="font-size: 16px; font-weight: 900; color: #2563eb; margin-top: 1px;">${totalCustCount}</div>
+        </div>
+      </div>
+      
+      <div style="font-size: 10.5px; font-weight: 800; color: var(--text-muted); margin-top: 4px; text-transform: uppercase;">
+        <i class="fa-solid fa-star" style="color: #f59e0b;"></i> Top Spenders / Regulars
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        ${topCusts.length > 0 ? topCusts.map(c => `
+          <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 9px; font-size: 11.5px;">
+            <div>
+              <div style="font-weight: 800; color: var(--text-dark);">${c.name}</div>
+              <div style="font-size: 10px; color: var(--text-muted);">${c.phone ? `+91 ${c.phone}` : 'Walk-in regular'} • ${c.count} orders</div>
+            </div>
+            <div style="font-weight: 900; color: #059669;">${currencySymbol}${Math.round(c.spent)}</div>
+          </div>
+        `).join("") : `<div style="text-align: center; color: var(--text-muted); font-size: 11px; padding: 6px;">Add customer phone numbers in POS to track loyalty!</div>`}
+      </div>
+    `;
   },
 
   // 1. Order Types Channel Breakdown
@@ -489,7 +816,7 @@ window.views.dashboard = {
     });
 
     const totalBills = todayValidOrders.length;
-    document.getElementById("dash-orders-total-badge").textContent = `${totalBills} Bills Today`;
+    document.getElementById("dash-orders-total-badge").textContent = `${totalBills} Bills`;
 
     const dinePct = grossSales > 0 ? Math.round((dineSales / grossSales) * 100) : 0;
     const takePct = grossSales > 0 ? Math.round((takeSales / grossSales) * 100) : 0;
@@ -497,8 +824,8 @@ window.views.dashboard = {
 
     container.innerHTML = `
       <!-- Dine In -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 9px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
           <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
             <i class="fa-solid fa-chair" style="color: #2563eb;"></i> Dine-in (Tables)
           </span>
@@ -508,14 +835,14 @@ window.views.dashboard = {
           <span>${dineCount} orders</span>
           <span>Avg: ${currencySymbol}${dineCount > 0 ? Math.round(dineSales / dineCount) : 0}/table</span>
         </div>
-        <div class="leaderboard-progress-bg" style="margin-top: 5px;">
+        <div class="leaderboard-progress-bg" style="margin-top: 4px;">
           <div class="leaderboard-progress-bar" style="width: ${dinePct}%; background: #2563eb;"></div>
         </div>
       </div>
 
       <!-- Takeaway / Parcel -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 9px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
           <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
             <i class="fa-solid fa-bag-shopping" style="color: #10b981;"></i> Takeaway (Parcel)
           </span>
@@ -525,15 +852,15 @@ window.views.dashboard = {
           <span>${takeCount} orders</span>
           <span>Avg: ${currencySymbol}${takeCount > 0 ? Math.round(takeSales / takeCount) : 0}/parcel</span>
         </div>
-        <div class="leaderboard-progress-bg" style="margin-top: 5px;">
+        <div class="leaderboard-progress-bg" style="margin-top: 4px;">
           <div class="leaderboard-progress-bar" style="width: ${takePct}%; background: #10b981;"></div>
         </div>
       </div>
 
       ${delCount > 0 ? `
       <!-- Delivery -->
-      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 9px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
           <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
             <i class="fa-solid fa-motorcycle" style="color: #f59e0b;"></i> Direct Delivery
           </span>
@@ -543,7 +870,7 @@ window.views.dashboard = {
           <span>${delCount} orders</span>
           <span>Avg: ${currencySymbol}${delCount > 0 ? Math.round(delSales / delCount) : 0}/delivery</span>
         </div>
-        <div class="leaderboard-progress-bg" style="margin-top: 5px;">
+        <div class="leaderboard-progress-bg" style="margin-top: 4px;">
           <div class="leaderboard-progress-bar" style="width: ${delPct}%; background: #f59e0b;"></div>
         </div>
       </div>
@@ -564,9 +891,9 @@ window.views.dashboard = {
           <div style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.5px;">Expected Cash in Drawer</div>
           <div style="font-size: 22px; font-weight: 900; color: #15803d; margin-top: 2px;">${currencySymbol}${Math.round(expectedCashInDrawer).toLocaleString("en-IN")}</div>
         </div>
-        <div style="background: #ffffff; padding: 6px 12px; border-radius: 10px; border: 1px solid #bbf7d0; font-size: 11.5px; font-weight: 800; color: #166534;">
-          <i class="fa-solid fa-lock"></i> Closing Cash
-        </div>
+        <button type="button" onclick="views.dashboard.openDayEndReportModal()" style="background: #ffffff; padding: 6px 12px; border-radius: 10px; border: 1px solid #bbf7d0; font-size: 11.5px; font-weight: 800; color: #166534; cursor: pointer;">
+          <i class="fa-solid fa-lock"></i> Close Drawer
+        </button>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
@@ -588,7 +915,6 @@ window.views.dashboard = {
   },
 
   // 3. Shift Rush & Peak Hours (Store Operational Hours: 2:00 PM – 12:00 AM Midnight)
-  // Shifts: 2 to 5 PM, 5 to 7 PM, 7 to 10 PM, 10 to 12 AM
   renderShiftsAndPeak(todayValidOrders, currencySymbol) {
     const container = document.getElementById("dash-shifts-container");
     if (!container) return;
@@ -696,7 +1022,7 @@ window.views.dashboard = {
         <div style="background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 10px; padding: 7px 12px; margin-top: 2px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-clock-rotate-left"></i> Pre-Opening / Off-Hours (< 2 PM)
+              <i class="fa-solid fa-clock-rotate-left"></i> Off-Hours (< 2 PM)
             </span>
             <span style="font-weight: 800; color: var(--text-dark); font-size: 12px;">${currencySymbol}${Math.round(otherSales).toLocaleString("en-IN")}</span>
           </div>
@@ -801,7 +1127,7 @@ window.views.dashboard = {
       container.innerHTML = `
         <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-weight: 600; font-size: 13px;">
           <i class="fa-solid fa-utensils" style="font-size: 24px; color: #cbd5e1; margin-bottom: 8px; display: block;"></i>
-          No menu sales recorded yet. Place orders to see leaderboard.
+          No menu sales recorded for this timeframe yet.
         </div>
       `;
       return;
@@ -817,20 +1143,20 @@ window.views.dashboard = {
       const rankLabel = rankIcons[idx] || `${idx + 1}`;
 
       return `
-        <div style="padding: 10px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; gap: 4px;">
+        <div style="padding: 9px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; gap: 4px;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
               <span class="rank-pill ${rankClass}">${rankLabel}</span>
               <div style="min-width: 0;">
-                <div style="font-weight: 800; font-size: 13.5px; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <div style="font-weight: 800; font-size: 13px; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                   ${item.name}
                 </div>
-                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">${item.category}</span>
+                <span style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">${item.category}</span>
               </div>
             </div>
             <div style="text-align: right; flex-shrink: 0;">
-              <div style="font-weight: 800; color: #2563eb; font-size: 13px;">${item.quantity} sold</div>
-              <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">${currencySymbol}${Math.round(item.revenue).toLocaleString("en-IN")}</div>
+              <div style="font-weight: 800; color: #2563eb; font-size: 12.5px;">${item.quantity} sold</div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">${currencySymbol}${Math.round(item.revenue).toLocaleString("en-IN")}</div>
             </div>
           </div>
           <div class="leaderboard-progress-bg">
@@ -849,7 +1175,7 @@ window.views.dashboard = {
       container.innerHTML = `
         <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-weight: 600; font-size: 13px;">
           <i class="fa-solid fa-receipt" style="font-size: 24px; color: #cbd5e1; margin-bottom: 8px; display: block;"></i>
-          No bills recorded today yet.
+          No bills recorded in this timeframe yet.
         </div>
       `;
       return;
@@ -874,22 +1200,22 @@ window.views.dashboard = {
         : "Order items";
 
       return `
-        <div style="padding: 10px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <div style="padding: 9px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
           <div style="min-width: 0; flex: 1;">
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              <span style="font-weight: 800; font-size: 13px; color: var(--text-dark);">#${o.orderNumber || "Bill"}</span>
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">${timeStr}</span>
-              <span class="dash-sub-pill ${payPillClass}" style="padding: 2px 6px; font-size: 10.5px;">
+              <span style="font-weight: 800; font-size: 12.5px; color: var(--text-dark);">#${o.orderNumber || "Bill"}</span>
+              <span style="font-size: 10.5px; color: var(--text-muted); font-weight: 600;">${timeStr}</span>
+              <span class="dash-sub-pill ${payPillClass}" style="padding: 1px 6px; font-size: 10px;">
                 <i class="fa-solid ${payIcon}"></i> ${o.paymentMethod || "UPI"}
               </span>
             </div>
-            <div style="font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; max-width: 100%;">
+            <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; max-width: 100%;">
               ${itemsSummary}
             </div>
           </div>
           <div style="text-align: right; flex-shrink: 0;">
-            <div style="font-weight: 800; font-size: 13.5px; color: var(--text-dark);">${currencySymbol}${Math.round(o.total || 0)}</div>
-            <span style="display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 10.5px; font-weight: 700; color: ${statusColor}; background: ${statusBg}; margin-top: 2px;">
+            <div style="font-weight: 800; font-size: 13px; color: var(--text-dark);">${currencySymbol}${Math.round(o.total || 0)}</div>
+            <span style="display: inline-block; padding: 2px 7px; border-radius: 7px; font-size: 10px; font-weight: 700; color: ${statusColor}; background: ${statusBg}; margin-top: 2px;">
               ${o.status || "Pending"}
             </span>
           </div>
@@ -1066,6 +1392,209 @@ window.views.dashboard = {
           cutout: "70%"
         }
       });
+    }
+  },
+
+  // Interactive Feature 1: Quick Shop Expense Logger Modal
+  openQuickExpenseModal() {
+    const todayStr = this.getLocalDateStr();
+    const bodyHtml = `
+      <form id="dash-quick-expense-form" style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+        <div>
+          <label style="font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 4px;">Expense Description / Reason *</label>
+          <input type="text" id="quick-exp-desc" placeholder="e.g. Burger Buns, Dairy / Milk, Gas Cylinder, Staff Snacks" required style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 10px; padding: 8px 12px; font-size: 13px; outline: none; box-sizing: border-box;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 4px;">Amount (₹) *</label>
+            <input type="number" id="quick-exp-amt" min="1" step="any" placeholder="₹0" required style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 10px; padding: 8px 12px; font-size: 13px; outline: none; box-sizing: border-box; font-weight: 800; color: #2563eb;">
+          </div>
+          <div>
+            <label style="font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 4px;">Category</label>
+            <select id="quick-exp-cat" style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; outline: none; box-sizing: border-box; background: #fff;">
+              <option value="Raw material">Raw material</option>
+              <option value="Milk / Dairy">Milk / Dairy</option>
+              <option value="Vegetables">Vegetables</option>
+              <option value="Gas / Fuel">Gas / Fuel</option>
+              <option value="Tea / Refreshment">Tea / Refreshment</option>
+              <option value="Electricity">Electricity</option>
+              <option value="Salary">Salary</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Other expenses">Other expenses</option>
+            </select>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 4px;">Paid From</label>
+            <select id="quick-exp-mode" style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; outline: none; box-sizing: border-box; background: #fff;">
+              <option value="Cash">Cash (Deducts from Drawer)</option>
+              <option value="UPI">UPI / Bank Account</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 4px;">Date</label>
+            <input type="date" id="quick-exp-date" value="${todayStr}" style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; outline: none; box-sizing: border-box;">
+          </div>
+        </div>
+      </form>
+    `;
+
+    window.customModal.show({
+      title: "Log Shop Overhead Expense",
+      bodyHtml: bodyHtml,
+      confirmText: "Save Expense",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        const desc = (document.getElementById("quick-exp-desc") ? document.getElementById("quick-exp-desc").value.trim() : "");
+        const amt = Number(document.getElementById("quick-exp-amt") ? document.getElementById("quick-exp-amt").value : 0);
+        const cat = document.getElementById("quick-exp-cat") ? document.getElementById("quick-exp-cat").value : "Other expenses";
+        const mode = document.getElementById("quick-exp-mode") ? document.getElementById("quick-exp-mode").value : "Cash";
+        const date = (document.getElementById("quick-exp-date") ? document.getElementById("quick-exp-date").value : "") || todayStr;
+
+        if (!desc) {
+          window.showToast("Please enter an expense description.", "error");
+          return false;
+        }
+        if (!amt || amt <= 0) {
+          window.showToast("Please enter a valid expense amount.", "error");
+          return false;
+        }
+
+        const expenses = window.db.get("expenses") || [];
+        expenses.unshift({
+          id: "EXP-" + Date.now(),
+          description: desc,
+          amount: amt,
+          category: cat,
+          paymentMethod: mode,
+          date: date,
+          createdAt: new Date().toISOString()
+        });
+        window.db.set("expenses", expenses);
+        window.showToast(`Logged ₹${amt} expense: ${desc}`, "success");
+        this.calculateAndRenderMetrics();
+      }
+    });
+  },
+
+  // Interactive Feature 2: Day-End Register Closing Z-Report Modal
+  openDayEndReportModal() {
+    const orders = window.db.get("orders") || [];
+    const expenses = window.db.get("expenses") || [];
+    const settings = window.db.get("settings") || {};
+    const currencySymbol = settings.currencySymbol || "₹";
+
+    const todayStr = this.getLocalDateStr();
+    const todayOrders = orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === todayStr);
+    const todayValid = todayOrders.filter(o => o.status !== "Cancelled");
+
+    let gross = 0, cash = 0, upi = 0, card = 0, bogoDisc = 0, flatDisc = 0;
+    let dineCount = 0, takeCount = 0, delCount = 0;
+
+    todayValid.forEach(o => {
+      const amt = Number(o.total) || 0;
+      gross += amt;
+      if (o.paymentMethod === "Cash") cash += amt;
+      else if (o.paymentMethod === "Card") card += amt;
+      else upi += amt;
+
+      bogoDisc += (Number(o.bogoDiscount) || 0);
+      flatDisc += (Number(o.discount) || 0);
+
+      const type = (o.type || "Dine-in").toLowerCase();
+      if (type.includes("takeaway") || type.includes("parcel")) takeCount++;
+      else if (type.includes("delivery")) delCount++;
+      else dineCount++;
+    });
+
+    const cashExpenses = expenses
+      .filter(e => (e.date === todayStr || (e.createdAt && e.createdAt.substring(0, 10) === todayStr)) && e.paymentMethod === "Cash")
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    const expectedClosingCash = Math.max(0, cash - cashExpenses);
+    const nowStr = new Date().toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const user = window.db.getCurrentUser();
+    const cashierName = user ? user.name : "Sanket Barot";
+
+    const bodyHtml = `
+      <div id="z-report-printable-area" style="font-family: 'Courier New', monospace; font-size: 13px; color: #000; background: #fff; padding: 16px; border: 1px dashed #cbd5e1; border-radius: 12px; line-height: 1.4; max-width: 360px; margin: 0 auto;">
+        <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 900; letter-spacing: 0.5px;">CRUST & CHILLY</h2>
+          <div style="font-size: 11px; font-weight: 800; margin-top: 2px;">*** DAILY CLOSING Z-REPORT ***</div>
+          <div style="font-size: 11px; margin-top: 3px;">Date: ${todayStr} | Time: ${nowStr}</div>
+          <div style="font-size: 11px;">Register: Main POS Terminal • Cashier: ${cashierName}</div>
+        </div>
+
+        <div style="border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between;"><span>Total Bills Generated:</span><strong>${todayOrders.length}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Completed Orders:</span><strong>${todayValid.length}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Cancelled Orders:</span><strong>${todayOrders.length - todayValid.length}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Dine-in / Tables:</span><strong>${dineCount}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Takeaway / Parcel:</span><strong>${takeCount}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Direct Delivery:</span><strong>${delCount}</strong></div>
+        </div>
+
+        <div style="border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+          <div style="font-weight: 900; margin-bottom: 4px;">COLLECTIONS & REVENUE</div>
+          <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 900;">
+            <span>GROSS SALES:</span>
+            <span>${currencySymbol}${Math.round(gross).toLocaleString("en-IN")}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 4px;"><span>Cash Collection:</span><span>${currencySymbol}${Math.round(cash).toLocaleString("en-IN")}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span>UPI / Online:</span><span>${currencySymbol}${Math.round(upi).toLocaleString("en-IN")}</span></div>
+          ${card > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Card:</span><span>${currencySymbol}${Math.round(card).toLocaleString("en-IN")}</span></div>` : ''}
+          <div style="display: flex; justify-content: space-between; color: #475569;"><span>BOGO Discounts:</span><span>-${currencySymbol}${Math.round(bogoDisc).toLocaleString("en-IN")}</span></div>
+          <div style="display: flex; justify-content: space-between; color: #475569;"><span>Promo Discounts:</span><span>-${currencySymbol}${Math.round(flatDisc).toLocaleString("en-IN")}</span></div>
+        </div>
+
+        <div style="border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+          <div style="font-weight: 900; margin-bottom: 4px;">DRAWER CASH RECONCILIATION</div>
+          <div style="display: flex; justify-content: space-between;"><span>(+) Cash Sales:</span><span>${currencySymbol}${Math.round(cash).toLocaleString("en-IN")}</span></div>
+          <div style="display: flex; justify-content: space-between; color: #dc2626;"><span>(-) Cash Expenses Paid:</span><span>-${currencySymbol}${Math.round(cashExpenses).toLocaleString("en-IN")}</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; color: #15803d; margin-top: 6px; padding-top: 4px; border-top: 1px dashed #000;">
+            <span>EXPECTED DRAWER CASH:</span>
+            <span>${currencySymbol}${Math.round(expectedClosingCash).toLocaleString("en-IN")}</span>
+          </div>
+        </div>
+
+        <div style="text-align: center; font-size: 10px; margin-top: 8px; color: #475569;">
+          <div>Day-End Reconciliation Verified & Closed</div>
+          <div style="margin-top: 16px; display: flex; justify-content: space-between; font-size: 10px;">
+            <span>Cashier: ________________</span>
+            <span>Manager: ________________</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    window.customModal.show({
+      title: "Daily Register Closing Z-Report",
+      bodyHtml: bodyHtml,
+      confirmText: "Print Slip",
+      cancelText: "Close",
+      onConfirm: () => {
+        document.body.classList.add("printing-z-report");
+        window.print();
+        setTimeout(() => {
+          document.body.classList.remove("printing-z-report");
+        }, 1000);
+      }
+    });
+  },
+
+  // Interactive Feature 3: Quick Restock Ingredient Prompt
+  openQuickRestockModal(ingredientId, ingredientName) {
+    const qty = prompt(`Enter restock units to ADD for "${ingredientName}":`, "10");
+    if (qty !== null && !isNaN(Number(qty)) && Number(qty) > 0) {
+      const ingredients = window.db.get("ingredients") || [];
+      const item = ingredients.find(i => i.id === ingredientId || i.name === ingredientName);
+      if (item) {
+        item.stock = (Number(item.stock) || 0) + Number(qty);
+        window.db.set("ingredients", ingredients);
+        window.showToast(`Added ${qty} ${item.unit || 'units'} to ${ingredientName}. New stock: ${item.stock}`, "success");
+        this.calculateAndRenderMetrics();
+      }
     }
   }
 };
