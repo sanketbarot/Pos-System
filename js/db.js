@@ -1042,9 +1042,11 @@ const db = {
         id: `p${maxIdNum + 1}`,
         name: prodData.name,
         price: Number(prodData.price),
+        costPrice: prodData.costPrice !== undefined && prodData.costPrice !== null && prodData.costPrice !== "" ? Number(prodData.costPrice) : null,
         category: prodData.category,
         available: prodData.available !== undefined ? prodData.available : true,
         bogo: prodData.bogo !== undefined ? prodData.bogo : false,
+        veg: prodData.veg !== undefined ? prodData.veg : true,
         recipe: prodData.recipe || {}
       };
       products.push(newProd);
