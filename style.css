@@ -84,6 +84,7 @@ input[type=number]::-webkit-outer-spin-button {
 
 input[type=number] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 body {
@@ -152,6 +153,7 @@ body {
   font-size: 24px;
   background: var(--primary-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   display: flex;
   align-items: center;
@@ -925,6 +927,7 @@ body {
   width: 28px;
   outline: none;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* POS Cart Panel (Right Drawer) - Clean Modern Elevated Console */
@@ -2562,6 +2565,7 @@ body {
 .pos-card-qty-val,
 .cart-qty-input {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Cloud Sync Status Indicator Pill */
