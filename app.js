@@ -74,8 +74,8 @@ window.customModal = {
     this.onConfirmCallback = onConfirm;
     this.onCancelCallback = onCancel;
 
-    this.confirmBtn.textContent = confirmText;
-    this.cancelBtn.textContent = cancelText;
+    this.confirmBtn.innerHTML = confirmText;
+    this.cancelBtn.innerHTML = cancelText;
 
     const footer = document.getElementById("modal-footer");
     if (hideFooter) {
@@ -406,7 +406,9 @@ service cloud.firestore {
       // Check if a new order arrived from cloud
       const currentOrders = window.db.get("orders") || [];
       if (this.lastKnownOrderCount !== undefined && currentOrders.length > this.lastKnownOrderCount) {
-        if (window.soundAlerts) window.soundAlerts.playNewOrderSound();
+        if (window.soundAlerts && typeof window.soundAlerts.playNewOrderSound === "function") {
+          try { window.soundAlerts.playNewOrderSound(); } catch (e) {}
+        }
       }
       this.lastKnownOrderCount = currentOrders.length;
 

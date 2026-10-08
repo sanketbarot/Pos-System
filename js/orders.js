@@ -188,6 +188,38 @@ window.soundAlerts = {
     }
   },
 
+  playNewOrderSound() {
+    if (!this.soundEnabled) return;
+    try {
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+
+      const now = ctx.currentTime;
+      // Pleasant dual tone chime for new orders
+      const notes = [
+        { time: 0.00, freq: 1046.50, dur: 0.20, gain: 0.4 },
+        { time: 0.10, freq: 1567.98, dur: 0.35, gain: 0.45 }
+      ];
+
+      notes.forEach(n => {
+        const start = now + n.time;
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(n.freq, start);
+        gainNode.gain.setValueAtTime(n.gain, start);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, start + n.dur);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + n.dur);
+      });
+    } catch (e) {
+      console.warn("New order sound error:", e);
+    }
+  },
+
   playKitchenChime() {
     this.playOneMinWarningSound();
   },
