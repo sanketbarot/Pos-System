@@ -217,19 +217,6 @@ window.views.pos = {
           <!-- Products Panel (Left) -->
           <div class="pos-products-panel">
             
-            <!-- Pinned Bestsellers / Fast Movers Bar -->
-            <div class="pos-favs-bar" id="pos-fast-movers-bar">
-              <span style="font-size: 11px; font-weight: 800; color: #d97706; display: flex; align-items: center; gap: 4px; padding-left: 4px; white-space: nowrap;">
-                <i class="fa-solid fa-fire"></i> Fast Movers:
-              </span>
-              <button class="pos-fav-chip" onclick="views.pos.addToCart('p1')">🍔 Classic Burger <span class="fav-price">₹49</span></button>
-              <button class="pos-fav-chip" onclick="views.pos.addToCart('p2')">🍔 Veg Delight <span class="fav-price">₹59</span></button>
-              <button class="pos-fav-chip" onclick="views.pos.addToCart('p26')">🥪 Cheese Chutney <span class="fav-price">₹49</span></button>
-              <button class="pos-fav-chip" onclick="views.pos.addToCart('p48')">🌯 Veg Frankie <span class="fav-price">₹129</span></button>
-              <button class="pos-fav-chip" onclick="views.pos.addToCart('p68')">🍟 Golden Fries <span class="fav-price">₹79</span></button>
-              <button class="pos-fav-chip" onclick="views.pos.addToCart('p71')">🍜 Masala Maggi <span class="fav-price">₹59</span></button>
-              <button class="pos-fav-chip" onclick="views.pos.addToCart('p77')">🥤 Mint Mojito <span class="fav-price">₹99</span></button>
-            </div>
 
             <!-- Categories Tabs -->
             <div class="pos-categories-tabs" id="pos-category-list" style="width: 100%; min-width: 0; margin-bottom: 2px;">
