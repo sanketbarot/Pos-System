@@ -231,21 +231,9 @@ window.views.pos = {
               <button class="pos-fav-chip" onclick="views.pos.addToCart('p77')">🥤 Mint Mojito <span class="fav-price">₹99</span></button>
             </div>
 
-            <!-- Categories Tabs & Dietary Pills -->
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 2px;">
-              <div class="pos-categories-tabs" id="pos-category-list" style="padding-bottom: 0; flex-grow: 1;">
-                <!-- Categories injected dynamically -->
-              </div>
-
-              <!-- Quick Dietary / BOGO Filter Chips -->
-              <div style="display: flex; gap: 5px; flex-shrink: 0;">
-                <button type="button" class="btn btn-secondary ${this.activeFilter === 'veg' ? 'btn-primary' : ''}" id="btn-pos-filter-veg" onclick="views.pos.toggleDietFilter('veg')" style="height: 32px; padding: 0 8px; font-size: 11px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 4px;">
-                  <span style="width: 7px; height: 7px; border-radius: 50%; background: #16a34a; display: inline-block;"></span> Veg
-                </button>
-                <button type="button" class="btn btn-secondary ${this.activeFilter === 'bogo' ? 'btn-primary' : ''}" id="btn-pos-filter-bogo" onclick="views.pos.toggleDietFilter('bogo')" style="height: 32px; padding: 0 8px; font-size: 11px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 4px;">
-                  <i class="fa-solid fa-gift" style="color: #d97706;"></i> BOGO
-                </button>
-              </div>
+            <!-- Categories Tabs -->
+            <div class="pos-categories-tabs" id="pos-category-list" style="width: 100%; min-width: 0; margin-bottom: 2px;">
+              <!-- Categories injected dynamically -->
             </div>
 
             <!-- Products Grid Scroll Container -->
@@ -578,9 +566,141 @@ window.views.pos = {
         tabs.forEach(t => t.classList.remove("active"));
         tab.classList.add("active");
         this.selectedCategory = tab.getAttribute("data-id");
+        try {
+          tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } catch (e) {}
         this.renderProducts();
       };
     });
+
+    // Enable advanced horizontal scroll via momentum inertia drag & fluid wheel
+    this.enableAdvancedHorizontalScroll(container);
+    const fastMovers = document.getElementById("pos-fast-movers-bar");
+    if (fastMovers) {
+      this.enableAdvancedHorizontalScroll(fastMovers);
+    }
+  },
+
+  enableAdvancedHorizontalScroll(el) {
+    if (!el || el._advScrollAttached) return;
+    el._advScrollAttached = true;
+
+    // 1. Physics-based Fluid Wheel Scroll with velocity damping
+    let wheelVelocity = 0;
+    let wheelRaf = null;
+
+    const stopWheel = () => {
+      if (wheelRaf) {
+        cancelAnimationFrame(wheelRaf);
+        wheelRaf = null;
+      }
+      wheelVelocity = 0;
+    };
+
+    const runSmoothWheel = () => {
+      if (Math.abs(wheelVelocity) < 0.2) {
+        wheelVelocity = 0;
+        cancelAnimationFrame(wheelRaf);
+        wheelRaf = null;
+        return;
+      }
+      el.scrollLeft += wheelVelocity;
+      wheelVelocity *= 0.85; // Natural smooth friction
+      wheelRaf = requestAnimationFrame(runSmoothWheel);
+    };
+
+    el.addEventListener("wheel", (e) => {
+      const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
+      if (delta !== 0) {
+        e.preventDefault();
+        stopMomentum();
+        wheelVelocity += delta * 0.4;
+        wheelVelocity = Math.max(-50, Math.min(50, wheelVelocity));
+        if (!wheelRaf) {
+          wheelRaf = requestAnimationFrame(runSmoothWheel);
+        }
+      }
+    }, { passive: false });
+
+    // 2. High-performance Inertia / Momentum Flick Drag (Native App Style)
+    let isDown = false;
+    let startX = 0;
+    let scrollStart = 0;
+    let lastX = 0;
+    let lastTime = 0;
+    let velocity = 0;
+    let momentumRaf = null;
+    let hasDragged = false;
+
+    const stopMomentum = () => {
+      if (momentumRaf) {
+        cancelAnimationFrame(momentumRaf);
+        momentumRaf = null;
+      }
+    };
+
+    const runMomentumDecel = () => {
+      if (Math.abs(velocity) < 0.25) {
+        velocity = 0;
+        momentumRaf = null;
+        return;
+      }
+      el.scrollLeft += velocity;
+      velocity *= 0.92; // 0.92 smooth momentum decay
+      momentumRaf = requestAnimationFrame(runMomentumDecel);
+    };
+
+    el.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      isDown = true;
+      hasDragged = false;
+      stopMomentum();
+      stopWheel();
+      startX = e.pageX - el.offsetLeft;
+      scrollStart = el.scrollLeft;
+      lastX = e.pageX;
+      lastTime = performance.now();
+      velocity = 0;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDown) return;
+      const x = e.pageX - el.offsetLeft;
+      const moveDelta = x - startX;
+      if (Math.abs(moveDelta) > 4) {
+        hasDragged = true;
+        el.classList.add("dragging");
+      }
+      el.scrollLeft = scrollStart - moveDelta;
+
+      const now = performance.now();
+      const dt = Math.max(1, now - lastTime);
+      const dx = lastX - e.pageX;
+      velocity = (dx / dt) * 16.67;
+      velocity = Math.max(-45, Math.min(45, velocity));
+      lastX = e.pageX;
+      lastTime = now;
+    });
+
+    const finishDrag = () => {
+      if (!isDown) return;
+      isDown = false;
+      el.classList.remove("dragging");
+      if (hasDragged && Math.abs(velocity) > 0.8) {
+        momentumRaf = requestAnimationFrame(runMomentumDecel);
+      }
+    };
+
+    window.addEventListener("mouseup", finishDrag);
+
+    // Suppress child clicks if user was dragging
+    el.addEventListener("click", (e) => {
+      if (hasDragged) {
+        e.stopPropagation();
+        e.preventDefault();
+        hasDragged = false;
+      }
+    }, true);
   },
 
   setSort(sortType) {
@@ -864,12 +984,12 @@ window.views.pos = {
       } else {
         actionButtonHtml = `
           <div class="pos-card-qty-control" onclick="event.stopPropagation();">
-            <button class="pos-card-qty-btn" onclick="views.pos.modifyQty('${p.id}', -1)"><i class="fa-solid fa-minus"></i></button>
+            <button type="button" class="pos-card-qty-btn" onclick="event.stopPropagation(); views.pos.modifyQty('${p.id}', -1)" title="Reduce / Remove"><i class="fa-solid fa-minus"></i></button>
             <input type="number" class="pos-card-qty-val" value="${cartQty}" 
                    onchange="views.pos.setQty('${p.id}', parseInt(this.value) || 0)"
-                   onclick="this.select();" 
+                   onclick="event.stopPropagation(); this.select();" 
                    onkeydown="if(event.key==='Enter') { event.preventDefault(); this.blur(); }">
-            <button class="pos-card-qty-btn" onclick="views.pos.modifyQty('${p.id}', 1)"><i class="fa-solid fa-plus"></i></button>
+            <button type="button" class="pos-card-qty-btn" onclick="event.stopPropagation(); views.pos.modifyQty('${p.id}', 1)" title="Add more"><i class="fa-solid fa-plus"></i></button>
           </div>
         `;
       }
@@ -1429,7 +1549,7 @@ window.views.pos = {
     const targetQty = item.quantity + delta;
 
     if (targetQty <= 0) {
-      this.cart = this.cart.filter(i => (i.cartItemId ? i.cartItemId !== id : i.productId !== id));
+      this.cart = this.cart.filter(i => i !== item && i.cartItemId !== id && i.productId !== id);
       window.showToast(`Removed ${item.name} from cart`, "info");
     } else {
       item.quantity = targetQty;
@@ -1454,7 +1574,7 @@ window.views.pos = {
   removeFromCart(id) {
     const item = this.findCartItem(id);
     if (item) {
-      this.cart = this.cart.filter(i => (i.cartItemId ? i.cartItemId !== id : i.productId !== id));
+      this.cart = this.cart.filter(i => i !== item && i.cartItemId !== id && i.productId !== id);
       window.showToast(`Removed ${item.name} from cart`, "info");
       this.renderCart();
     }

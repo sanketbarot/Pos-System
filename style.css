@@ -705,10 +705,31 @@ body {
 
 .pos-categories-tabs {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   overflow-x: auto;
-  padding: 4px 2px 8px 2px;
+  overflow-y: hidden;
+  padding: 4px 2px 6px 2px;
+  flex: 0 0 auto;
   flex-shrink: 0;
+  width: 100%;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.pos-categories-tabs::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.pos-categories-tabs.dragging {
+  cursor: grabbing !important;
+  user-select: none;
 }
 
 .category-tab {
@@ -722,10 +743,13 @@ body {
   font-weight: 700;
   white-space: nowrap;
   transition: var(--transition-smooth);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 7px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  flex-shrink: 0;
+  height: 38px;
+  box-sizing: border-box;
 }
 
 .category-tab:hover:not(.active) {
@@ -751,29 +775,25 @@ body {
 }
 
 .pos-products-grid-scroll::-webkit-scrollbar,
-.cart-items-scroll::-webkit-scrollbar,
-.pos-categories-tabs::-webkit-scrollbar {
+.cart-items-scroll::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 .pos-products-grid-scroll::-webkit-scrollbar-track,
-.cart-items-scroll::-webkit-scrollbar-track,
-.pos-categories-tabs::-webkit-scrollbar-track {
+.cart-items-scroll::-webkit-scrollbar-track {
   background: rgba(203, 213, 225, 0.3);
   border-radius: 10px;
 }
 
 .pos-products-grid-scroll::-webkit-scrollbar-thumb,
-.cart-items-scroll::-webkit-scrollbar-thumb,
-.pos-categories-tabs::-webkit-scrollbar-thumb {
+.cart-items-scroll::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
 }
 
 .pos-products-grid-scroll::-webkit-scrollbar-thumb:hover,
-.cart-items-scroll::-webkit-scrollbar-thumb:hover,
-.pos-categories-tabs::-webkit-scrollbar-thumb:hover {
+.cart-items-scroll::-webkit-scrollbar-thumb:hover {
   background: #2563eb;
 }
 
@@ -5408,11 +5428,27 @@ body {
   align-items: center;
   gap: 8px;
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 6px 4px 8px 4px;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   flex-shrink: 0;
   border-bottom: 1px dashed var(--border-color);
   margin-bottom: 6px;
+  cursor: grab;
+  user-select: none;
+}
+
+.pos-favs-bar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.pos-favs-bar.dragging {
+  cursor: grabbing !important;
+  user-select: none;
 }
 
 .pos-fav-chip {
