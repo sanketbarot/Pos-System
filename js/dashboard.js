@@ -204,7 +204,7 @@ window.views.dashboard = {
                   <span id="dash-pacing-status-badge" class="badge-pacing-ontrack">Calculating Pace...</span>
                 </div>
                 <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; margin-top: 2px;" id="dash-pacing-subtext">
-                  Store Hours: 2:00 PM – 12:00 AM (10 Operating Hours)
+                  Store Hours: 12:00 PM – 3:00 AM (15 Operating Hours)
                 </div>
               </div>
             </div>
@@ -421,7 +421,7 @@ window.views.dashboard = {
                   <i class="fa-solid fa-stopwatch" style="color: #f59e0b;"></i> Shift Rush & Operational Hours
                 </div>
                 <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                  <i class="fa-regular fa-clock"></i> Shop Hours: 2:00 PM – 12:00 AM Midnight
+                  <i class="fa-regular fa-clock"></i> Shop Hours: 12:00 PM – 3:00 AM
                 </div>
               </div>
               <span class="insight-badge" id="dash-peak-hour-badge" style="background: #fffbeb; color: #b45309; border-color: #fde68a;">Calculating...</span>
@@ -569,19 +569,16 @@ window.views.dashboard = {
         clockEl.innerHTML = `<i class="fa-regular fa-clock" style="color: #2563eb;"></i> ${now.toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
       }
 
-      // Check shift status (2 PM to 12 AM)
+      // Check shift status (12 PM to 3 AM)
       const currentHour = now.getHours();
       const shiftEl = document.getElementById("dash-shift-indicator");
       if (shiftEl) {
-        if (currentHour >= 14 && currentHour <= 23) {
+        if ((currentHour >= 12 && currentHour <= 23) || (currentHour >= 0 && currentHour < 3)) {
           shiftEl.className = "dash-shift-live-pill shift-open";
-          shiftEl.innerHTML = `<i class="fa-solid fa-circle" style="font-size: 7px; animation: pulse 1.5s infinite alternate;"></i> <span>Live Shift Active (2 PM – 12 AM)</span>`;
-        } else if (currentHour === 0) {
-          shiftEl.className = "dash-shift-live-pill shift-closing";
-          shiftEl.innerHTML = `<i class="fa-solid fa-circle" style="font-size: 7px;"></i> <span>Day-End Closing Shift</span>`;
+          shiftEl.innerHTML = `<i class="fa-solid fa-circle" style="font-size: 7px; animation: pulse 1.5s infinite alternate;"></i> <span>Live Shift Active (12 PM – 3 AM)</span>`;
         } else {
           shiftEl.className = "dash-shift-live-pill shift-closed";
-          shiftEl.innerHTML = `<i class="fa-solid fa-moon" style="font-size: 10px;"></i> <span>Pre-Opening / Off-Hours (Opens 2 PM)</span>`;
+          shiftEl.innerHTML = `<i class="fa-solid fa-moon" style="font-size: 10px;"></i> <span>Off-Hours (Opens 12 PM)</span>`;
         }
       }
     };
@@ -803,14 +800,14 @@ window.views.dashboard = {
       }
     }
 
-    // Run-rate & Projected end-of-day calculations (Store hours: 2:00 PM to 12:00 AM = 10 hours)
+    // Run-rate & Projected end-of-day calculations (Store hours: 12:00 PM to 3:00 AM = 15 hours)
     if (this.selectedTimeframe === "today") {
       const now = new Date();
       const curHour = now.getHours() + (now.getMinutes() / 60);
-      // Operating window starts at 14.0 (2 PM) and ends at 24.0 (12 AM)
-      const operatingHoursElapsed = Math.max(0.5, Math.min(10, Math.max(0, curHour - 14)));
+      const normalizedCurHour = curHour < 12 ? curHour + 24 : curHour;
+      const operatingHoursElapsed = Math.max(0.5, Math.min(15, Math.max(0, normalizedCurHour - 12)));
       const hourlyVelocity = Math.round(grossSales / operatingHoursElapsed);
-      const remainingHours = Math.max(0, 24 - Math.max(14, curHour));
+      const remainingHours = Math.max(0, 27 - Math.max(12, normalizedCurHour));
       const projectedClosingRevenue = Math.round(grossSales + (hourlyVelocity * remainingHours));
 
       if (targetRunrateEl) {
@@ -818,7 +815,7 @@ window.views.dashboard = {
       }
 
       if (projectedCloseEl) {
-        projectedCloseEl.textContent = `Projected 12 AM Close: ${currencySymbol}${projectedClosingRevenue.toLocaleString("en-IN")}`;
+        projectedCloseEl.textContent = `Projected 3 AM Close: ${currencySymbol}${projectedClosingRevenue.toLocaleString("en-IN")}`;
       }
 
       if (pacingStatusBadge) {
@@ -1322,14 +1319,24 @@ window.views.dashboard = {
 
     const shifts = [
       {
-        name: "2 PM – 5 PM",
+        name: "12 AM – 3 AM",
+        label: "Midnight Rush",
+        icon: "fa-cloud-moon",
+        iconColor: "#6366f1",
+        color: "#4338ca",
+        orders: 0,
+        sales: 0,
+        match: (h) => h >= 0 && h < 3
+      },
+      {
+        name: "12 PM – 5 PM",
         label: "Afternoon",
         icon: "fa-sun",
         iconColor: "#f59e0b",
         color: "#d97706",
         orders: 0,
         sales: 0,
-        match: (h) => h >= 14 && h < 17
+        match: (h) => h >= 12 && h < 17
       },
       {
         name: "5 PM – 7 PM",
@@ -1359,7 +1366,7 @@ window.views.dashboard = {
         color: "#4f46e5",
         orders: 0,
         sales: 0,
-        match: (h) => (h >= 22 && h <= 23) || h === 0
+        match: (h) => h >= 22 && h < 24
       }
     ];
 
@@ -1413,7 +1420,7 @@ window.views.dashboard = {
       if (peakHour !== null && maxOrdersInHour > 0) {
         peakBadgeEl.textContent = `Peak: ${formatHourWindow(peakHour)} (${maxOrdersInHour} bills)`;
       } else {
-        peakBadgeEl.textContent = "Open 2 PM - 12 AM";
+        peakBadgeEl.textContent = "Open 2 PM - 3 AM";
       }
     }
 
@@ -1423,7 +1430,7 @@ window.views.dashboard = {
         <div style="background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 10px; padding: 7px 12px; margin-top: 2px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-clock-rotate-left"></i> Off-Hours (< 2 PM)
+              <i class="fa-solid fa-clock-rotate-left"></i> Off-Hours (3 AM – 12 PM)
             </span>
             <span style="font-weight: 800; color: var(--text-dark); font-size: 12px;">${currencySymbol}${Math.round(otherSales).toLocaleString("en-IN")}</span>
           </div>
@@ -1624,8 +1631,8 @@ window.views.dashboard = {
         titleEl.textContent = this.activeChartMode === "hourlyRush" ? "Today's Hourly Revenue Rush (₹)" : "Today's Hourly Bill Count";
       }
 
-      const hours = [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1];
-      const hourLabels = ["2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM", "10 PM", "11 PM", "12 AM", "1 AM"];
+      const hours = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2];
+      const hourLabels = ["12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM", "10 PM", "11 PM", "12 AM", "1 AM", "2 AM"];
       const hourlySales = new Array(hours.length).fill(0);
       const hourlyOrders = new Array(hours.length).fill(0);
 
