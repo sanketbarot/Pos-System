@@ -560,10 +560,15 @@ window.views.orders = {
     });
 
     // Average prep time calculation
-    const todayStr = new Date().toISOString().substring(0, 10);
+    const nowLocal = new Date();
+    const todayLocalOffset = nowLocal.getTimezoneOffset() * 60000;
+    const todayStr = new Date(nowLocal.getTime() - todayLocalOffset).toISOString().substring(0, 10);
     const todayPrepOrders = allOrders.filter(o => {
       if (!o.createdAt || o.status === "Cancelled") return false;
-      const isToday = o.createdAt.substring(0, 10) === todayStr;
+      const d = new Date(o.createdAt);
+      if (isNaN(d.getTime())) return false;
+      const oOffset = d.getTimezoneOffset() * 60000;
+      const isToday = new Date(d.getTime() - oOffset).toISOString().substring(0, 10) === todayStr;
       return isToday && (o.status === "Ready" || o.status === "Completed") && (o.prepDurationSeconds || (o.readyAt && o.createdAt));
     });
 

@@ -90,8 +90,17 @@ window.views.pos = {
 
   getTodayStats() {
     const orders = window.db ? (window.db.get("orders") || []) : [];
-    const todayStr = new Date().toISOString().substring(0, 10);
-    const todayOrders = orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === todayStr && o.status !== "Cancelled");
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const todayStr = new Date(now.getTime() - offset).toISOString().substring(0, 10);
+    const todayOrders = orders.filter(o => {
+      if (!o.createdAt || o.status === "Cancelled") return false;
+      const d = new Date(o.createdAt);
+      if (isNaN(d.getTime())) return false;
+      const oOffset = d.getTimezoneOffset() * 60000;
+      const oStr = new Date(d.getTime() - oOffset).toISOString().substring(0, 10);
+      return oStr === todayStr;
+    });
     const todayRevenue = todayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     const nextToken = todayOrders.length + 1;
     return { count: todayOrders.length, revenue: todayRevenue, nextToken: nextToken };

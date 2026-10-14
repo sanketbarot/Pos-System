@@ -19,8 +19,17 @@ window.views.dashboard = {
   clockInterval: null,
 
   getLocalDateStr(d = new Date()) {
-    const offset = d.getTimezoneOffset() * 60000;
-    return new Date(d.getTime() - offset).toISOString().substring(0, 10);
+    const dateObj = d instanceof Date ? d : new Date(d);
+    if (isNaN(dateObj.getTime())) return "";
+    const offset = dateObj.getTimezoneOffset() * 60000;
+    return new Date(dateObj.getTime() - offset).toISOString().substring(0, 10);
+  },
+
+  getOrderLocalDateStr(orderOrDate) {
+    if (!orderOrDate) return "";
+    const raw = typeof orderOrDate === "object" ? (orderOrDate.createdAt || orderOrDate.date || "") : orderOrDate;
+    if (!raw) return "";
+    return this.getLocalDateStr(raw);
   },
 
   formatTime(isoOrDateStr) {
@@ -626,28 +635,25 @@ window.views.dashboard = {
     const { todayStr, yesterdayStr, weekStartStr, monthStartStr } = this.getTimeframeDates();
 
     if (this.selectedTimeframe === "yesterday") {
-      return orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === yesterdayStr);
+      return orders.filter(o => this.getOrderLocalDateStr(o) === yesterdayStr);
     } else if (this.selectedTimeframe === "week") {
       return orders.filter(o => {
-        if (!o.createdAt) return false;
-        const dStr = o.createdAt.substring(0, 10);
-        return dStr >= weekStartStr && dStr <= todayStr;
+        const dStr = this.getOrderLocalDateStr(o);
+        return dStr && dStr >= weekStartStr && dStr <= todayStr;
       });
     } else if (this.selectedTimeframe === "month") {
       return orders.filter(o => {
-        if (!o.createdAt) return false;
-        const dStr = o.createdAt.substring(0, 10);
-        return dStr >= monthStartStr && dStr <= todayStr;
+        const dStr = this.getOrderLocalDateStr(o);
+        return dStr && dStr >= monthStartStr && dStr <= todayStr;
       });
     } else if (this.selectedTimeframe === "custom" && this.customStartDate && this.customEndDate) {
       return orders.filter(o => {
-        if (!o.createdAt) return false;
-        const dStr = o.createdAt.substring(0, 10);
-        return dStr >= this.customStartDate && dStr <= this.customEndDate;
+        const dStr = this.getOrderLocalDateStr(o);
+        return dStr && dStr >= this.customStartDate && dStr <= this.customEndDate;
       });
     } else {
       // Default: today
-      return orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === todayStr);
+      return orders.filter(o => this.getOrderLocalDateStr(o) === todayStr);
     }
   },
 
@@ -712,7 +718,7 @@ window.views.dashboard = {
 
       if (this.selectedTimeframe === "today") {
         prevPeriodSales = orders
-          .filter(o => o.createdAt && o.createdAt.substring(0, 10) === yesterdayStr && o.status !== "Cancelled")
+          .filter(o => this.getOrderLocalDateStr(o) === yesterdayStr && o.status !== "Cancelled")
           .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
         compLabel = "vs yday";
       } else if (this.selectedTimeframe === "yesterday") {
@@ -720,17 +726,23 @@ window.views.dashboard = {
         dayBeforeYday.setDate(dayBeforeYday.getDate() - 2);
         const dStr = this.getLocalDateStr(dayBeforeYday);
         prevPeriodSales = orders
-          .filter(o => o.createdAt && o.createdAt.substring(0, 10) === dStr && o.status !== "Cancelled")
+          .filter(o => this.getOrderLocalDateStr(o) === dStr && o.status !== "Cancelled")
           .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
         compLabel = "vs prev day";
       } else if (this.selectedTimeframe === "week") {
         prevPeriodSales = orders
-          .filter(o => o.createdAt && o.createdAt.substring(0, 10) >= prevWeekStartStr && o.createdAt.substring(0, 10) <= prevWeekEndStr && o.status !== "Cancelled")
+          .filter(o => {
+            const dStr = this.getOrderLocalDateStr(o);
+            return dStr && dStr >= prevWeekStartStr && dStr <= prevWeekEndStr && o.status !== "Cancelled";
+          })
           .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
         compLabel = "vs prev 7D";
       } else if (this.selectedTimeframe === "month") {
         prevPeriodSales = orders
-          .filter(o => o.createdAt && o.createdAt.substring(0, 10) >= prevMonthStartStr && o.createdAt.substring(0, 10) <= prevMonthEndStr && o.status !== "Cancelled")
+          .filter(o => {
+            const dStr = this.getOrderLocalDateStr(o);
+            return dStr && dStr >= prevMonthStartStr && dStr <= prevMonthEndStr && o.status !== "Cancelled";
+          })
           .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
         compLabel = "vs prev month";
       }
@@ -863,12 +875,12 @@ window.views.dashboard = {
 
     // Filter expenses by timeframe
     const periodExpenses = expenses.filter(e => {
-      const dStr = e.date || (e.createdAt ? e.createdAt.substring(0, 10) : "");
+      const dStr = this.getOrderLocalDateStr(e);
       if (this.selectedTimeframe === "yesterday") return dStr === yesterdayStr;
-      if (this.selectedTimeframe === "week") return dStr >= weekStartStr && dStr <= todayStr;
-      if (this.selectedTimeframe === "month") return dStr >= monthStartStr && dStr <= todayStr;
+      if (this.selectedTimeframe === "week") return dStr && dStr >= weekStartStr && dStr <= todayStr;
+      if (this.selectedTimeframe === "month") return dStr && dStr >= monthStartStr && dStr <= todayStr;
       if (this.selectedTimeframe === "custom" && this.customStartDate && this.customEndDate) {
-        return dStr >= this.customStartDate && dStr <= this.customEndDate;
+        return dStr && dStr >= this.customStartDate && dStr <= this.customEndDate;
       }
       return dStr === todayStr;
     });
@@ -1612,12 +1624,12 @@ window.views.dashboard = {
         titleEl.textContent = this.activeChartMode === "hourlyRush" ? "Today's Hourly Revenue Rush (₹)" : "Today's Hourly Bill Count";
       }
 
-      const hours = [14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
-      const hourLabels = ["2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM", "10 PM", "11 PM"];
+      const hours = [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1];
+      const hourLabels = ["2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM", "10 PM", "11 PM", "12 AM", "1 AM"];
       const hourlySales = new Array(hours.length).fill(0);
       const hourlyOrders = new Array(hours.length).fill(0);
 
-      const todayValid = orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === todayStr && o.status !== "Cancelled");
+      const todayValid = orders.filter(o => this.getOrderLocalDateStr(o) === todayStr && o.status !== "Cancelled");
       
       todayValid.forEach(o => {
         const d = new Date(o.createdAt);
@@ -1698,7 +1710,7 @@ window.views.dashboard = {
         const daySales = orders
           .filter(o => {
             if (!o.createdAt || o.status === "Cancelled") return false;
-            return o.createdAt.substring(0, 10) === dateStr;
+            return this.getOrderLocalDateStr(o) === dateStr;
           })
           .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
@@ -2019,11 +2031,11 @@ window.views.dashboard = {
     const todayStr = this.getLocalDateStr();
 
     const cashSales = orders
-      .filter(o => o.createdAt && o.createdAt.substring(0, 10) === todayStr && o.status !== "Cancelled" && o.paymentMethod === "Cash")
+      .filter(o => this.getOrderLocalDateStr(o) === todayStr && o.status !== "Cancelled" && o.paymentMethod === "Cash")
       .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
     const cashExpenses = expenses
-      .filter(e => (e.date === todayStr || (e.createdAt && e.createdAt.substring(0, 10) === todayStr)) && e.paymentMethod === "Cash")
+      .filter(e => this.getOrderLocalDateStr(e) === todayStr && e.paymentMethod === "Cash")
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
     const expectedCash = Math.max(0, cashSales - cashExpenses);
@@ -2152,7 +2164,7 @@ window.views.dashboard = {
     const currencySymbol = settings.currencySymbol || "₹";
 
     const todayStr = this.getLocalDateStr();
-    const todayOrders = orders.filter(o => o.createdAt && o.createdAt.substring(0, 10) === todayStr);
+    const todayOrders = orders.filter(o => this.getOrderLocalDateStr(o) === todayStr);
     const todayValid = todayOrders.filter(o => o.status !== "Cancelled");
 
     let gross = 0, cash = 0, upi = 0, card = 0, bogoDisc = 0, flatDisc = 0;
@@ -2175,7 +2187,7 @@ window.views.dashboard = {
     });
 
     const cashExpenses = expenses
-      .filter(e => (e.date === todayStr || (e.createdAt && e.createdAt.substring(0, 10) === todayStr)) && e.paymentMethod === "Cash")
+      .filter(e => this.getOrderLocalDateStr(e) === todayStr && e.paymentMethod === "Cash")
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
     const expectedClosingCash = Math.max(0, cash - cashExpenses);
