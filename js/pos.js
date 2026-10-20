@@ -2484,9 +2484,9 @@ window.views.pos = {
       }
       window.showToast(`Order #${response.order.orderNumber} successfully processed!`, "success");
 
-      // Trigger printable receipt billing modal
+      // Trigger direct silent thermal printing (No popup on screen!)
       if (!skipPrint) {
-        this.showReceiptModal(response.order, true);
+        this.directSilentPrint(response.order);
       }
 
       // Clear Cart state
@@ -2528,82 +2528,341 @@ window.views.pos = {
     }
   },
 
-  currentReceiptOrder: null,
-  currentReceiptTab: "bill",
-  isPrintingSequence: false,
+  directSilentPrint(order) {
+    if (!order) return;
+    const settings = window.db.get("settings") || {};
 
-  printSeparately(shouldCloseModal = true) {
-    if (this.isPrintingSequence) return;
-    this.isPrintingSequence = true;
+    const dateObj = new Date(order.createdAt || Date.now());
+    const dd = String(dateObj.getDate()).padStart(2, '0');
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const yy = String(dateObj.getFullYear()).slice(-2);
+    const orderDate = `${dd}/${mm}/${yy}`;
 
-    const safetyTimer = setTimeout(() => {
-      this.isPrintingSequence = false;
-      if (shouldCloseModal && window.customModal) {
-        window.customModal.hide();
-      }
-    }, 20000);
+    const hh = String(dateObj.getHours()).padStart(2, '0');
+    const min = String(dateObj.getMinutes()).padStart(2, '0');
+    const orderTime = `${hh}:${min}`;
 
-    this.switchReceiptTab("bill");
+    const currentUser = window.db.getCurrentUser() || { name: "biller" };
+    const cashierName = currentUser.name.split(' ')[0];
+    const tokenNo = String(order.tokenNumber || 1).padStart(2, '0');
+    const totalQty = (order.items || []).reduce((sum, item) => sum + item.quantity, 0);
 
-    let firstPrintCompleted = false;
+    const upiId = settings.upiId || "7487980840@okbizaxis";
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(settings.restaurantName || "Crust & Chilly")}&am=${Number(order.total || 0).toFixed(2)}&cu=INR&tn=Order${order.orderNumber}`;
 
-    const handleFirstPrintCompleted = () => {
-      window.removeEventListener("afterprint", handleFirstPrintCompleted);
-      if (firstPrintCompleted) return;
-      firstPrintCompleted = true;
+    let printContainer = document.getElementById("pos-direct-print-area");
+    if (!printContainer) {
+      printContainer = document.createElement("div");
+      printContainer.id = "pos-direct-print-area";
+      document.body.appendChild(printContainer);
+    }
 
-      // Small delay before preparing KOT ticket and opening KOT print dialog
-      setTimeout(() => {
-        this.switchReceiptTab("kot");
-
-        setTimeout(() => {
-          let secondPrintCompleted = false;
-          const handleSecondPrintCompleted = () => {
-            window.removeEventListener("afterprint", handleSecondPrintCompleted);
-            if (secondPrintCompleted) return;
-            secondPrintCompleted = true;
-            clearTimeout(safetyTimer);
-            this.isPrintingSequence = false;
+    printContainer.innerHTML = `
+      <div class="receipt-wrapper">
+        <!-- Customer Bill Section -->
+        <div class="receipt-ticket receipt-bill-ticket">
+          <img src="logo.jpg" alt="Logo" class="receipt-logo" onerror="this.style.display='none'">
+          
+          <div class="receipt-header">
+            <div class="receipt-title">${settings.restaurantName || "Crust & Chilly"}</div>
+            <div class="receipt-subtitle">${settings.address || "Shop No. 09, Shree Sanidhya Flora, Near Turquoise BLU Road, Shela, Ahmedabad - 380057, Gujarat"}</div>
+            <div class="receipt-subtitle">Phone: ${settings.phone || "+91 9664870840"}</div>
+          </div>
+          
+          <div class="receipt-dotted-line"></div>
+          
+          <div class="receipt-meta">
+            <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
+            ${order.customerPhone ? `<div style="font-weight: bold; margin-bottom: 4px;">Phone: ${order.customerPhone}</div>` : ""}
+            <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
+            <div class="receipt-meta-row">
+              <span>Date: ${orderDate}</span>
+              <span style="font-weight: bold;">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Time: ${orderTime}</span>
+              <span></span>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Cashier: ${cashierName}</span>
+              <span>Bill No.: ${order.orderNumber}</span>
+            </div>
+            <div class="receipt-token-no">Token No.: ${tokenNo}</div>
+          </div>
+          
+          <div class="receipt-dotted-line"></div>
+          
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th style="width: 50%;">Item</th>
+                <th style="text-align: center; width: 15%;">Qty</th>
+                <th style="text-align: right; width: 15%;">Price</th>
+                <th style="text-align: right; width: 20%;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(order.items || []).map(item => {
+                let bogoLabel = item.bogo ? "<br><span class='receipt-bogo-label'>(BOGO Eligible)</span>" : "";
+                const linePrice = Number(item.price || 0).toFixed(2);
+                const lineAmt = Number(item.lineTotal || (item.price * item.quantity)).toFixed(2);
+                return `
+                  <tr>
+                    <td>
+                      <span class="receipt-item-name">${item.name}</span>
+                      ${bogoLabel}
+                    </td>
+                    <td style="text-align: center;">${item.quantity}</td>
+                    <td style="text-align: right;">${linePrice}</td>
+                    <td style="text-align: right;">${lineAmt}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+          
+          <div class="receipt-dotted-line"></div>
+          
+          <div class="receipt-totals">
+            <div class="receipt-total-line">
+              <span>Total Qty: ${totalQty}</span>
+              <span>Sub Total: ₹${Number(order.subtotal || 0).toFixed(2)}</span>
+            </div>
             
-            // Revert tab and automatically close the receipt modal (image 3)
-            setTimeout(() => {
-              this.switchReceiptTab("bill");
-              if (shouldCloseModal && window.customModal) {
-                window.customModal.hide();
-              }
-            }, 300);
-          };
+            ${order.bogoDiscount > 0 || order.discount > 0 || order.tax > 0 ? `
+              <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
+            ` : ""}
+            
+            ${order.bogoDiscount > 0 ? `
+              <div class="receipt-total-line" style="font-weight: 600; color: #d62d20;">
+                <span>BOGO Discount:</span>
+                <span>-₹${Number(order.bogoDiscount).toFixed(2)}</span>
+              </div>
+            ` : ""}
+            
+            ${order.discount > 0 ? `
+              <div class="receipt-total-line">
+                <span>Cash Discount:</span>
+                <span>-₹${Number(order.discount).toFixed(2)}</span>
+              </div>
+            ` : ""}
+            
+            ${order.tax > 0 ? `
+              <div class="receipt-total-line">
+                <span>GST (5%):</span>
+                <span>₹${Number(order.tax).toFixed(2)}</span>
+              </div>
+            ` : ""}
+            
+            <div class="receipt-grand-total">
+              <span>Grand Total</span>
+              <span>₹${Number(order.total || 0).toFixed(2)}</span>
+            </div>
+          </div>
+          
+          <div class="receipt-dotted-line"></div>
+          
+          <div class="receipt-footer">
+            <div style="font-weight: bold; margin-bottom: 6px;">For Order or More : ${settings.phone || "+91 9664870840"}</div>
+            
+            <div class="receipt-qr-wrapper" style="text-align: center; margin: 8px 0;">
+              <div id="direct-receipt-qrcode-box" style="display: flex; justify-content: center; align-items: center; margin: 4px auto; width: 95px; height: 95px; overflow: hidden;"></div>
+              <div class="receipt-qr-text" style="font-size: 10px; font-weight: bold; margin-top: 4px;">Scan & Pay via UPI</div>
+            </div>
+            
+            <div class="receipt-dotted-line" style="margin: 10px 0 6px 0;"></div>
+            <div style="font-weight: bold; margin-top: 6px; text-transform: uppercase; font-size: 10px;">Thank you for dining with us!</div>
+          </div>
+        </div>
 
-          window.addEventListener("afterprint", handleSecondPrintCompleted);
+        <!-- Thermal Paper Cut Break between Customer Bill & Kitchen KOT -->
+        <div class="receipt-page-break"></div>
 
-          try {
-            window.print();
-          } catch (e2) {
-            console.error("KOT print error:", e2);
-            clearTimeout(safetyTimer);
-            this.isPrintingSequence = false;
-            if (shouldCloseModal && window.customModal) {
-              window.customModal.hide();
-            }
+        <!-- Kitchen Order Ticket (KOT) Section -->
+        <div class="receipt-ticket receipt-kot-ticket">
+          <div class="receipt-header">
+            <div class="receipt-title" style="font-size: 16px; font-weight: 900; letter-spacing: 0.5px;">*** KITCHEN ORDER TICKET ***</div>
+            <div class="receipt-subtitle" style="font-weight: 800; font-size: 14px; margin-top: 4px; color: #000;">Token No.: ${tokenNo}</div>
+          </div>
+          
+          <div class="receipt-dotted-line"></div>
+          
+          <div class="receipt-meta">
+            <div style="font-weight: bold; margin-bottom: 4px;">Name: ${order.customerName || "Walk-in Customer"}</div>
+            ${order.customerPhone ? `<div style="font-weight: bold; margin-bottom: 4px;">Phone: ${order.customerPhone}</div>` : ""}
+            <div class="receipt-dotted-line" style="margin: 4px 0;"></div>
+            <div class="receipt-meta-row">
+              <span>Date: ${orderDate}</span>
+              <span style="font-weight: bold;">${order.tableNumber ? `${order.type} (${order.tableNumber})` : order.type}</span>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Time: ${orderTime}</span>
+              <span>Bill No.: ${order.orderNumber}</span>
+            </div>
+          </div>
+          
+          <div class="receipt-dotted-line"></div>
+          
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th style="width: 75%; font-weight: 800;">Item</th>
+                <th style="text-align: right; width: 25%; font-weight: 800;">Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(order.items || []).map(item => {
+                let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ea580c;">* Note: ${item.note}</span>` : "";
+                return `
+                  <tr>
+                    <td>
+                      <span class="receipt-item-name" style="font-size: 13px; font-weight: bold;">${item.name}</span>
+                      ${noteLabel}
+                    </td>
+                    <td style="text-align: right; font-size: 14px; font-weight: 900;">${item.quantity}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+
+          ${order.notes ? `
+            <div style="margin-top: 8px; border: 1.5px dashed #000; padding: 6px; font-size: 11px; font-weight: bold;">
+              SPECIAL INSTRUCTION: ${order.notes}
+            </div>
+          ` : ""}
+          
+          <div class="receipt-dotted-line" style="margin-top: 10px;"></div>
+          <div class="receipt-footer" style="text-align: center; font-size: 11px; font-weight: bold; margin-top: 8px; text-transform: uppercase;">
+            Total Qty: ${totalQty} Items | Crust & Chilly Kitchen Copy
+          </div>
+        </div>
+      </div>
+    `;
+
+    const qrBox = document.getElementById("direct-receipt-qrcode-box");
+    if (qrBox) {
+      try {
+        if (typeof QRCode !== "undefined") {
+          new QRCode(qrBox, {
+            text: upiUrl,
+            width: 95,
+            height: 95,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+          const cvs = qrBox.querySelector("canvas");
+          if (cvs) cvs.style.display = "none";
+          const img = qrBox.querySelector("img");
+          if (img) {
+            img.style.display = "block";
+            img.style.margin = "0 auto";
           }
-        }, 200);
-      }, 450);
+        } else {
+          qrBox.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=95x95&data=${encodeURIComponent(upiUrl)}" style="width:95px;height:95px;margin:0 auto;display:block;" alt="Scan to Pay">`;
+        }
+      } catch (err) {
+        console.warn("QR code render error:", err);
+      }
+    }
+
+    document.body.classList.add("direct-printing");
+
+    const cleanup = () => {
+      window.removeEventListener("afterprint", cleanup);
+      document.body.classList.remove("direct-printing");
+      setTimeout(() => {
+        if (printContainer) printContainer.innerHTML = "";
+      }, 500);
     };
 
-    window.addEventListener("afterprint", handleFirstPrintCompleted);
+    window.addEventListener("afterprint", cleanup);
 
     setTimeout(() => {
       try {
         window.print();
-      } catch (e1) {
-        console.error("Customer Bill print error:", e1);
-        clearTimeout(safetyTimer);
-        this.isPrintingSequence = false;
-        if (shouldCloseModal && window.customModal) {
+      } catch (e) {
+        console.error("Direct silent print error:", e);
+        cleanup();
+      }
+    }, 60);
+  },
+
+  currentReceiptOrder: null,
+  currentReceiptTab: "both",
+  isPrintingSequence: false,
+
+  printBothSeparately(shouldCloseModal = true) {
+    this.switchReceiptTab("both");
+    this.printReceipt(shouldCloseModal);
+  },
+
+  printSeparately(shouldCloseModal = true) {
+    this.printBothSeparately(shouldCloseModal);
+  },
+
+  printReceipt(closeAfter = true) {
+    const autoClose = () => {
+      window.removeEventListener("afterprint", autoClose);
+      setTimeout(() => {
+        if (closeAfter && window.customModal) {
           window.customModal.hide();
         }
+      }, 300);
+    };
+
+    window.addEventListener("afterprint", autoClose);
+
+    try {
+      window.print();
+    } catch (e) {
+      console.error("Print error:", e);
+      if (closeAfter && window.customModal) {
+        window.customModal.hide();
       }
-    }, 120);
+    }
+  },
+
+  printToTwoPrinters() {
+    this.switchReceiptTab("bill");
+    window.showToast("Printing Customer Bill (Step 1/2)...", "info");
+
+    const afterBillPrint = () => {
+      window.removeEventListener("afterprint", afterBillPrint);
+
+      this.switchReceiptTab("kot");
+
+      const toolbar = document.querySelector(".receipt-tabs-toolbar");
+      if (toolbar) {
+        let alertBox = document.getElementById("receipt-twoprinter-alert");
+        if (!alertBox) {
+          alertBox = document.createElement("div");
+          alertBox.id = "receipt-twoprinter-alert";
+          alertBox.style.cssText = "width: 100%; margin-top: 8px; padding: 8px 12px; background: #eff6ff; border: 1.5px solid #3b82f6; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;";
+          toolbar.appendChild(alertBox);
+        }
+        alertBox.innerHTML = `
+          <span style="font-size: 12px; font-weight: 800; color: #1e40af;"><i class="fa-solid fa-check-circle" style="color:#10b981;"></i> Customer Bill sent. Send Kitchen KOT:</span>
+          <button type="button" onclick="views.pos.printReceipt(true)" style="background: #2563eb; color: #fff; border: none; padding: 5px 12px; border-radius: 6px; font-weight: 800; font-size: 12px; cursor: pointer;">
+            <i class="fa-solid fa-fire-burner"></i> Print Kitchen KOT Now
+          </button>
+        `;
+      }
+
+      setTimeout(() => {
+        try {
+          window.print();
+        } catch (e) {
+          console.log("Browser waiting for user click for 2nd printer:", e);
+        }
+      }, 300);
+    };
+
+    window.addEventListener("afterprint", afterBillPrint);
+    setTimeout(() => {
+      window.print();
+    }, 100);
   },
 
   switchReceiptTab(tab) {
@@ -2611,14 +2870,16 @@ window.views.pos = {
     const billSec = document.getElementById("receipt-section-bill");
     const kotSec = document.getElementById("receipt-section-kot");
     const tearSec = document.getElementById("receipt-section-tear");
+    const pageBreak = document.getElementById("receipt-section-pagebreak");
     const btnBill = document.getElementById("btn-tab-bill");
     const btnKot = document.getElementById("btn-tab-kot");
     const btnBoth = document.getElementById("btn-tab-both");
+    const btnTwoPrinters = document.getElementById("btn-tab-twoprinters");
     const modalConfirmBtn = document.getElementById("modal-submit-btn");
 
     if (!billSec || !kotSec) return;
 
-    [btnBill, btnKot, btnBoth].forEach(b => {
+    [btnBill, btnKot, btnBoth, btnTwoPrinters].forEach(b => {
       if (b) {
         b.style.background = "#f1f5f9";
         b.style.color = "#475569";
@@ -2629,19 +2890,25 @@ window.views.pos = {
 
     if (tab === "bill") {
       billSec.style.display = "block";
+      billSec.classList.remove("has-page-break");
       kotSec.style.display = "none";
+      kotSec.classList.remove("has-page-break");
       if (tearSec) tearSec.style.display = "none";
+      if (pageBreak) pageBreak.style.display = "none";
       if (btnBill) {
         btnBill.style.background = "#2563eb";
         btnBill.style.color = "#fff";
         btnBill.style.borderColor = "#2563eb";
         btnBill.style.fontWeight = "800";
       }
-      if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-print"></i> Print Bill';
+      if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-print"></i> Print Customer Bill';
     } else if (tab === "kot") {
       billSec.style.display = "none";
+      billSec.classList.remove("has-page-break");
       kotSec.style.display = "block";
+      kotSec.classList.remove("has-page-break");
       if (tearSec) tearSec.style.display = "none";
+      if (pageBreak) pageBreak.style.display = "none";
       if (btnKot) {
         btnKot.style.background = "#2563eb";
         btnKot.style.color = "#fff";
@@ -2649,17 +2916,21 @@ window.views.pos = {
         btnKot.style.fontWeight = "800";
       }
       if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-fire-burner"></i> Print Kitchen KOT';
-    } else if (tab === "both") {
+    } else {
+      // both (separate 1 by 1)
       billSec.style.display = "block";
+      billSec.classList.add("has-page-break");
       kotSec.style.display = "block";
+      kotSec.classList.add("has-page-break");
       if (tearSec) tearSec.style.display = "block";
+      if (pageBreak) pageBreak.style.display = "block";
       if (btnBoth) {
         btnBoth.style.background = "#2563eb";
         btnBoth.style.color = "#fff";
         btnBoth.style.borderColor = "#2563eb";
         btnBoth.style.fontWeight = "800";
       }
-      if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-copy"></i> Print Both (Separate Prints)';
+      if (modalConfirmBtn) modalConfirmBtn.innerHTML = '<i class="fa-solid fa-print"></i> Print Both (Separate 1 by 1)';
     }
   },
 
@@ -2721,15 +2992,18 @@ window.views.pos = {
 
     const modalHtml = `
       <div class="receipt-tabs-toolbar no-print" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap;">
-        <div style="display: flex; gap: 6px;">
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button id="btn-tab-both" type="button" onclick="views.pos.switchReceiptTab('both')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'both' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'both' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'both' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'both' ? '800' : '600'}; cursor: pointer;" title="Prints Customer Bill & Kitchen KOT (Separate 1 by 1 on thermal printer)">
+            <i class="fa-solid fa-copy"></i> Both (Separate 1 by 1)
+          </button>
           <button id="btn-tab-bill" type="button" onclick="views.pos.switchReceiptTab('bill')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'bill' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'bill' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'bill' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'bill' ? '800' : '600'}; cursor: pointer;">
-            <i class="fa-solid fa-receipt"></i> Customer Bill
+            <i class="fa-solid fa-receipt"></i> Customer Bill Only
           </button>
           <button id="btn-tab-kot" type="button" onclick="views.pos.switchReceiptTab('kot')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'kot' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'kot' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'kot' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'kot' ? '800' : '600'}; cursor: pointer;">
-            <i class="fa-solid fa-fire-burner"></i> Kitchen KOT
+            <i class="fa-solid fa-fire-burner"></i> Kitchen KOT Only
           </button>
-          <button id="btn-tab-both" type="button" onclick="views.pos.switchReceiptTab('both')" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid ${defaultTab === 'both' ? '#2563eb' : '#cbd5e1'}; background: ${defaultTab === 'both' ? '#2563eb' : '#f1f5f9'}; color: ${defaultTab === 'both' ? '#fff' : '#475569'}; font-size: 12px; font-weight: ${defaultTab === 'both' ? '800' : '600'}; cursor: pointer;" title="Prints Customer Bill first, then Kitchen KOT as separate prints">
-            <i class="fa-solid fa-copy"></i> Both (Separate Prints)
+          <button id="btn-tab-twoprinters" type="button" onclick="views.pos.printToTwoPrinters()" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 600; cursor: pointer;" title="If you have 2 physical printers (Counter + Kitchen)">
+            <i class="fa-solid fa-print"></i> 2 Printers (Step-by-Step)
           </button>
         </div>
         <div>
@@ -2741,7 +3015,7 @@ window.views.pos = {
 
       <div class="receipt-wrapper" id="receipt-printable-content">
         <!-- Customer Bill Section -->
-        <div id="receipt-section-bill" style="display: ${defaultTab === 'kot' ? 'none' : 'block'};">
+        <div id="receipt-section-bill" class="receipt-ticket receipt-bill-ticket ${defaultTab === 'both' ? 'has-page-break' : ''}" style="display: ${defaultTab === 'kot' ? 'none' : 'block'};">
           <img src="logo.jpg" alt="Logo" class="receipt-logo" onerror="this.style.display='none'">
           
           <div class="receipt-header">
@@ -2856,13 +3130,16 @@ window.views.pos = {
           </div>
         </div>
 
-        <!-- Tear Line for Combined Bill + KOT Print -->
-        <div id="receipt-section-tear" style="display: ${defaultTab === 'both' ? 'block' : 'none'}; text-align: center; margin: 16px 0 14px 0; border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 6px 0; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
-          ✂️ - - - - TEAR HERE FOR KITCHEN (KOT) - - - - ✂️
+        <!-- Thermal Paper Cut Break between Customer Bill & Kitchen KOT -->
+        <div id="receipt-section-pagebreak" class="receipt-page-break" style="display: ${defaultTab === 'both' ? 'block' : 'none'};"></div>
+
+        <!-- Tear/Cut Indicator on Screen for 'both' mode -->
+        <div id="receipt-section-tear" class="receipt-cut-line no-print" style="display: ${defaultTab === 'both' ? 'block' : 'none'}; text-align: center; margin: 16px 0 14px 0; border: 2px dashed #f59e0b; background: #fffbeb; padding: 7px 0; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px; color: #b45309;">
+          ✂️ - - - - PAPER CUT / SEPARATE 1 BY 1: KITCHEN COPY (KOT) BELOW - - - - ✂️
         </div>
 
         <!-- Kitchen Order Ticket (KOT) Section -->
-        <div id="receipt-section-kot" style="display: ${defaultTab === 'bill' ? 'none' : 'block'};">
+        <div id="receipt-section-kot" class="receipt-ticket receipt-kot-ticket ${defaultTab === 'both' ? 'has-page-break' : ''}" style="display: ${defaultTab === 'bill' ? 'none' : 'block'};">
           <div class="receipt-header">
             <div class="receipt-title" style="font-size: 16px; font-weight: 900; letter-spacing: 0.5px;">*** KITCHEN ORDER TICKET ***</div>
             <div class="receipt-subtitle" style="font-weight: 800; font-size: 14px; margin-top: 4px; color: #000;">Token No.: ${tokenNo}</div>
@@ -2927,14 +3204,30 @@ window.views.pos = {
           @page { margin: 0 !important; size: auto; }
           body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; }
           * { color: #000 !important; text-shadow: none !important; box-shadow: none !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          #app-container, .toast-container, .modal-header, .modal-footer, .no-print, .receipt-no-print { display: none !important; }
+          #app-container, .toast-container, .modal-header, .modal-footer, .no-print, .receipt-no-print, .receipt-tabs-toolbar, .receipt-cut-line, #receipt-twoprinter-alert { display: none !important; }
           #modal-container, .modal-overlay { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; background: transparent !important; background-color: transparent !important; backdrop-filter: none !important; box-shadow: none !important; display: block !important; opacity: 1 !important; visibility: visible !important; padding: 0 !important; margin: 0 !important; }
           #modal-container .modal-content, .modal-content { border: none !important; box-shadow: none !important; background: transparent !important; background-color: transparent !important; width: 100% !important; max-width: 100% !important; height: auto !important; max-height: none !important; overflow: visible !important; padding: 0 !important; margin: 0 !important; transform: none !important; }
           #modal-container .modal-body, .modal-body { padding: 0 !important; margin: 0 !important; height: auto !important; max-height: none !important; overflow: visible !important; background: transparent !important; background-color: transparent !important; }
-          .receipt-wrapper { width: 72mm !important; max-width: 72mm !important; margin: 0 auto !important; padding: 2mm 3mm !important; box-sizing: border-box !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; }
+          .receipt-wrapper { width: 72mm !important; max-width: 72mm !important; margin: 0 auto !important; padding: 2mm 3mm !important; box-sizing: border-box !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; overflow: visible !important; height: auto !important; }
           .receipt-table th, .receipt-table td { font-size: 11px !important; }
           #receipt-qrcode-box canvas { display: none !important; }
           #receipt-qrcode-box img, .receipt-qr-img { display: block !important; margin: 0 auto !important; width: 95px !important; height: 95px !important; max-width: 95px !important; }
+
+          /* Clean Thermal Page Break for Separate 1 by 1 Printing */
+          .receipt-ticket { display: block !important; width: 100% !important; box-sizing: border-box !important; }
+          .receipt-bill-ticket.has-page-break { page-break-after: always !important; break-after: page !important; }
+          .receipt-kot-ticket.has-page-break { page-break-before: always !important; break-before: page !important; }
+          .receipt-page-break {
+            display: block !important;
+            page-break-before: always !important;
+            break-before: page !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            clear: both !important;
+            visibility: hidden !important;
+          }
         }
       </style>
     `;
@@ -2942,21 +3235,10 @@ window.views.pos = {
     window.customModal.show({
       title: `Bill & Receipt #${order.orderNumber} (Token #${tokenNo})`,
       bodyHtml: modalHtml,
-      confirmText: defaultTab === "both" ? '<i class="fa-solid fa-copy"></i> Print Both (Separate Prints)' : (defaultTab === "kot" ? '<i class="fa-solid fa-fire-burner"></i> Print Kitchen KOT' : '<i class="fa-solid fa-print"></i> Print Bill'),
+      confirmText: defaultTab === "both" ? '<i class="fa-solid fa-print"></i> Print Both (Separate 1 by 1)' : (defaultTab === "kot" ? '<i class="fa-solid fa-fire-burner"></i> Print Kitchen KOT' : '<i class="fa-solid fa-print"></i> Print Customer Bill'),
       cancelText: "Done / Close",
       onConfirm: () => {
-        if (this.currentReceiptTab === "both") {
-          this.printSeparately(true);
-        } else {
-          const autoCloseHandler = () => {
-            window.removeEventListener("afterprint", autoCloseHandler);
-            setTimeout(() => {
-              if (window.customModal) window.customModal.hide();
-            }, 300);
-          };
-          window.addEventListener("afterprint", autoCloseHandler);
-          window.print();
-        }
+        this.printReceipt(true);
         return false;
       },
       onCancel: () => {
@@ -2996,22 +3278,11 @@ window.views.pos = {
     if (autoPrint) {
       setTimeout(() => {
         try {
-          if (defaultTab === "both") {
-            this.printSeparately(true);
-          } else {
-            const autoCloseHandler = () => {
-              window.removeEventListener("afterprint", autoCloseHandler);
-              setTimeout(() => {
-                if (window.customModal) window.customModal.hide();
-              }, 300);
-            };
-            window.addEventListener("afterprint", autoCloseHandler);
-            window.print();
-          }
+          this.printReceipt(true);
         } catch (err) {
           console.error("Print dialog error:", err);
         }
-      }, 150);
+      }, 100);
     }
   },
 
